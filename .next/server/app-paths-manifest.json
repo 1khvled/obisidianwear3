@@ -1,6 +1,0 @@
-{
-  "/admin/page": "app/admin/page.js",
-  "/page": "app/page.js",
-  "/product/[id]/page": "app/product/[id]/page.js",
-  "/checkout/page": "app/checkout/page.js"
-}
