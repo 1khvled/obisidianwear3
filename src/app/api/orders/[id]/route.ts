@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
-import { sharedDataStore } from '@/lib/sharedDataStore';
+import { getOrder, updateOrder, deleteOrder } from '@/lib/supabaseDatabase';
 
 // GET /api/orders/[id] - Get single order
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const order = sharedDataStore.getOrder(id);
+    const order = await getOrder(id);
     
     if (!order) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const updatedOrder = sharedDataStore.updateOrder(id, updateData);
+    const updatedOrder = await updateOrder(id, updateData);
     
     if (!updatedOrder) {
       return NextResponse.json(
@@ -77,7 +77,7 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const deletedOrder = sharedDataStore.getOrder(id);
+    const deletedOrder = await getOrder(id);
     if (!deletedOrder) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
@@ -85,7 +85,7 @@ export async function DELETE(
       );
     }
 
-    const success = sharedDataStore.deleteOrder(id);
+    const success = await deleteOrder(id);
     if (!success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete order' },

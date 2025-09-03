@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sharedDataStore, WilayaTariff } from '@/lib/sharedDataStore';
+import { getWilayaTariffs, updateWilayaTariffs } from '@/lib/supabaseDatabase';
 
 // GET /api/wilaya - Get all wilaya tariffs
 export async function GET() {
   try {
-    const wilayaTariffs = sharedDataStore.getWilayaTariffs();
+    const wilayaTariffs = await getWilayaTariffs();
     console.log('Wilaya API: GET request - returning', wilayaTariffs.length, 'wilaya tariffs');
     return NextResponse.json({
       success: true,
@@ -44,9 +44,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    sharedDataStore.updateWilayaTariffs(newTariffs);
+    await updateWilayaTariffs(newTariffs);
     
-    const updatedTariffs = sharedDataStore.getWilayaTariffs();
+    const updatedTariffs = await getWilayaTariffs();
     console.log('Wilaya API: PUT request - updated', updatedTariffs.length, 'wilaya tariffs');
     
     return NextResponse.json({

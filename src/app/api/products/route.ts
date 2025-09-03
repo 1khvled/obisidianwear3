@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { sharedDataStore } from '@/lib/sharedDataStore';
+import { getProducts, addProduct } from '@/lib/supabaseDatabase';
 
 // GET /api/products - Get all products
 export async function GET() {
   try {
-    const products = sharedDataStore.getProducts();
+    const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
       success: true,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    const addedProduct = sharedDataStore.addProduct(newProduct);
+    const addedProduct = await addProduct(newProduct);
     
     console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
     

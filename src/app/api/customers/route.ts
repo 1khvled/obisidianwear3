@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sharedDataStore, Customer } from '@/lib/sharedDataStore';
+import { getCustomers, addCustomer } from '@/lib/supabaseDatabase';
 
 // GET /api/customers - Get all customers
 export async function GET() {
   try {
-    const customers = sharedDataStore.getCustomers();
+    const customers = await getCustomers();
     console.log('Customers API: GET request - returning', customers.length, 'customers');
     return NextResponse.json({
       success: true,
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if customer already exists
-    const existingCustomers = sharedDataStore.getCustomers();
+    const existingCustomers = await getCustomers();
     const existingCustomer = existingCustomers.find(c => c.email === customerData.email);
     if (existingCustomer) {
       return NextResponse.json(
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique ID
-    const newCustomer: Customer = {
+    const newCustomer = {
       id: `CUST-${Date.now()}`,
       ...customerData,
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    const addedCustomer = sharedDataStore.addCustomer(newCustomer);
+    const addedCustomer = await addCustomer(newCustomer);
     
     console.log('Customers API: POST request - created customer:', newCustomer.id);
     

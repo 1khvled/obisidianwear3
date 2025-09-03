@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { sharedDataStore } from '@/lib/sharedDataStore';
+import { getProduct, updateProduct, deleteProduct } from '@/lib/supabaseDatabase';
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const product = sharedDataStore.getProduct(id);
+    const product = await getProduct(id);
     
     if (!product) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const updatedProduct = sharedDataStore.updateProduct(id, {
+    const updatedProduct = await updateProduct(id, {
       ...updateData,
       updatedAt: new Date()
     });
@@ -80,7 +80,7 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const deletedProduct = sharedDataStore.getProduct(id);
+    const deletedProduct = await getProduct(id);
     if (!deletedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
@@ -88,7 +88,7 @@ export async function DELETE(
       );
     }
 
-    const success = sharedDataStore.deleteProduct(id);
+    const success = await deleteProduct(id);
     if (!success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete product' },
