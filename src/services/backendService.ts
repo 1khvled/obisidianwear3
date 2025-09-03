@@ -4,8 +4,18 @@ import { Product, Order } from '@/types';
 class BackendService {
   private baseUrl = '/api';
 
+  // Check if we're in a browser environment
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined';
+  }
+
   // Products API
   async getProducts(): Promise<Product[]> {
+    if (!this.isBrowser()) {
+      console.log('BackendService: Not in browser, returning empty array');
+      return [];
+    }
+    
     try {
       const response = await fetch(`${this.baseUrl}/products`);
       const result = await response.json();
@@ -24,6 +34,10 @@ class BackendService {
   }
 
   async getProduct(id: string): Promise<Product | null> {
+    if (!this.isBrowser()) {
+      return null;
+    }
+    
     try {
       const response = await fetch(`${this.baseUrl}/products/${id}`);
       const result = await response.json();
@@ -110,6 +124,10 @@ class BackendService {
 
   // Orders API
   async getOrders(): Promise<Order[]> {
+    if (!this.isBrowser()) {
+      return [];
+    }
+    
     try {
       const response = await fetch(`${this.baseUrl}/orders`);
       const result = await response.json();
