@@ -269,7 +269,7 @@ class PostgresService {
       client.release();
       
       console.log('PostgreSQL: Deleted product:', id);
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('PostgreSQL deleteProduct error:', error);
       return false;
