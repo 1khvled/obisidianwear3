@@ -45,7 +45,7 @@ import DataSyncIndicator from '@/components/DataSyncIndicator';
 export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
-  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext } = useProducts();
+  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
   const { notifications, removeNotification, showSuccess, showError, showWarning, showInfo } = useNotifications();
   
   // State management
@@ -1246,7 +1246,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
       <DataSyncIndicator />
       
       {/* Manual Sync Button */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         <button
           onClick={async () => {
             try {
@@ -1268,6 +1268,18 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
         >
           🔄 Test Sync
         </button>
+        
+        {products.length === 0 && (
+          <button
+            onClick={() => {
+              initializeDefaultProducts();
+              showSuccess('Products Initialized', 'Default products have been added to your store');
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
+          >
+            📦 Add Sample Products
+          </button>
+        )}
       </div>
     </div>
   );

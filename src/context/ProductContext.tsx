@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types';
-import { products as initialProducts } from '@/data/products';
+
 import { vercelDataService } from '@/services/vercelDataService';
 
 interface ProductContextType {
@@ -12,6 +12,7 @@ interface ProductContextType {
   updateProduct: (id: string, product: Product) => void;
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
+  initializeDefaultProducts: () => void;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -23,16 +24,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     // Load products from shared data service
     const loadProducts = () => {
       const savedProducts = vercelDataService.getProducts();
-      if (savedProducts.length > 0) {
-        setProducts(savedProducts);
-      } else {
-        // Initialize with default products if none exist
-        setProducts(initialProducts);
-        // Save initial products to shared storage
-        initialProducts.forEach(product => {
-          vercelDataService.addProduct(product);
-        });
-      }
+      setProducts(savedProducts);
     };
 
     loadProducts();
@@ -95,6 +87,72 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     return products.find(product => product.id === id);
   };
 
+  const initializeDefaultProducts = () => {
+    // Only initialize if no products exist
+    if (products.length === 0) {
+      const defaultProducts = [
+        {
+          id: '1',
+          name: 'OBSIDIAN HOODIE BLACK',
+          price: 4500,
+          originalPrice: 5000,
+          image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&h=600&fit=crop',
+          description: 'Premium black hoodie with embroidered OBSIDIAN logo. Made from 100% cotton for ultimate comfort.',
+          category: 'Hoodies',
+          sizes: ['S', 'M', 'L', 'XL'],
+          colors: ['Black'],
+          inStock: true,
+          rating: 4.9,
+          reviews: 127,
+          stock: {
+            S: { Black: 15 },
+            M: { Black: 20 },
+            L: { Black: 18 },
+            XL: { Black: 12 }
+          },
+          sku: 'OBS-HOODIE-001',
+          weight: 0.8,
+          tags: ['hoodie', 'black', 'premium'],
+          featured: true,
+          createdAt: new Date('2025-01-01'),
+          updatedAt: new Date('2025-01-15')
+        },
+        {
+          id: '2',
+          name: 'OBSIDIAN TEE WHITE',
+          price: 2500,
+          originalPrice: 3000,
+          image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=600&fit=crop',
+          description: 'Premium white t-shirt with subtle OBSIDIAN branding. 100% cotton oversized fit.',
+          category: 'T-Shirts',
+          sizes: ['S', 'M', 'L', 'XL'],
+          colors: ['White', 'Black'],
+          inStock: true,
+          rating: 4.8,
+          reviews: 89,
+          stock: {
+            S: { White: 25, Black: 20 },
+            M: { White: 30, Black: 25 },
+            L: { White: 22, Black: 18 },
+            XL: { White: 18, Black: 15 }
+          },
+          sku: 'OBS-TEE-002',
+          weight: 0.3,
+          tags: ['tshirt', 'white', 'black'],
+          featured: false,
+          createdAt: new Date('2025-01-05'),
+          updatedAt: new Date('2025-01-10')
+        }
+      ];
+      
+      defaultProducts.forEach(product => {
+        vercelDataService.addProduct(product);
+      });
+      
+      setProducts(defaultProducts);
+    }
+  };
+
   return (
     <ProductContext.Provider value={{
       products,
@@ -102,7 +160,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       addProduct,
       updateProduct,
       deleteProduct,
-      getProduct
+      getProduct,
+      initializeDefaultProducts
     }}>
       {children}
     </ProductContext.Provider>
