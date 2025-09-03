@@ -1244,6 +1244,31 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
 
       {/* Data Sync Indicator */}
       <DataSyncIndicator />
+      
+      {/* Manual Sync Button */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={async () => {
+            try {
+              console.log('Manual sync triggered');
+              const response = await fetch('/api/data');
+              if (response.ok) {
+                const data = await response.json();
+                console.log('Manual sync result:', data);
+                showSuccess('Sync Test', `Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`);
+              } else {
+                showError('Sync Failed', 'Failed to fetch data from API');
+              }
+            } catch (error) {
+              console.error('Manual sync error:', error);
+              showError('Sync Error', 'Failed to sync data');
+            }
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        >
+          🔄 Test Sync
+        </button>
+      </div>
     </div>
   );
 }

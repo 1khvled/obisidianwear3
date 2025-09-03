@@ -65,6 +65,8 @@ class VercelDataService {
 
   private async syncWithVercel() {
     try {
+      console.log('VercelDataService: Attempting to sync with Vercel...');
+      
       // Fetch latest data from Vercel
       const response = await fetch(this.apiUrl, {
         method: 'GET',
@@ -73,19 +75,28 @@ class VercelDataService {
         },
       });
 
+      console.log('VercelDataService: Response status:', response.status);
+
       if (response.ok) {
         const remoteData = await response.json();
+        console.log('VercelDataService: Received data, version:', remoteData.version, 'products:', remoteData.products?.length || 0);
         
         if (remoteData && remoteData.version > this.lastVersion) {
           // Update local data with remote data
           this.updateLocalData(remoteData);
           this.lastVersion = remoteData.version;
           
-          console.log('Synced with Vercel, version:', remoteData.version);
+          console.log('VercelDataService: Synced with Vercel, version:', remoteData.version);
+        } else {
+          console.log('VercelDataService: No new data to sync, local version:', this.lastVersion, 'remote version:', remoteData.version);
         }
+      } else {
+        console.error('VercelDataService: API request failed with status:', response.status);
+        const errorText = await response.text();
+        console.error('VercelDataService: Error response:', errorText);
       }
     } catch (error) {
-      console.error('Vercel sync failed:', error);
+      console.error('VercelDataService: Sync failed:', error);
       throw error;
     }
   }
@@ -102,6 +113,8 @@ class VercelDataService {
 
   private async pushToVercel(data: DataStorage) {
     try {
+      console.log('VercelDataService: Pushing data to Vercel, version:', data.version, 'products:', data.products.length);
+      
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
@@ -110,11 +123,17 @@ class VercelDataService {
         body: JSON.stringify(data),
       });
 
+      console.log('VercelDataService: Push response status:', response.status);
+
       if (response.ok) {
-        console.log('Pushed to Vercel, version:', data.version);
+        const result = await response.json();
+        console.log('VercelDataService: Successfully pushed to Vercel, version:', result.version);
+      } else {
+        const errorText = await response.text();
+        console.error('VercelDataService: Push failed with status:', response.status, 'error:', errorText);
       }
     } catch (error) {
-      console.error('Failed to push to Vercel:', error);
+      console.error('VercelDataService: Failed to push to Vercel:', error);
       throw error;
     }
   }

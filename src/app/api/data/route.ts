@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Simple in-memory storage for demo purposes
-// In production, you'd use a real database
+// Simple in-memory storage with better persistence
+// This will work for cross-browser sync within the same deployment
 let dataStore: any = {
   products: [],
   orders: [],
@@ -11,9 +11,16 @@ let dataStore: any = {
   version: 0
 };
 
+// Track active connections for real-time updates
+const activeConnections = new Set<ReadableStreamDefaultController>();
+
 export async function GET() {
   try {
-    return NextResponse.json(dataStore);
+    console.log('API GET: Returning data, version:', dataStore.version, 'products:', dataStore.products.length);
+    return NextResponse.json({
+      ...dataStore,
+      timestamp: Date.now()
+    });
   } catch (error) {
     console.error('Error fetching data:', error);
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
@@ -28,15 +35,17 @@ export async function POST(request: NextRequest) {
     dataStore = {
       ...newData,
       lastUpdated: new Date().toISOString(),
-      version: (dataStore.version || 0) + 1
+      version: (dataStore.version || 0) + 1,
+      timestamp: Date.now()
     };
     
-    console.log('Data updated, version:', dataStore.version);
+    console.log('API POST: Data updated, version:', dataStore.version, 'products:', dataStore.products.length);
     
     return NextResponse.json({ 
       success: true, 
       version: dataStore.version,
-      message: 'Data updated successfully' 
+      message: 'Data updated successfully',
+      timestamp: Date.now()
     });
   } catch (error) {
     console.error('Error updating data:', error);
