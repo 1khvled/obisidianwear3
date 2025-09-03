@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { postgresService } from '@/lib/postgresService';
+import { fileStorageService } from '@/lib/fileStorageService';
 
 // GET /api/products - Get all products
 export async function GET() {
   try {
-    const products = await postgresService.getProducts();
+    const products = await fileStorageService.getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
       success: true,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    const addedProduct = await postgresService.addProduct(newProduct);
+    const addedProduct = await fileStorageService.addProduct(newProduct);
     
     console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
     

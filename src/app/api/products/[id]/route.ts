@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { postgresService } from '@/lib/postgresService';
+import { fileStorageService } from '@/lib/fileStorageService';
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const product = await postgresService.getProduct(id);
+    const product = await fileStorageService.getProduct(id);
     
     if (!product) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const updatedProduct = await postgresService.updateProduct(id, {
+    const updatedProduct = await fileStorageService.updateProduct(id, {
       ...updateData,
       updatedAt: new Date()
     });
@@ -80,7 +80,7 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const deletedProduct = await postgresService.getProduct(id);
+    const deletedProduct = await fileStorageService.getProduct(id);
     if (!deletedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
@@ -88,7 +88,7 @@ export async function DELETE(
       );
     }
 
-    const success = await postgresService.deleteProduct(id);
+    const success = await fileStorageService.deleteProduct(id);
     if (!success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete product' },
