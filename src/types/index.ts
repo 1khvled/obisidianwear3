@@ -34,11 +34,10 @@ export interface Order {
   id: string;
   productId: string;
   productName: string;
-  productPrice: number;
   productImage: string;
   customerName: string;
   customerPhone: string;
-  customerEmail?: string;
+  customerEmail: string;
   customerAddress: string;
   wilayaId: number;
   wilayaName: string;
@@ -53,8 +52,11 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   trackingNumber?: string;
   notes?: string;
-  paymentMethod: 'cod';
+  paymentMethod: 'cod' | 'bank_transfer';
   paymentStatus: 'pending' | 'paid' | 'failed';
+  estimatedDelivery?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CartItem {
