@@ -113,7 +113,7 @@ class OrderService {
         subtotal: order.subtotal,
         shippingCost: order.shippingCost,
         total: order.total,
-        shippingType: order.shippingType === 'domicileEcommerce' ? 'Home Delivery' : 'Pickup Point',
+        shippingType: order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Pickup Point',
         orderDate: order.orderDate.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
