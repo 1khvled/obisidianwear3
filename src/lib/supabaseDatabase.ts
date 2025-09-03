@@ -99,9 +99,8 @@ export async function addProduct(product: Product): Promise<Product> {
       weight: product.weight,
       dimensions: product.dimensions,
       tags: product.tags || [],
-      featured: product.featured || false,
-      created_at: product.createdAt,
-      updated_at: product.updatedAt
+      featured: product.featured || false
+      // created_at and updated_at are automatically set by the database
     };
 
     const { data, error } = await supabase
@@ -127,9 +126,31 @@ export async function addProduct(product: Product): Promise<Product> {
 
 export async function updateProduct(id: string, product: Partial<Product>): Promise<Product | null> {
   try {
+    // Convert camelCase to snake_case for database
+    const dbProduct: any = {};
+    
+    if (product.name !== undefined) dbProduct.name = product.name;
+    if (product.description !== undefined) dbProduct.description = product.description;
+    if (product.price !== undefined) dbProduct.price = product.price;
+    if (product.originalPrice !== undefined) dbProduct.original_price = product.originalPrice;
+    if (product.image !== undefined) dbProduct.image = product.image;
+    if (product.images !== undefined) dbProduct.images = product.images;
+    if (product.stock !== undefined) dbProduct.stock = product.stock;
+    if (product.category !== undefined) dbProduct.category = product.category;
+    if (product.sizes !== undefined) dbProduct.sizes = product.sizes;
+    if (product.colors !== undefined) dbProduct.colors = product.colors;
+    if (product.inStock !== undefined) dbProduct.in_stock = product.inStock;
+    if (product.rating !== undefined) dbProduct.rating = product.rating;
+    if (product.reviews !== undefined) dbProduct.reviews = product.reviews;
+    if (product.sku !== undefined) dbProduct.sku = product.sku;
+    if (product.weight !== undefined) dbProduct.weight = product.weight;
+    if (product.dimensions !== undefined) dbProduct.dimensions = product.dimensions;
+    if (product.tags !== undefined) dbProduct.tags = product.tags;
+    if (product.featured !== undefined) dbProduct.featured = product.featured;
+    
     const { data, error } = await supabase
       .from('products')
-      .update({ ...product, id })
+      .update(dbProduct)
       .eq('id', id)
       .select()
       .single();
@@ -140,7 +161,7 @@ export async function updateProduct(id: string, product: Partial<Product>): Prom
     }
     
     console.log('Supabase: Updated product:', id);
-    return data;
+    return convertDbProductToProduct(data);
   } catch (error) {
     console.error('Supabase updateProduct error:', error);
     return null;
