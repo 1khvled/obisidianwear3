@@ -96,7 +96,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const initializeDefaultProducts = async () => {
     // Only initialize if no products exist
     if (products.length === 0) {
-      const defaultProducts = [
+      const defaultProducts: Product[] = [
         {
           id: '1',
           name: 'OBSIDIAN HOODIE BLACK',
@@ -111,10 +111,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           rating: 4.9,
           reviews: 127,
           stock: {
-            S: { Black: 15 },
-            M: { Black: 20 },
-            L: { Black: 18 },
-            XL: { Black: 12 }
+            'S': { 'Black': 15 },
+            'M': { 'Black': 20 },
+            'L': { 'Black': 18 },
+            'XL': { 'Black': 12 }
           },
           sku: 'OBS-HOODIE-001',
           weight: 0.8,
@@ -137,10 +137,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           rating: 4.8,
           reviews: 89,
           stock: {
-            S: { White: 25, Black: 20 },
-            M: { White: 30, Black: 25 },
-            L: { White: 22, Black: 18 },
-            XL: { White: 18, Black: 15 }
+            'S': { 'White': 25, 'Black': 20 },
+            'M': { 'White': 30, 'Black': 25 },
+            'L': { 'White': 22, 'Black': 18 },
+            'XL': { 'White': 18, 'Black': 15 }
           },
           sku: 'OBS-TEE-002',
           weight: 0.3,
@@ -152,7 +152,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       ];
       
       for (const product of defaultProducts) {
-        await backendService.addProduct(product);
+        const { id, ...productWithoutId } = product;
+        await backendService.addProduct(productWithoutId);
       }
       
       setProducts(defaultProducts);
