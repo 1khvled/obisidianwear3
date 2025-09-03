@@ -3,6 +3,20 @@ import { Product, Order } from '@/types';
 // Backend API service using Vercel serverless functions
 class BackendService {
   private baseUrl = '/api';
+  
+  // Get the full URL for API calls
+  private getApiUrl(path: string): string {
+    // If we're in the browser, use relative URLs
+    if (typeof window !== 'undefined') {
+      return `${this.baseUrl}${path}`;
+    }
+    
+    // If we're on the server, we need to construct the full URL
+    // This is a fallback - in most cases, this service should only be called from the client
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    return `${protocol}://${host}${this.baseUrl}${path}`;
+  }
 
   // Check if we're in a browser environment
   private isBrowser(): boolean {
@@ -12,7 +26,7 @@ class BackendService {
   // Products API
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/products`);
+      const response = await fetch(this.getApiUrl('/products'));
       const result = await response.json();
       
       if (result.success) {
@@ -30,7 +44,7 @@ class BackendService {
 
   async getProduct(id: string): Promise<Product | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/products/${id}`);
+      const response = await fetch(this.getApiUrl(`/products/${id}`));
       const result = await response.json();
       
       if (result.success) {
@@ -48,7 +62,7 @@ class BackendService {
 
   async addProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/products`, {
+      const response = await fetch(this.getApiUrl('/products'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -71,7 +85,7 @@ class BackendService {
 
   async updateProduct(id: string, product: Partial<Product>): Promise<Product | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/products/${id}`, {
+      const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -94,7 +108,7 @@ class BackendService {
 
   async deleteProduct(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/products/${id}`, {
+      const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'DELETE'
       });
       
@@ -116,7 +130,7 @@ class BackendService {
   // Orders API
   async getOrders(): Promise<Order[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/orders`);
+      const response = await fetch(this.getApiUrl('/orders'));
       const result = await response.json();
       
       if (result.success) {
@@ -134,7 +148,7 @@ class BackendService {
 
   async getOrder(id: string): Promise<Order | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/orders/${id}`);
+      const response = await fetch(this.getApiUrl(`/orders/${id}`));
       const result = await response.json();
       
       if (result.success) {
@@ -152,7 +166,7 @@ class BackendService {
 
   async addOrder(order: Omit<Order, 'id'>): Promise<Order | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/orders`, {
+      const response = await fetch(this.getApiUrl('/orders'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
@@ -175,7 +189,7 @@ class BackendService {
 
   async updateOrder(id: string, order: Partial<Order>): Promise<Order | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/orders/${id}`, {
+      const response = await fetch(this.getApiUrl(`/orders/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
@@ -198,7 +212,7 @@ class BackendService {
 
   async deleteOrder(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/orders/${id}`, {
+      const response = await fetch(this.getApiUrl(`/orders/${id}`), {
         method: 'DELETE'
       });
       
@@ -220,7 +234,7 @@ class BackendService {
   // Customers API
   async getCustomers(): Promise<any[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/customers`);
+      const response = await fetch(this.getApiUrl('/customers'));
       const result = await response.json();
       
       if (result.success) {
@@ -238,7 +252,7 @@ class BackendService {
 
   async addCustomer(customer: any): Promise<any> {
     try {
-      const response = await fetch(`${this.baseUrl}/customers`, {
+      const response = await fetch(this.getApiUrl('/customers'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customer)
@@ -262,7 +276,7 @@ class BackendService {
   // Wilaya API
   async getWilayaTariffs(): Promise<any[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wilaya`);
+      const response = await fetch(this.getApiUrl('/wilaya'));
       const result = await response.json();
       
       if (result.success) {
@@ -280,7 +294,7 @@ class BackendService {
 
   async updateWilayaTariffs(tariffs: any[]): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/wilaya`, {
+      const response = await fetch(this.getApiUrl('/wilaya'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tariffs)
