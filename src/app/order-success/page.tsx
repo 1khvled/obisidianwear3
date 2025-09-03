@@ -182,7 +182,6 @@ export default function OrderSuccessPage() {
             <div className="space-y-2 text-sm">
               <p className="text-gray-400">Questions about your order?</p>
               <p className="text-white">Phone: +213 XXX XXX XXX</p>
-              <p className="text-white">WhatsApp: +213 XXX XXX XXX</p>
               <div className="pt-2">
                 <p className="text-gray-400">Social Media:</p>
                 <p className="text-blue-400">Instagram: @obsidianwear_dz</p>
@@ -194,21 +193,13 @@ export default function OrderSuccessPage() {
           <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800/50">
             <h3 className="text-white font-bold mb-4 flex items-center">
               <MessageCircle size={20} className="mr-2" />
-              Contact WhatsApp
+              Contact Support
             </h3>
             <div className="space-y-2 text-sm">
               <p className="text-gray-400">
-                Need help with your order? Contact us on WhatsApp:
+                Need help with your order? Contact us:
               </p>
-              <a 
-                href="https://wa.me/213672536920" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors font-medium"
-              >
-                <MessageCircle size={16} className="mr-2" />
-                0672536920
-              </a>
+              <p className="text-white">Phone: +213 XXX XXX XXX</p>
               <p className="text-gray-400">
                 We'll respond within 24 hours to help with your order.
               </p>

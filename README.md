@@ -78,7 +78,7 @@ npm start
 - Add items to cart
 - Checkout with shipping options
 - Order tracking
-- WhatsApp contact integration
+- Contact form integration
 
 ### Admin Features
 - Product management (add/edit/delete)
@@ -120,7 +120,7 @@ All data is stored in localStorage for client-side persistence:
 
 ## 📞 Support
 
-For support, contact via WhatsApp: **0672536920**
+For support, contact via phone: **+213 XXX XXX XXX**
 
 ## 📄 License
 

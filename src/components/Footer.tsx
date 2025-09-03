@@ -75,12 +75,7 @@ export default function Footer() {
                   @obsidianwear.dz
                 </a>
               </div>
-              <div className="flex items-center space-x-3">
-                <MessageCircle size={20} className="text-gray-400" />
-                <a href="https://wa.me/213672536920" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                  0672536920
-                </a>
-              </div>
+
             </div>
           </div>
         </div>
