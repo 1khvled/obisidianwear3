@@ -46,12 +46,25 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = (id: string, updatedProduct: Product) => {
+    // Auto-sync inStock status based on actual stock levels
+    const totalStock = updatedProduct.stock ? 
+      Object.values(updatedProduct.stock).reduce((total, colorStock) => {
+        return total + Object.values(colorStock).reduce((sum, qty) => sum + qty, 0);
+      }, 0) : 0;
+    
+    const syncedProduct = {
+      ...updatedProduct,
+      inStock: totalStock > 0
+    };
+    
     const newProducts = products.map(product => 
-      product.id === id ? updatedProduct : product
+      product.id === id ? syncedProduct : product
     );
+    console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
     setProducts(newProducts);
     if (typeof window !== 'undefined') {
       localStorage.setItem('obsidian-products', JSON.stringify(newProducts));
+      console.log('ProductContext: Saved to localStorage');
     }
   };
 

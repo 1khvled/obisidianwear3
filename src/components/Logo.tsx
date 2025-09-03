@@ -3,24 +3,42 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function Logo() {
+interface LogoProps {
+  className?: string;
+  showText?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export default function Logo({ className = "", showText = true, size = 'md' }: LogoProps) {
+  const sizeClasses = {
+    sm: 'w-8 h-8',
+    md: 'w-12 h-12', 
+    lg: 'w-16 h-16'
+  };
+
+  const textSizes = {
+    sm: 'text-lg',
+    md: 'text-2xl',
+    lg: 'text-3xl'
+  };
+
   return (
-    <Link href="/" className="flex items-center space-x-3">
-      {/* Placeholder for your logo - replace with your actual logo */}
-      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-        <span className="text-black font-bold text-2xl">O</span>
+    <Link href="/" className={`flex items-center space-x-3 hover:opacity-80 transition-opacity ${className}`}>
+      <div className={`${sizeClasses[size]} relative`}>
+        <Image
+          src="/Logo Obsidian Wear sur fond noir.png"
+          alt="OBSIDIAN WEAR"
+          width={size === 'sm' ? 32 : size === 'md' ? 48 : 64}
+          height={size === 'sm' ? 32 : size === 'md' ? 48 : 64}
+          className={`${sizeClasses[size]} object-contain`}
+          priority
+        />
       </div>
-      {/* 
-      Uncomment and replace with your actual logo:
-      <Image
-        src="/your-logo.png"
-        alt="OBSIDIAN WEAR"
-        width={48}
-        height={48}
-        className="w-12 h-12"
-      />
-      */}
-      <span className="text-2xl font-bold font-poppins text-white">OBSIDIAN WEAR</span>
+      {showText && (
+        <span className={`${textSizes[size]} font-bold font-poppins text-white tracking-wider`}>
+          OBSIDIAN WEAR
+        </span>
+      )}
     </Link>
   );
 }

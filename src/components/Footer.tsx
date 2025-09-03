@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -75,13 +75,19 @@ export default function Footer() {
                   @obsidianwear.dz
                 </a>
               </div>
+              <div className="flex items-center space-x-3">
+                <MessageCircle size={20} className="text-gray-400" />
+                <a href="https://wa.me/213672536920" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                  0672536920
+                </a>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-900 mt-12 pt-8 text-center">
           <p className="text-gray-400 text-sm">
-            © 2024 OBSIDIAN WEAR. All rights reserved. | 
+            © 2025 OBSIDIAN WEAR. All rights reserved. | 
             <Link href="#" className="hover:text-white transition-colors ml-1">Politique de Confidentialité</Link> | 
             <Link href="#" className="hover:text-white transition-colors ml-1">Conditions d'Utilisation</Link>
           </p>

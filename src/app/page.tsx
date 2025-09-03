@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
@@ -33,44 +34,67 @@ export default function Home() {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative bg-black py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                             <div className="text-center">
-                     <h1 className="text-5xl md:text-7xl font-bold font-poppins mb-8 text-white">
-                       {t('hero.title')}
-                       <span className="block">{t('hero.title2')}</span>
-                     </h1>
-                     <p className="text-lg text-gray-400 mb-12 max-w-xl mx-auto">
-                       {t('hero.subtitle')}
-                     </p>
-                     <button className="bg-white text-black px-8 py-4 rounded-none font-semibold hover:bg-gray-200 transition-colors text-lg">
-                       {t('hero.cta')}
-                     </button>
-                   </div>
+      <section className="relative bg-black py-16 sm:py-24 lg:py-32">
+        <div className="max-w-7xl mx-auto container-padding">
+                      <div className="flex flex-col items-center text-center space-y-8">
+              <Image
+                src="/Logo Obsidian Wear sur fond noir.png"
+                alt="OBSIDIAN WEAR Logo"
+                width={220}
+                height={220}
+                priority
+                className="w-48 sm:w-56 h-auto"
+              />
+              <h1 className="heading-responsive font-bold font-poppins text-white leading-tight">
+                {t('hero.title')}
+                <span className="block">{t('hero.title2')}</span>
+              </h1>
+              <p className="text-responsive text-gray-400 max-w-xl leading-relaxed">
+                {t('hero.subtitle')}
+              </p>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    console.log('🚀 Hero CTA clicked');
+                    const productsSection = document.getElementById('products');
+                    if (productsSection) {
+                      console.log('✅ Products section found, scrolling...');
+                      productsSection.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      console.log('❌ Products section not found');
+                      window.scrollTo({ top: 800, behavior: 'smooth' });
+                    }
+                  }}
+                  className="btn-primary touch-target px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-responsive bg-white text-black hover:bg-gray-200 active:bg-gray-300 transition-colors"
+                >
+                  {t('hero.cta')}
+                </button>
+              </div>
+            </div>
         </div>
       </section>
 
 
 
       {/* Products Section */}
-      <section id="products" className="py-20 bg-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold font-poppins mb-4 text-white">
+      <section id="products" className="py-12 sm:py-16 lg:py-20 bg-black">
+        <div className="max-w-7xl mx-auto container-padding">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h2 className="heading-responsive font-bold font-poppins mb-4 text-white">
               {t('products.title')}
             </h2>
           </div>
 
           {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8 sm:mb-12">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => handleCategoryFilter(category)}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`touch-target px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                   selectedCategory === category
                     ? 'bg-white text-black'
-                    : 'bg-gray-800 text-white hover:bg-gray-700'
+                    : 'bg-gray-800 text-white hover:bg-gray-700 active:bg-gray-600'
                 }`}
               >
                 {category}
@@ -80,19 +104,19 @@ export default function Home() {
 
           {/* Products Grid */}
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="mobile-grid gap-4 sm:gap-6 lg:gap-8">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
             /* Empty State */
-            <div className="text-center py-20">
-              <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ShoppingBag size={32} className="text-gray-400" />
+            <div className="text-center py-12 sm:py-16 lg:py-20">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                <ShoppingBag size={24} className="sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-gray-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">{t('products.empty')}</h3>
-              <p className="text-gray-400">{t('products.empty.desc')}</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">{t('products.empty')}</h3>
+              <p className="text-gray-400 text-responsive">{t('products.empty.desc')}</p>
             </div>
           )}
         </div>

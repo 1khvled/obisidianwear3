@@ -1,24 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductContext';
+import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { getProduct, products } = useProducts();
+  const { addToCart } = useCart();
+  
+  console.log('Cart hook available:', !!addToCart);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [product, setProduct] = useState<Product | undefined>(undefined);
 
-  const product: Product | undefined = products.find(p => p.id === params.id);
+  useEffect(() => {
+    if (params.id) {
+      const foundProduct = getProduct(params.id as string);
+      setProduct(foundProduct);
+      
+      // Set default color if not selected
+      if (foundProduct && foundProduct.colors.length > 0 && !selectedColor) {
+        setSelectedColor(foundProduct.colors[0]);
+      }
+      
+      console.log('Product detail page updated:', foundProduct?.name);
+    }
+  }, [params.id, getProduct, products, selectedColor]); // Added products as dependency
 
   if (!product) {
     return (
@@ -49,6 +67,20 @@ export default function ProductDetailPage() {
     router.push(`/checkout?productId=${product.id}&size=${selectedSize}&color=${selectedColor}&quantity=${quantity}`);
   };
 
+  const handleAddToCart = () => {
+    if (!product) {
+      alert('Product not found!');
+      return;
+    }
+    if (!selectedSize || !selectedColor) {
+      alert('Please select size and color');
+      return;
+    }
+    console.log('Adding to cart:', { product, selectedSize, selectedColor, quantity });
+    addToCart(product, selectedSize, selectedColor, quantity);
+    alert('Added to cart!');
+  };
+
   return (
     <div className="min-h-screen bg-black">
       <Header />
@@ -63,25 +95,26 @@ export default function ProductDetailPage() {
           Back to Products
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Product Images */}
-          <div className="space-y-4">
-            <div className="aspect-square bg-gray-900 rounded-lg overflow-hidden">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden">
               <Image
                 src={product.image}
                 alt={product.name}
                 width={600}
                 height={600}
                 className="w-full h-full object-cover"
+                priority
               />
             </div>
             
             {/* Additional Images (using same image for demo) */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-2 sm:gap-4">
               {[1, 2, 3, 4].map((index) => (
                 <div
                   key={index}
-                  className="aspect-square bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all touch-target"
                   onClick={() => setSelectedImage(index - 1)}
                 >
                   <Image
@@ -97,12 +130,12 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Details */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold font-poppins text-white mb-2">
+              <h1 className="heading-responsive font-bold font-poppins text-white mb-2">
                 {product.name}
               </h1>
-              <p className="text-gray-400 text-lg">{product.category}</p>
+              <p className="text-gray-400 text-responsive">{product.category}</p>
             </div>
 
             {/* Rating */}
@@ -128,15 +161,15 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="flex items-center space-x-4">
               <span className="text-3xl font-bold text-white">
-                {product.price} DZD
+                {product.price} DA
               </span>
               {product.originalPrice && (
                 <>
                   <span className="text-xl text-gray-500 line-through">
-                    {product.originalPrice} DZD
+                    {product.originalPrice} DA
                   </span>
                   <span className="bg-red-600 text-white text-sm font-semibold px-2 py-1 rounded">
-                    Save {(product.originalPrice - product.price).toFixed(0)} DZD
+                    Save {(product.originalPrice - product.price).toFixed(0)} DA
                   </span>
                 </>
               )}
@@ -154,19 +187,43 @@ export default function ProductDetailPage() {
             <div>
               <h3 className="text-white font-semibold text-lg mb-3">Size</h3>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
-                      selectedSize === size
-                        ? 'border-white bg-white text-black'
-                        : 'border-gray-600 text-white hover:border-gray-400'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.sizes.map((size) => {
+                  const sizeStock = selectedColor ? (product.stock?.[size]?.[selectedColor] || 0) : 0;
+                  const isOutOfStock = sizeStock === 0;
+                  
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        if (!isOutOfStock) {
+                          setSelectedSize(size);
+                        } else {
+                          alert(`❌ Size ${size} in ${selectedColor} is OUT OF STOCK!`);
+                        }
+                      }}
+                      disabled={isOutOfStock}
+                      className={`px-4 py-2 border rounded-lg font-medium transition-colors relative ${
+                        selectedSize === size
+                          ? 'border-white bg-white text-black'
+                          : isOutOfStock 
+                            ? 'border-red-600 text-red-400 cursor-not-allowed bg-red-900/20'
+                            : 'border-gray-600 text-white hover:border-gray-400'
+                      }`}
+                    >
+                      {size}
+                      {isOutOfStock && (
+                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1">
+                          0
+                        </span>
+                      )}
+                      {!isOutOfStock && sizeStock < 5 && sizeStock > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {sizeStock}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -215,11 +272,61 @@ export default function ProductDetailPage() {
             {/* Action Buttons */}
             <div className="space-y-4">
               <button
-                onClick={handleBuyNow}
-                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                onClick={() => {
+                  if (!selectedSize || !selectedColor) {
+                    alert('❌ Please select size and color first!');
+                    return;
+                  }
+                  
+                  const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+                  if (availableStock === 0) {
+                    alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
+                    return;
+                  }
+                  
+                  if (quantity > availableStock) {
+                    alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+                    return;
+                  }
+                  
+                  handleBuyNow();
+                }}
+                disabled={!product.inStock || !selectedSize || !selectedColor}
+                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 <ShoppingCart size={20} />
-                <span>Buy Now - ${(product.price * quantity).toFixed(2)}</span>
+                <span>
+                  {!product.inStock ? 'Out of Stock' : 
+                   !selectedSize || !selectedColor ? 'Select Size & Color' :
+                   `Buy Now - ${(product.price * quantity).toFixed(0)} DA`}
+                </span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (!selectedSize || !selectedColor) {
+                    alert('Please select size and color first!');
+                    return;
+                  }
+                  
+                  const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+                  if (availableStock === 0) {
+                    alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
+                    return;
+                  }
+                  
+                  if (quantity > availableStock) {
+                    alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+                    return;
+                  }
+                  
+                  handleAddToCart();
+                }}
+                disabled={!product.inStock || !selectedSize || !selectedColor}
+                className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
+              >
+                <ShoppingCart size={20} />
+                <span>Add to Cart</span>
               </button>
               
               <div className="flex space-x-4">
@@ -237,13 +344,7 @@ export default function ProductDetailPage() {
             {/* Features */}
             <div className="border-t border-gray-800 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center space-x-3">
-                  <Truck size={20} className="text-gray-400" />
-                  <div>
-                    <p className="text-white font-medium">Free Shipping</p>
-                    <p className="text-gray-400 text-sm">On orders over $50</p>
-                  </div>
-                </div>
+
                 <div className="flex items-center space-x-3">
                   <Shield size={20} className="text-gray-400" />
                   <div>

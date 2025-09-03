@@ -3,6 +3,9 @@ import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
 import { ProductProvider } from '@/context/ProductContext'
 import { LanguageProvider } from '@/context/LanguageContext'
+import { AuthProvider } from '@/context/AuthContext'
+import { CartProvider } from '@/context/CartContext'
+import StoreStatusChecker from '@/components/StoreStatusChecker'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -18,22 +21,58 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: 'OBSIDIAN WEAR - Plus qu\'un vêtement, une attitude',
   description: 'Découvrez notre collection exclusive OBSIDIAN WEAR. Plus qu\'un vêtement, une attitude. Style unique et pièces premium.',
-  keywords: 'obsidian wear, clothing, fashion, style, apparel, algeria, dz, premium',
+  keywords: 'obsidian wear, clothing, fashion, style, apparel, algeria, dz, premium, ecommerce, boutique',
   authors: [{ name: 'OBSIDIAN WEAR' }],
+  creator: 'OBSIDIAN WEAR',
+  publisher: 'OBSIDIAN WEAR',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://obsidian-wear.vercel.app'),
+  alternates: {
+    canonical: '/',
+    languages: {
+      'en-US': '/en',
+      'fr-DZ': '/fr',
+    },
+  },
   openGraph: {
     title: 'OBSIDIAN WEAR - Plus qu\'un vêtement, une attitude',
     description: 'Découvrez notre collection exclusive OBSIDIAN WEAR. Plus qu\'un vêtement, une attitude.',
-    type: 'website',
+    url: 'https://obsidian-wear.vercel.app',
+    siteName: 'OBSIDIAN WEAR',
+    images: [
+      {
+        url: '/Logo Obsidian Wear sur fond noir.png',
+        width: 1200,
+        height: 630,
+        alt: 'OBSIDIAN WEAR Logo',
+      },
+    ],
     locale: 'fr_DZ',
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'OBSIDIAN WEAR - Plus qu\'un vêtement, une attitude',
     description: 'Découvrez notre collection exclusive OBSIDIAN WEAR. Plus qu\'un vêtement, une attitude.',
+    images: ['/Logo Obsidian Wear sur fond noir.png'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
   },
 }
 
@@ -52,11 +91,16 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        <LanguageProvider>
-          <ProductProvider>
-            {children}
-          </ProductProvider>
-        </LanguageProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <ProductProvider>
+              <CartProvider>
+                <StoreStatusChecker />
+                {children}
+              </CartProvider>
+            </ProductProvider>
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   )

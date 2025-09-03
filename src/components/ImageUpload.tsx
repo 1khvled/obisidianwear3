@@ -11,11 +11,26 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ value, onChange, placeholder = "Enter image URL or upload" }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image valide');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('L\'image est trop grande. Taille maximum: 5MB');
+      return;
+    }
+
+    setIsUploading(true);
 
     // For now, we'll create a local URL for the image
     // In production, you'd upload to a service like Cloudinary, AWS S3, etc.
@@ -23,6 +38,7 @@ export default function ImageUpload({ value, onChange, placeholder = "Enter imag
     reader.onload = (e) => {
       const result = e.target?.result as string;
       onChange(result);
+      setIsUploading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -95,28 +111,7 @@ export default function ImageUpload({ value, onChange, placeholder = "Enter imag
           </div>
         </div>
 
-        {/* Quick Image Suggestions */}
-        <div>
-          <label className="block text-white font-medium mb-2">Quick Options</label>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&h=600&fit=crop',
-              'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=600&fit=crop',
-              'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&h=600&fit=crop',
-              'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=500&h=600&fit=crop'
-            ].map((url, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleUrlChange(url)}
-                className="flex items-center space-x-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white hover:bg-gray-700 transition-colors text-sm"
-              >
-                <ImageIcon size={16} />
-                <span>Option {index + 1}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );

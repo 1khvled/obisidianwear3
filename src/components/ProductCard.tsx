@@ -15,36 +15,36 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   return (
-    <div className="group bg-gray-900 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-2xl hover:shadow-white/10">
+    <div className="group bg-gray-900/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-800/50 hover:border-gray-700/50 transition-all duration-300 hover:shadow-xl hover:shadow-white/5 active:scale-[0.98] sm:active:scale-100">
       <div className="relative overflow-hidden">
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.id}`} className="block">
           <Image
             src={product.image}
             alt={product.name}
             width={400}
             height={500}
-            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-48 sm:h-56 lg:h-64 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </Link>
         
         {/* Discount Badge */}
         {discountPercentage > 0 && (
-          <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded">
             -{discountPercentage}%
           </div>
         )}
 
         {/* Stock Status */}
         {!product.inStock && (
-          <div className="absolute top-3 right-3 bg-gray-600 text-white text-xs font-semibold px-2 py-1 rounded">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-600 text-white text-xs font-semibold px-2 py-1 rounded">
             Out of Stock
           </div>
         )}
 
-        {/* Quick Add to Cart Button */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+        {/* Quick Add to Cart Button - Hidden on mobile for better UX */}
+        <div className="hidden sm:flex absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 items-center justify-center opacity-0 group-hover:opacity-100">
           <button 
-            className="bg-white text-black px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2"
+            className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
             disabled={!product.inStock}
           >
             <ShoppingCart size={16} />
@@ -53,9 +53,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <Link href={`/product/${product.id}`}>
-          <h3 className="text-white font-semibold text-lg mb-2 hover:text-gray-300 transition-colors">
+          <h3 className="text-white font-semibold text-base sm:text-lg mb-2 hover:text-gray-300 transition-colors line-clamp-2">
             {product.name}
           </h3>
         </Link>
@@ -66,8 +66,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                size={14}
-                className={`${
+                size={12}
+                className={`sm:w-4 sm:h-4 ${
                   i < Math.floor(product.rating)
                     ? 'text-yellow-400 fill-current'
                     : 'text-gray-600'
@@ -75,32 +75,43 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className="text-gray-400 text-sm">
+          <span className="text-gray-400 text-xs sm:text-sm">
             ({product.reviews})
           </span>
         </div>
 
         {/* Price */}
         <div className="flex items-center space-x-2 mb-3">
-          <span className="text-white font-bold text-xl">
-            {product.price} DZD
+          <span className="text-white font-bold text-lg sm:text-xl">
+            {product.price} DA
           </span>
           {product.originalPrice && (
             <span className="text-gray-500 line-through text-sm">
-              {product.originalPrice} DZD
+              {product.originalPrice} DA
             </span>
           )}
         </div>
 
         {/* Buy Now Button */}
-        <Link href={`/product/${product.id}`}>
-          <button 
-            className="w-full bg-white text-black py-2 px-4 rounded-lg font-semibold hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-            disabled={!product.inStock}
-          >
-            {product.inStock ? 'Buy Now' : 'Out of Stock'}
-          </button>
-        </Link>
+        <div className="space-y-2">
+          <Link href={`/product/${product.id}`}>
+            <button 
+              className="w-full bg-white text-black py-2.5 sm:py-2 px-4 rounded-lg font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-sm sm:text-base touch-target"
+              disabled={!product.inStock}
+            >
+              {product.inStock ? 'View Product' : 'Out of Stock'}
+            </button>
+          </Link>
+          {product.inStock && (
+            <Link 
+              href={`/checkout?productId=${product.id}&size=M&color=${product.colors[0]}&quantity=1`}
+            >
+              <button className="w-full bg-gray-800 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm sm:text-base touch-target">
+                Quick Buy
+              </button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

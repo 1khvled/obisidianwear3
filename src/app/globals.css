@@ -3,6 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force black background and white text */
+body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
 :root {
   --background: #000000;
   --foreground: #ffffff;
@@ -40,9 +46,9 @@ a {
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - mobile optimized */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -58,6 +64,29 @@ a {
   background: #555;
 }
 
+/* Mobile-first responsive utilities */
+@layer utilities {
+  .text-responsive {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+  
+  .heading-responsive {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+  }
+  
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+}
+
 /* Smooth transitions */
 * {
   transition: all 0.2s ease-in-out;
@@ -70,4 +99,61 @@ a {
 
 .btn-secondary {
   @apply bg-transparent border border-white text-white hover:bg-white hover:text-black transition-colors duration-200;
+}
+
+/* Mobile touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    @apply touch-target;
+  }
+  
+  /* Remove hover effects on mobile */
+  .hover\:bg-gray-200:hover {
+    background-color: inherit;
+  }
+  
+  /* Add active states for better mobile feedback */
+  button:active, a:active, [role="button"]:active {
+    @apply scale-95 opacity-80;
+  }
+}
+
+/* Improve mobile form inputs */
+input, textarea, select {
+  @apply text-base; /* Prevents zoom on iOS */
+  -webkit-appearance: none;
+}
+
+/* Better mobile modal handling */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-75 z-50 p-4 overflow-y-auto;
+}
+
+.modal-content {
+  @apply w-full max-w-lg mx-auto my-8 bg-gray-900 rounded-lg;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line clamp utility */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }

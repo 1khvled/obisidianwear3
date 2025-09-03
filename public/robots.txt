@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://obsidian-wear.vercel.app/sitemap.xml
+
+# Disallow admin area
+Disallow: /admin
+Disallow: /api/
+
+# Allow important pages
+Allow: /
+Allow: /cart
+Allow: /checkout
+Allow: /order-success

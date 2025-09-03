@@ -1,18 +1,25 @@
 {
   "name": "obsidian-wear",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "OBSIDIAN WEAR - Modern e-commerce store with admin panel",
+  "keywords": ["ecommerce", "nextjs", "react", "tailwindcss", "typescript"],
+  "author": "OBSIDIAN WEAR",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "build:analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
+    "lucide-react": "^0.294.0",
     "next": "14.0.4",
     "react": "^18",
-    "react-dom": "^18",
-    "lucide-react": "^0.294.0"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",

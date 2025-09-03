@@ -1,0 +1,57 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- OBSIDIAN WEAR Logo Recreation -->
+  <defs>
+    <style>
+      .logo-text { 
+        font-family: 'Arial Black', sans-serif; 
+        font-weight: 900; 
+        fill: white;
+      }
+      .logo-outline { 
+        stroke: white; 
+        stroke-width: 3; 
+        fill: none; 
+      }
+      .logo-silhouette {
+        fill: white;
+      }
+    </style>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="black" stroke="white" stroke-width="3"/>
+  
+  <!-- Stylized Human Figure -->
+  <g transform="translate(100, 50)">
+    <!-- Head with crown/spikes -->
+    <circle cx="0" cy="20" r="12" class="logo-silhouette"/>
+    <path d="M -8 12 L -4 2 L 0 8 L 4 2 L 8 12" class="logo-silhouette"/>
+    
+    <!-- Body -->
+    <rect x="-15" y="32" width="30" height="40" rx="5" class="logo-silhouette"/>
+    
+    <!-- Arms -->
+    <rect x="-25" y="35" width="10" height="25" rx="5" class="logo-silhouette"/>
+    <rect x="15" y="35" width="10" height="25" rx="5" class="logo-silhouette"/>
+    
+    <!-- Legs -->
+    <rect x="-12" y="72" width="8" height="30" rx="4" class="logo-silhouette"/>
+    <rect x="4" y="72" width="8" height="30" rx="4" class="logo-silhouette"/>
+  </g>
+  
+  <!-- OBSIDIAN Text (Curved) -->
+  <path id="curve-top" d="M 30 100 A 70 70 0 0 1 170 100" fill="none"/>
+  <text class="logo-text" font-size="16" letter-spacing="2">
+    <textPath href="#curve-top" startOffset="50%" text-anchor="middle">
+      OBSIDIAN
+    </textPath>
+  </text>
+  
+  <!-- WEAR Text (Curved) -->
+  <path id="curve-bottom" d="M 170 100 A 70 70 0 0 1 30 100" fill="none"/>
+  <text class="logo-text" font-size="14" letter-spacing="3">
+    <textPath href="#curve-bottom" startOffset="50%" text-anchor="middle">
+      WEAR
+    </textPath>
+  </text>
+</svg>
