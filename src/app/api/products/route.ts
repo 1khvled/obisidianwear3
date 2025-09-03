@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { getProducts, addProduct } from '@/lib/supabaseDatabase';
+import { vercelKVService } from '@/lib/vercelKVService';
 
 // GET /api/products - Get all products
 export async function GET() {
   try {
-    const products = await getProducts();
+    const products = await vercelKVService.getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
       success: true,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    const addedProduct = await addProduct(newProduct);
+    const addedProduct = await vercelKVService.addProduct(newProduct);
     
     console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
     

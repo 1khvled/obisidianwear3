@@ -23,6 +23,7 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@supabase/supabase-js": "^2.57.0",
+    "@vercel/kv": "^3.0.0",
     "critters": "^0.0.23",
     "lucide-react": "^0.294.0",
     "mongodb": "^6.19.0",

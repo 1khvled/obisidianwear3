@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { getProduct, updateProduct, deleteProduct } from '@/lib/supabaseDatabase';
+import { vercelKVService } from '@/lib/vercelKVService';
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const product = await getProduct(id);
+    const product = await vercelKVService.getProduct(id);
     
     if (!product) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const updatedProduct = await updateProduct(id, {
+    const updatedProduct = await vercelKVService.updateProduct(id, {
       ...updateData,
       updatedAt: new Date()
     });
@@ -80,7 +80,7 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const deletedProduct = await getProduct(id);
+    const deletedProduct = await vercelKVService.getProduct(id);
     if (!deletedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
@@ -88,7 +88,7 @@ export async function DELETE(
       );
     }
 
-    const success = await deleteProduct(id);
+    const success = await vercelKVService.deleteProduct(id);
     if (!success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete product' },
