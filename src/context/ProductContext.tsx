@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types';
 import { products as initialProducts } from '@/data/products';
-import { dataService } from '@/services/dataService';
+import { vercelDataService } from '@/services/vercelDataService';
 
 interface ProductContextType {
   products: Product[];
@@ -22,7 +22,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Load products from shared data service
     const loadProducts = () => {
-      const savedProducts = dataService.getProducts();
+      const savedProducts = vercelDataService.getProducts();
       if (savedProducts.length > 0) {
         setProducts(savedProducts);
       } else {
@@ -30,7 +30,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         setProducts(initialProducts);
         // Save initial products to shared storage
         initialProducts.forEach(product => {
-          dataService.addProduct(product);
+          vercelDataService.addProduct(product);
         });
       }
     };
@@ -64,7 +64,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addProduct = (product: Product) => {
-    const newProduct = dataService.addProduct(product);
+    const newProduct = vercelDataService.addProduct(product);
     setProducts(prev => [...prev, newProduct]);
   };
 
@@ -82,12 +82,12 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     
     console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
     
-    const result = dataService.updateProduct(id, syncedProduct);
+    const result = vercelDataService.updateProduct(id, syncedProduct);
     setProducts(prev => prev.map(p => p.id === id ? result : p));
   };
 
   const deleteProduct = (id: string) => {
-    dataService.deleteProduct(id);
+    vercelDataService.deleteProduct(id);
     setProducts(prev => prev.filter(product => product.id !== id));
   };
 

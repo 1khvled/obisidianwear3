@@ -39,7 +39,7 @@ import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
 import { Product, Order, Customer } from '@/types';
-import { dataService } from '@/services/dataService';
+import { vercelDataService } from '@/services/vercelDataService';
 import DataSyncIndicator from '@/components/DataSyncIndicator';
 
 export default function AdminPage() {
@@ -94,20 +94,20 @@ export default function AdminPage() {
       // Load data from shared data service
       const loadData = () => {
         // Load wilaya tariffs
-        const savedWilayaTariffs = dataService.getWilayaTariffs();
+        const savedWilayaTariffs = vercelDataService.getWilayaTariffs();
         if (savedWilayaTariffs.length > 0) {
           setWilayaTariffs(savedWilayaTariffs);
         } else {
           setWilayaTariffs(sortedWilayas);
-          dataService.updateWilayaTariffs(sortedWilayas);
+          vercelDataService.updateWilayaTariffs(sortedWilayas);
         }
 
         // Load orders
-        const savedOrders = dataService.getOrders();
+        const savedOrders = vercelDataService.getOrders();
         setOrders(savedOrders);
 
         // Load customers
-        const savedCustomers = dataService.getCustomers();
+        const savedCustomers = vercelDataService.getCustomers();
         setCustomers(savedCustomers);
       };
 
@@ -325,7 +325,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     setOrders(updatedOrders);
     
     // Update in shared data service
-    dataService.updateOrder(orderId, { status: newStatus as Order['status'] });
+    vercelDataService.updateOrder(orderId, { status: newStatus as Order['status'] });
     
     showSuccess('Status Updated', `Order #${orderId} status updated to ${newStatus}`);
   };
@@ -335,12 +335,12 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
       wilaya.id === wilayaId ? { ...wilaya, [field]: value } : wilaya
     );
     setWilayaTariffs(updatedTariffs);
-    dataService.updateWilayaTariffs(updatedTariffs);
+    vercelDataService.updateWilayaTariffs(updatedTariffs);
   };
 
   const resetWilayaTariffs = () => {
     setWilayaTariffs(sortedWilayas);
-    dataService.updateWilayaTariffs(sortedWilayas);
+    vercelDataService.updateWilayaTariffs(sortedWilayas);
     alert('Tarifs des wilayas réinitialisés !');
   };
 
