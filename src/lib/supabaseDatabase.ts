@@ -10,6 +10,33 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUz
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to convert database product to Product interface
+function convertDbProductToProduct(dbProduct: any): Product {
+  return {
+    id: dbProduct.id,
+    name: dbProduct.name,
+    description: dbProduct.description,
+    price: dbProduct.price,
+    originalPrice: dbProduct.original_price,
+    image: dbProduct.image,
+    images: dbProduct.images || [],
+    stock: dbProduct.stock || {},
+    category: dbProduct.category,
+    sizes: dbProduct.sizes || [],
+    colors: dbProduct.colors || [],
+    inStock: dbProduct.in_stock,
+    rating: dbProduct.rating || 0,
+    reviews: dbProduct.reviews || 0,
+    sku: dbProduct.sku,
+    weight: dbProduct.weight,
+    dimensions: dbProduct.dimensions,
+    tags: dbProduct.tags || [],
+    featured: dbProduct.featured || false,
+    createdAt: new Date(dbProduct.created_at),
+    updatedAt: new Date(dbProduct.updated_at)
+  };
+}
+
 // Products operations
 export async function getProducts(): Promise<Product[]> {
   try {
@@ -23,7 +50,7 @@ export async function getProducts(): Promise<Product[]> {
       return [];
     }
     
-    return data || [];
+    return (data || []).map(convertDbProductToProduct);
   } catch (error) {
     console.error('Supabase getProducts error:', error);
     return [];
@@ -43,7 +70,7 @@ export async function getProduct(id: string): Promise<Product | null> {
       return null;
     }
     
-    return data;
+    return convertDbProductToProduct(data);
   } catch (error) {
     console.error('Supabase getProduct error:', error);
     return null;
@@ -52,9 +79,34 @@ export async function getProduct(id: string): Promise<Product | null> {
 
 export async function addProduct(product: Product): Promise<Product> {
   try {
+    // Convert camelCase to snake_case for database
+    const dbProduct = {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      original_price: product.originalPrice,
+      image: product.image,
+      images: product.images || [],
+      stock: product.stock,
+      category: product.category,
+      sizes: product.sizes || [],
+      colors: product.colors || [],
+      in_stock: product.inStock,
+      rating: product.rating,
+      reviews: product.reviews,
+      sku: product.sku,
+      weight: product.weight,
+      dimensions: product.dimensions,
+      tags: product.tags || [],
+      featured: product.featured || false,
+      created_at: product.createdAt,
+      updated_at: product.updatedAt
+    };
+
     const { data, error } = await supabase
       .from('products')
-      .insert([product])
+      .insert([dbProduct])
       .select()
       .single();
     
@@ -64,7 +116,9 @@ export async function addProduct(product: Product): Promise<Product> {
     }
     
     console.log('Supabase: Added product:', product.id);
-    return data;
+    
+    // Convert back to camelCase
+    return convertDbProductToProduct(data);
   } catch (error) {
     console.error('Supabase addProduct error:', error);
     throw error;
