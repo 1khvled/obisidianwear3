@@ -2,6 +2,7 @@
 
 import { Order, Product } from '@/types';
 import { sendOrderNotification, sendCustomerConfirmation, OrderEmailData } from './emailService';
+import { dataService } from './dataService';
 
 export interface CreateOrderData {
   customerName: string;
@@ -27,27 +28,25 @@ class OrderService {
 
   constructor() {
     this.loadOrders();
+    this.setupDataSync();
   }
 
-  // Load orders from localStorage
+  // Load orders from shared data service
   private loadOrders() {
-    if (typeof window !== 'undefined') {
-      const savedOrders = localStorage.getItem('obsidian-orders');
-      if (savedOrders) {
-        try {
-          this.orders = JSON.parse(savedOrders);
-        } catch (error) {
-          console.error('Error loading orders:', error);
-          this.orders = [];
-        }
-      }
-    }
+    this.orders = dataService.getOrders();
   }
 
-  // Save orders to localStorage
-  private saveOrders() {
+  // Setup data synchronization
+  private setupDataSync() {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-orders', JSON.stringify(this.orders));
+      const handleDataUpdate = (event: CustomEvent) => {
+        const data = event.detail;
+        if (data && data.orders) {
+          this.orders = data.orders;
+        }
+      };
+
+      window.addEventListener('data-updated', handleDataUpdate as EventListener);
     }
   }
 
@@ -93,9 +92,9 @@ class OrderService {
         updatedAt: now
       };
 
-      // Add order to local storage
+      // Add order to shared data service
+      dataService.addOrder(order);
       this.orders.unshift(order); // Add to beginning for newest first
-      this.saveOrders();
 
       // Prepare email data
       const emailData: OrderEmailData = {
@@ -158,14 +157,19 @@ class OrderService {
       const orderIndex = this.orders.findIndex(order => order.id === orderId);
       if (orderIndex === -1) return false;
 
-      this.orders[orderIndex] = {
+      const updatedOrder = {
         ...this.orders[orderIndex],
         status,
         trackingNumber: trackingNumber || this.orders[orderIndex].trackingNumber,
         updatedAt: new Date()
       };
 
-      this.saveOrders();
+      // Update in shared data service
+      dataService.updateOrder(orderId, updatedOrder);
+      
+      // Update local orders
+      this.orders[orderIndex] = updatedOrder;
+      
       return true;
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -244,7 +248,7 @@ class OrderService {
   // Clear all orders (for testing)
   clearOrders() {
     this.orders = [];
-    this.saveOrders();
+    // Note: This would need to be implemented in dataService if needed
   }
 }
 

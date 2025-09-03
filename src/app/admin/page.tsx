@@ -39,6 +39,8 @@ import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
 import { Product, Order, Customer } from '@/types';
+import { dataService } from '@/services/dataService';
+import DataSyncIndicator from '@/components/DataSyncIndicator';
 
 export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
@@ -89,32 +91,48 @@ export default function AdminPage() {
   // Load data on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Load wilaya tariffs
-      const savedWilayaTariffs = localStorage.getItem('obsidian-wilaya-tariffs');
-      if (savedWilayaTariffs) {
-        setWilayaTariffs(JSON.parse(savedWilayaTariffs));
-      }
+      // Load data from shared data service
+      const loadData = () => {
+        // Load wilaya tariffs
+        const savedWilayaTariffs = dataService.getWilayaTariffs();
+        if (savedWilayaTariffs.length > 0) {
+          setWilayaTariffs(savedWilayaTariffs);
+        } else {
+          setWilayaTariffs(sortedWilayas);
+          dataService.updateWilayaTariffs(sortedWilayas);
+        }
 
-      // Load orders
-      const savedOrders = localStorage.getItem('obsidian-orders');
-      if (savedOrders) {
-        setOrders(JSON.parse(savedOrders));
-      }
+        // Load orders
+        const savedOrders = dataService.getOrders();
+        setOrders(savedOrders);
 
-      // Load customers
-      const savedCustomers = localStorage.getItem('obsidian-customers');
-      if (savedCustomers) {
-        setCustomers(JSON.parse(savedCustomers));
-      }
+        // Load customers
+        const savedCustomers = dataService.getCustomers();
+        setCustomers(savedCustomers);
+      };
+
+      loadData();
+
+      // Listen for data updates
+      const handleDataUpdate = (event: CustomEvent) => {
+        const data = event.detail;
+        if (data) {
+          if (data.orders) setOrders(data.orders);
+          if (data.customers) setCustomers(data.customers);
+          if (data.wilayaTariffs) setWilayaTariffs(data.wilayaTariffs);
+        }
+      };
 
       // Listen for dashboard button clicks
       const handleTabChange = (event: CustomEvent) => {
         setActiveTab(event.detail);
       };
 
+      window.addEventListener('data-updated', handleDataUpdate as EventListener);
       window.addEventListener('admin-tab-change', handleTabChange as EventListener);
       
       return () => {
+        window.removeEventListener('data-updated', handleDataUpdate as EventListener);
         window.removeEventListener('admin-tab-change', handleTabChange as EventListener);
       };
     }
@@ -306,10 +324,8 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     );
     setOrders(updatedOrders);
     
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-orders', JSON.stringify(updatedOrders));
-    }
+    // Update in shared data service
+    dataService.updateOrder(orderId, { status: newStatus as Order['status'] });
     
     showSuccess('Status Updated', `Order #${orderId} status updated to ${newStatus}`);
   };
@@ -319,12 +335,12 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
       wilaya.id === wilayaId ? { ...wilaya, [field]: value } : wilaya
     );
     setWilayaTariffs(updatedTariffs);
-    localStorage.setItem('obsidian-wilaya-tariffs', JSON.stringify(updatedTariffs));
+    dataService.updateWilayaTariffs(updatedTariffs);
   };
 
   const resetWilayaTariffs = () => {
     setWilayaTariffs(sortedWilayas);
-    localStorage.setItem('obsidian-wilaya-tariffs', JSON.stringify(sortedWilayas));
+    dataService.updateWilayaTariffs(sortedWilayas);
     alert('Tarifs des wilayas réinitialisés !');
   };
 
@@ -1225,6 +1241,9 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
         notifications={notifications} 
         onRemove={removeNotification} 
       />
+
+      {/* Data Sync Indicator */}
+      <DataSyncIndicator />
     </div>
   );
 }

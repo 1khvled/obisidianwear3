@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types';
 import { products as initialProducts } from '@/data/products';
+import { dataService } from '@/services/dataService';
 
 interface ProductContextType {
   products: Product[];
@@ -19,30 +20,52 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Load products from localStorage or use initial products
-    if (typeof window !== 'undefined') {
-      const savedProducts = localStorage.getItem('obsidian-products');
-      if (savedProducts) {
-        try {
-          setProducts(JSON.parse(savedProducts));
-        } catch (error) {
-          console.error('Error loading products from localStorage:', error);
-          setProducts(initialProducts);
-        }
+    // Load products from shared data service
+    const loadProducts = () => {
+      const savedProducts = dataService.getProducts();
+      if (savedProducts.length > 0) {
+        setProducts(savedProducts);
       } else {
+        // Initialize with default products if none exist
         setProducts(initialProducts);
+        // Save initial products to shared storage
+        initialProducts.forEach(product => {
+          dataService.addProduct(product);
+        });
       }
-    } else {
-      setProducts(initialProducts);
+    };
+
+    loadProducts();
+
+    // Listen for data updates from other tabs/users
+    const handleDataUpdate = (event: CustomEvent) => {
+      const data = event.detail;
+      if (data && data.products) {
+        setProducts(data.products);
+      }
+    };
+
+    const handleDataSync = (event: CustomEvent) => {
+      const data = event.detail;
+      if (data && data.products) {
+        setProducts(data.products);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('data-updated', handleDataUpdate as EventListener);
+      window.addEventListener('data-sync', handleDataSync as EventListener);
+      
+      return () => {
+        window.removeEventListener('data-updated', handleDataUpdate as EventListener);
+        window.removeEventListener('data-sync', handleDataSync as EventListener);
+      };
     }
   }, []);
 
   const addProduct = (product: Product) => {
-    const newProducts = [...products, product];
-    setProducts(newProducts);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-products', JSON.stringify(newProducts));
-    }
+    const newProduct = dataService.addProduct(product);
+    setProducts(prev => [...prev, newProduct]);
   };
 
   const updateProduct = (id: string, updatedProduct: Product) => {
@@ -57,23 +80,15 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       inStock: totalStock > 0
     };
     
-    const newProducts = products.map(product => 
-      product.id === id ? syncedProduct : product
-    );
     console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
-    setProducts(newProducts);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-products', JSON.stringify(newProducts));
-      console.log('ProductContext: Saved to localStorage');
-    }
+    
+    const result = dataService.updateProduct(id, syncedProduct);
+    setProducts(prev => prev.map(p => p.id === id ? result : p));
   };
 
   const deleteProduct = (id: string) => {
-    const newProducts = products.filter(product => product.id !== id);
-    setProducts(newProducts);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-products', JSON.stringify(newProducts));
-    }
+    dataService.deleteProduct(id);
+    setProducts(prev => prev.filter(product => product.id !== id));
   };
 
   const getProduct = (id: string) => {
