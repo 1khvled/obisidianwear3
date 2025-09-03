@@ -74,6 +74,14 @@ export interface Wilaya {
   domicileEcommerce: number;
 }
 
+export interface WilayaTariff {
+  id: string;
+  name: string;
+  homeDelivery: number;
+  stopDesk: number;
+  order: number;
+}
+
 export interface ShippingOption {
   type: 'stopDesk' | 'homeDelivery';
   wilayaId: number;
