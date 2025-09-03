@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-
-// In-memory storage (will be replaced with Vercel KV)
-let products: Product[] = [];
+import { sharedDataStore } from '@/lib/sharedDataStore';
 
 // GET /api/products - Get all products
 export async function GET() {
   try {
+    const products = sharedDataStore.getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
       success: true,
@@ -44,13 +43,13 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    products.push(newProduct);
+    const addedProduct = sharedDataStore.addProduct(newProduct);
     
     console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
     
     return NextResponse.json({
       success: true,
-      data: newProduct,
+      data: addedProduct,
       message: 'Product created successfully',
       timestamp: Date.now()
     }, { status: 201 });

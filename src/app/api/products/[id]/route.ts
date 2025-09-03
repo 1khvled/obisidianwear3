@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-
-// In-memory storage (will be replaced with Vercel KV)
-let products: Product[] = [];
+import { sharedDataStore } from '@/lib/sharedDataStore';
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -11,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const product = products.find(p => p.id === id);
+    const product = sharedDataStore.getProduct(id);
     
     if (!product) {
       return NextResponse.json(
@@ -45,24 +43,17 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const productIndex = products.findIndex(p => p.id === id);
+    const updatedProduct = sharedDataStore.updateProduct(id, {
+      ...updateData,
+      updatedAt: new Date()
+    });
     
-    if (productIndex === -1) {
+    if (!updatedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
         { status: 404 }
       );
     }
-
-    // Update product
-    const updatedProduct: Product = {
-      ...products[productIndex],
-      ...updateData,
-      id, // Ensure ID doesn't change
-      updatedAt: new Date()
-    };
-
-    products[productIndex] = updatedProduct;
     
     console.log('Products API: PUT request - updated product:', id);
     
@@ -89,17 +80,21 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const productIndex = products.findIndex(p => p.id === id);
-    
-    if (productIndex === -1) {
+    const deletedProduct = sharedDataStore.getProduct(id);
+    if (!deletedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
         { status: 404 }
       );
     }
 
-    const deletedProduct = products[productIndex];
-    products.splice(productIndex, 1);
+    const success = sharedDataStore.deleteProduct(id);
+    if (!success) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete product' },
+        { status: 500 }
+      );
+    }
     
     console.log('Products API: DELETE request - deleted product:', id);
     

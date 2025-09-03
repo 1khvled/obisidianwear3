@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Customer type definition
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  wilaya: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// In-memory storage (will be replaced with Vercel KV)
-let customers: Customer[] = [];
+import { sharedDataStore, Customer } from '@/lib/sharedDataStore';
 
 // GET /api/customers - Get all customers
 export async function GET() {
   try {
+    const customers = sharedDataStore.getCustomers();
     console.log('Customers API: GET request - returning', customers.length, 'customers');
     return NextResponse.json({
       success: true,
@@ -49,7 +35,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if customer already exists
-    const existingCustomer = customers.find(c => c.email === customerData.email);
+    const existingCustomers = sharedDataStore.getCustomers();
+    const existingCustomer = existingCustomers.find(c => c.email === customerData.email);
     if (existingCustomer) {
       return NextResponse.json(
         { success: false, error: 'Customer with this email already exists' },
@@ -65,13 +52,13 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    customers.push(newCustomer);
+    const addedCustomer = sharedDataStore.addCustomer(newCustomer);
     
     console.log('Customers API: POST request - created customer:', newCustomer.id);
     
     return NextResponse.json({
       success: true,
-      data: newCustomer,
+      data: addedCustomer,
       message: 'Customer created successfully',
       timestamp: Date.now()
     }, { status: 201 });

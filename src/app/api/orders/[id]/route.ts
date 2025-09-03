@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
-
-// In-memory storage (will be replaced with Vercel KV)
-let orders: Order[] = [];
+import { sharedDataStore } from '@/lib/sharedDataStore';
 
 // GET /api/orders/[id] - Get single order
 export async function GET(
@@ -11,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const order = orders.find(o => o.id === id);
+    const order = sharedDataStore.getOrder(id);
     
     if (!order) {
       return NextResponse.json(
@@ -45,23 +43,14 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const orderIndex = orders.findIndex(o => o.id === id);
+    const updatedOrder = sharedDataStore.updateOrder(id, updateData);
     
-    if (orderIndex === -1) {
+    if (!updatedOrder) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
         { status: 404 }
       );
     }
-
-    // Update order
-    const updatedOrder: Order = {
-      ...orders[orderIndex],
-      ...updateData,
-      id // Ensure ID doesn't change
-    };
-
-    orders[orderIndex] = updatedOrder;
     
     console.log('Orders API: PUT request - updated order:', id);
     
@@ -88,17 +77,21 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const orderIndex = orders.findIndex(o => o.id === id);
-    
-    if (orderIndex === -1) {
+    const deletedOrder = sharedDataStore.getOrder(id);
+    if (!deletedOrder) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
         { status: 404 }
       );
     }
 
-    const deletedOrder = orders[orderIndex];
-    orders.splice(orderIndex, 1);
+    const success = sharedDataStore.deleteOrder(id);
+    if (!success) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete order' },
+        { status: 500 }
+      );
+    }
     
     console.log('Orders API: DELETE request - deleted order:', id);
     

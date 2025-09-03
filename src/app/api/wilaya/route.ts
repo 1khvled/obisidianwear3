@@ -1,31 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Wilaya tariff type definition
-interface WilayaTariff {
-  id: string;
-  name: string;
-  homeDelivery: number;
-  stopDesk: number;
-  order: number;
-}
-
-// In-memory storage (will be replaced with Vercel KV)
-let wilayaTariffs: WilayaTariff[] = [
-  { id: '1', name: 'Alger', homeDelivery: 400, stopDesk: 200, order: 1 },
-  { id: '2', name: 'Oran', homeDelivery: 500, stopDesk: 300, order: 2 },
-  { id: '3', name: 'Constantine', homeDelivery: 600, stopDesk: 400, order: 3 },
-  { id: '4', name: 'Blida', homeDelivery: 400, stopDesk: 200, order: 4 },
-  { id: '5', name: 'Setif', homeDelivery: 500, stopDesk: 300, order: 5 },
-  { id: '6', name: 'Batna', homeDelivery: 600, stopDesk: 400, order: 6 },
-  { id: '7', name: 'Annaba', homeDelivery: 700, stopDesk: 500, order: 7 },
-  { id: '8', name: 'Sidi Bel Abbes', homeDelivery: 600, stopDesk: 400, order: 8 },
-  { id: '9', name: 'Tlemcen', homeDelivery: 700, stopDesk: 500, order: 9 },
-  { id: '10', name: 'Biskra', homeDelivery: 800, stopDesk: 600, order: 10 }
-];
+import { sharedDataStore, WilayaTariff } from '@/lib/sharedDataStore';
 
 // GET /api/wilaya - Get all wilaya tariffs
 export async function GET() {
   try {
+    const wilayaTariffs = sharedDataStore.getWilayaTariffs();
     console.log('Wilaya API: GET request - returning', wilayaTariffs.length, 'wilaya tariffs');
     return NextResponse.json({
       success: true,
@@ -65,13 +44,14 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    wilayaTariffs = newTariffs;
+    sharedDataStore.updateWilayaTariffs(newTariffs);
     
-    console.log('Wilaya API: PUT request - updated', wilayaTariffs.length, 'wilaya tariffs');
+    const updatedTariffs = sharedDataStore.getWilayaTariffs();
+    console.log('Wilaya API: PUT request - updated', updatedTariffs.length, 'wilaya tariffs');
     
     return NextResponse.json({
       success: true,
-      data: wilayaTariffs,
+      data: updatedTariffs,
       message: 'Wilaya tariffs updated successfully',
       timestamp: Date.now()
     });

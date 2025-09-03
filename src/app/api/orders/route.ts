@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
-
-// In-memory storage (will be replaced with Vercel KV)
-let orders: Order[] = [];
+import { sharedDataStore } from '@/lib/sharedDataStore';
 
 // GET /api/orders - Get all orders
 export async function GET() {
   try {
+    const orders = sharedDataStore.getOrders();
     console.log('Orders API: GET request - returning', orders.length, 'orders');
     return NextResponse.json({
       success: true,
@@ -45,13 +44,13 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending'
     };
 
-    orders.push(newOrder);
+    const addedOrder = sharedDataStore.addOrder(newOrder);
     
     console.log('Orders API: POST request - created order:', newOrder.id);
     
     return NextResponse.json({
       success: true,
-      data: newOrder,
+      data: addedOrder,
       message: 'Order created successfully',
       timestamp: Date.now()
     }, { status: 201 });
