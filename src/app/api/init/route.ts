@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { vercelKVService } from '@/lib/vercelKVService';
+import { postgresService } from '@/lib/postgresService';
 
 // POST /api/init - Initialize default data
 export async function POST() {
   try {
-    await vercelKVService.initializeDefaultData();
+    await postgresService.initializeDefaultData();
     
     return NextResponse.json({
       success: true,

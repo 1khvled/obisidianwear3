@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
-import { vercelKVService } from '@/lib/vercelKVService';
+import { postgresService } from '@/lib/postgresService';
 
 // GET /api/orders - Get all orders
 export async function GET() {
   try {
-    const orders = await vercelKVService.getOrders();
+    const orders = await postgresService.getOrders();
     console.log('Orders API: GET request - returning', orders.length, 'orders');
     return NextResponse.json({
       success: true,
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending'
     };
 
-    const addedOrder = await vercelKVService.addOrder(newOrder);
+    const addedOrder = await postgresService.addOrder(newOrder);
     
     console.log('Orders API: POST request - created order:', newOrder.id);
     
