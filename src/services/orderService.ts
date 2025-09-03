@@ -2,7 +2,7 @@
 
 import { Order, Product } from '@/types';
 import { sendOrderNotification, sendCustomerConfirmation, OrderEmailData } from './emailService';
-import { vercelDataService } from './vercelDataService';
+import { backendService } from './backendService';
 
 export interface CreateOrderData {
   customerName: string;
@@ -27,13 +27,17 @@ class OrderService {
   private orders: Order[] = [];
 
   constructor() {
-    this.loadOrders();
+    this.initializeOrders();
     this.setupDataSync();
   }
 
+  private async initializeOrders() {
+    await this.loadOrders();
+  }
+
   // Load orders from shared data service
-  private loadOrders() {
-    this.orders = vercelDataService.getOrders();
+  private async loadOrders() {
+    this.orders = await backendService.getOrders();
   }
 
   // Setup data synchronization
@@ -93,7 +97,7 @@ class OrderService {
       };
 
       // Add order to shared data service
-      vercelDataService.addOrder(order);
+      await backendService.addOrder(order);
       this.orders.unshift(order); // Add to beginning for newest first
 
       // Prepare email data
@@ -165,7 +169,7 @@ class OrderService {
       };
 
       // Update in shared data service
-      vercelDataService.updateOrder(orderId, updatedOrder);
+      await backendService.updateOrder(orderId, updatedOrder);
       
       // Update local orders
       this.orders[orderIndex] = updatedOrder;

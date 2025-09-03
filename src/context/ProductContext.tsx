@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types';
 
-import { vercelDataService } from '@/services/vercelDataService';
+import { backendService } from '@/services/backendService';
 
 interface ProductContextType {
   products: Product[];
@@ -21,9 +21,9 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Load products from shared data service
-    const loadProducts = () => {
-      const savedProducts = vercelDataService.getProducts();
+    // Load products from backend service
+    const loadProducts = async () => {
+      const savedProducts = await backendService.getProducts();
       setProducts(savedProducts);
     };
 
@@ -55,12 +55,14 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const addProduct = (product: Product) => {
-    const newProduct = vercelDataService.addProduct(product);
-    setProducts(prev => [...prev, newProduct]);
+  const addProduct = async (product: Product) => {
+    const newProduct = await backendService.addProduct(product);
+    if (newProduct) {
+      setProducts(prev => [...prev, newProduct]);
+    }
   };
 
-  const updateProduct = (id: string, updatedProduct: Product) => {
+  const updateProduct = async (id: string, updatedProduct: Product) => {
     // Auto-sync inStock status based on actual stock levels
     const totalStock = updatedProduct.stock ? 
       Object.values(updatedProduct.stock).reduce((total, colorStock) => {
@@ -74,20 +76,24 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     
     console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
     
-    const result = vercelDataService.updateProduct(id, syncedProduct);
-    setProducts(prev => prev.map(p => p.id === id ? result : p));
+    const result = await backendService.updateProduct(id, syncedProduct);
+    if (result) {
+      setProducts(prev => prev.map(p => p.id === id ? result : p));
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    vercelDataService.deleteProduct(id);
-    setProducts(prev => prev.filter(product => product.id !== id));
+  const deleteProduct = async (id: string) => {
+    const success = await backendService.deleteProduct(id);
+    if (success) {
+      setProducts(prev => prev.filter(product => product.id !== id));
+    }
   };
 
   const getProduct = (id: string) => {
     return products.find(product => product.id === id);
   };
 
-  const initializeDefaultProducts = () => {
+  const initializeDefaultProducts = async () => {
     // Only initialize if no products exist
     if (products.length === 0) {
       const defaultProducts = [
@@ -145,9 +151,9 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         }
       ];
       
-      defaultProducts.forEach(product => {
-        vercelDataService.addProduct(product);
-      });
+      for (const product of defaultProducts) {
+        await backendService.addProduct(product);
+      }
       
       setProducts(defaultProducts);
     }

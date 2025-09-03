@@ -39,7 +39,7 @@ import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
 import { Product, Order, Customer } from '@/types';
-import { vercelDataService } from '@/services/vercelDataService';
+import { backendService } from '@/services/backendService';
 import DataSyncIndicator from '@/components/DataSyncIndicator';
 
 export default function AdminPage() {
@@ -92,22 +92,22 @@ export default function AdminPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Load data from shared data service
-      const loadData = () => {
+      const loadData = async () => {
         // Load wilaya tariffs
-        const savedWilayaTariffs = vercelDataService.getWilayaTariffs();
+        const savedWilayaTariffs = await backendService.getWilayaTariffs();
         if (savedWilayaTariffs.length > 0) {
           setWilayaTariffs(savedWilayaTariffs);
         } else {
           setWilayaTariffs(sortedWilayas);
-          vercelDataService.updateWilayaTariffs(sortedWilayas);
+          backendService.updateWilayaTariffs(sortedWilayas);
         }
 
         // Load orders
-        const savedOrders = vercelDataService.getOrders();
+        const savedOrders = await backendService.getOrders();
         setOrders(savedOrders);
 
         // Load customers
-        const savedCustomers = vercelDataService.getCustomers();
+        const savedCustomers = await backendService.getCustomers();
         setCustomers(savedCustomers);
       };
 
@@ -325,22 +325,22 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     setOrders(updatedOrders);
     
     // Update in shared data service
-    vercelDataService.updateOrder(orderId, { status: newStatus as Order['status'] });
+    await backendService.updateOrder(orderId, { status: newStatus as Order['status'] });
     
     showSuccess('Status Updated', `Order #${orderId} status updated to ${newStatus}`);
   };
 
-  const updateWilayaTariff = (wilayaId: number, field: keyof Wilaya, value: number) => {
+  const updateWilayaTariff = async (wilayaId: number, field: keyof Wilaya, value: number) => {
     const updatedTariffs = wilayaTariffs.map(wilaya => 
       wilaya.id === wilayaId ? { ...wilaya, [field]: value } : wilaya
     );
     setWilayaTariffs(updatedTariffs);
-    vercelDataService.updateWilayaTariffs(updatedTariffs);
+    await backendService.updateWilayaTariffs(updatedTariffs);
   };
 
-  const resetWilayaTariffs = () => {
+  const resetWilayaTariffs = async () => {
     setWilayaTariffs(sortedWilayas);
-    vercelDataService.updateWilayaTariffs(sortedWilayas);
+    await backendService.updateWilayaTariffs(sortedWilayas);
     alert('Tarifs des wilayas réinitialisés !');
   };
 
