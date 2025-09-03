@@ -36,6 +36,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
 import ImageUpload from '@/components/ImageUpload';
+import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
 import { Product, Order, Customer } from '@/types';
 
@@ -829,12 +830,24 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
 
                 {/* Image Upload */}
                 <div>
-                  <label className="block text-white font-medium mb-2">Product Image</label>
-                  <ImageUpload
-                    value={newProduct.image || ''}
-                    onChange={(url) => setNewProduct({...newProduct, image: url})}
-                    placeholder="Upload product image"
+                  <label className="block text-white font-medium mb-2">Product Images</label>
+                  <MultiImageUpload
+                    value={newProduct.images || []}
+                    onChange={(urls) => {
+                      setNewProduct({
+                        ...newProduct, 
+                        images: urls,
+                        image: urls[0] || '' // Set first image as main image
+                      });
+                    }}
+                    placeholder="Upload product images"
+                    maxImages={5}
                   />
+                  {newProduct.images && newProduct.images.length > 0 && (
+                    <p className="text-gray-400 text-sm mt-2">
+                      First image will be used as the main product image
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1035,12 +1048,24 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                 </div>
 
                 <div>
-                  <label className="block text-white font-medium mb-2">Product Image</label>
-                  <ImageUpload
-                    value={editingProduct.image}
-                    onChange={(url) => setEditingProduct({...editingProduct, image: url})}
-                    placeholder="Upload product image"
+                  <label className="block text-white font-medium mb-2">Product Images</label>
+                  <MultiImageUpload
+                    value={editingProduct.images || []}
+                    onChange={(urls) => {
+                      setEditingProduct({
+                        ...editingProduct, 
+                        images: urls,
+                        image: urls[0] || editingProduct.image // Keep current image if no new images
+                      });
+                    }}
+                    placeholder="Upload product images"
+                    maxImages={5}
                   />
+                  {editingProduct.images && editingProduct.images.length > 0 && (
+                    <p className="text-gray-400 text-sm mt-2">
+                      First image will be used as the main product image
+                    </p>
+                  )}
                 </div>
               </div>
 

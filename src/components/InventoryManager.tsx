@@ -85,7 +85,10 @@ export default function InventoryManager() {
     try {
       Object.entries(editingStock).forEach(([productId, stockChanges]) => {
         const product = products.find(p => p.id === productId);
-        if (!product) return;
+        if (!product) {
+          console.error('Product not found:', productId);
+          return;
+        }
 
         const newStock: NestedStock = product.stock ? { ...product.stock } : {};
         Object.entries(stockChanges).forEach(([size, colorStock]) => {
@@ -99,12 +102,15 @@ export default function InventoryManager() {
           return total + Object.values(colorStock).reduce((sum, qty) => sum + qty, 0);
         }, 0);
 
-        updateProduct(productId, {
+        const updatedProduct = {
           ...product,
           stock: newStock,
           inStock: totalStock > 0,
           updatedAt: new Date()
-        });
+        };
+
+        console.log('Updating product stock:', productId, updatedProduct.name, 'Total stock:', totalStock);
+        updateProduct(productId, updatedProduct);
       });
 
       setEditingStock({});
