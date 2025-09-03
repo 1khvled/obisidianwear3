@@ -209,7 +209,11 @@ class VercelKVService {
             originalPrice: 3000,
             image: '/images/tshirt1.jpg',
             images: ['/images/tshirt1.jpg'],
-            stock: { 'M': 10, 'L': 15, 'XL': 8 },
+                         stock: { 
+               'M': { 'Black': 5, 'White': 3, 'Gray': 2 },
+               'L': { 'Black': 8, 'White': 4, 'Gray': 3 },
+               'XL': { 'Black': 3, 'White': 3, 'Gray': 2 }
+             },
             category: 'T-Shirts',
             sizes: ['M', 'L', 'XL'],
             colors: ['Black', 'White', 'Gray'],
@@ -232,7 +236,11 @@ class VercelKVService {
             originalPrice: 5500,
             image: '/images/hoodie1.jpg',
             images: ['/images/hoodie1.jpg'],
-            stock: { 'M': 5, 'L': 8, 'XL': 3 },
+                         stock: { 
+               'M': { 'Black': 3, 'Gray': 2 },
+               'L': { 'Black': 5, 'Gray': 3 },
+               'XL': { 'Black': 2, 'Gray': 1 }
+             },
             category: 'Hoodies',
             sizes: ['M', 'L', 'XL'],
             colors: ['Black', 'Gray'],
