@@ -156,7 +156,7 @@ class OrderService {
   }
 
   // Update order status
-  updateOrderStatus(orderId: string, status: Order['status'], trackingNumber?: string): boolean {
+  async updateOrderStatus(orderId: string, status: Order['status'], trackingNumber?: string): Promise<boolean> {
     try {
       const orderIndex = this.orders.findIndex(order => order.id === orderId);
       if (orderIndex === -1) return false;

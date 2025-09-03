@@ -318,7 +318,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     alert(details);
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const updatedOrders = orders.map(order => 
       order.id === orderId ? { ...order, status: newStatus as Order['status'] } : order
     );
