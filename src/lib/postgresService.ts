@@ -223,8 +223,8 @@ class PostgresService {
       const client = await pool.connect();
       
       // Build dynamic update query
-      const fields = [];
-      const values = [];
+      const fields: string[] = [];
+      const values: any[] = [];
       let paramCount = 1;
       
       Object.entries(product).forEach(([key, value]) => {
