@@ -44,7 +44,7 @@ class FileStorageService {
   async getProducts(): Promise<Product[]> {
     const products = this.readJsonFile(this.productsFile, []);
     // Convert date strings back to Date objects
-    return products.map(product => ({
+    return products.map((product: any) => ({
       ...product,
       createdAt: new Date(product.createdAt),
       updatedAt: new Date(product.updatedAt)
@@ -87,7 +87,7 @@ class FileStorageService {
   async getOrders(): Promise<Order[]> {
     const orders = this.readJsonFile(this.ordersFile, []);
     // Convert date strings back to Date objects
-    return orders.map(order => ({
+    return orders.map((order: any) => ({
       ...order,
       orderDate: new Date(order.orderDate),
       createdAt: new Date(order.createdAt),
@@ -131,7 +131,7 @@ class FileStorageService {
   async getCustomers(): Promise<Customer[]> {
     const customers = this.readJsonFile(this.customersFile, []);
     // Convert date strings back to Date objects
-    return customers.map(customer => ({
+    return customers.map((customer: any) => ({
       ...customer,
       firstOrderDate: new Date(customer.firstOrderDate),
       lastOrderDate: new Date(customer.lastOrderDate)
