@@ -20,7 +20,6 @@ const translations = {
     'nav.collection': 'Collection',
     'nav.about': 'About',
     'nav.contact': 'Contact',
-    'nav.admin': 'Admin',
     
     // Hero Section
     'hero.title': 'More than clothing,',
@@ -114,7 +113,6 @@ const translations = {
     'nav.collection': 'Collection',
     'nav.about': 'À Propos',
     'nav.contact': 'Contact',
-    'nav.admin': 'Admin',
     
     // Hero Section
     'hero.title': 'Plus qu\'un vêtement,',

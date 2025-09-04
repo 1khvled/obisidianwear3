@@ -49,17 +49,6 @@ export default function Header() {
             <Link href="/cart" className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium">
               Cart
             </Link>
-            
-            <Link 
-              href="/admin" 
-              className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium"
-              onClick={() => {
-                console.log('🛠️ Admin navigation clicked');
-                window.location.href = '/admin';
-              }}
-            >
-              {t('nav.admin')}
-            </Link>
           </nav>
 
           {/* Cart, Language Switcher and Mobile Menu Button */}
@@ -117,23 +106,12 @@ export default function Header() {
                 {t('nav.collection')}
               </button>
               <Link 
-                href="/cart"
+                href="/cart" 
                 className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-3 rounded-lg font-medium text-left block"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Cart
               </Link>
-
-              <button 
-                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-3 rounded-lg font-medium text-left"
-                onClick={() => {
-                  console.log('🛠️ Mobile Admin clicked');
-                  setIsMenuOpen(false);
-                  window.location.href = '/admin';
-                }}
-              >
-                {t('nav.admin')}
-              </button>
               <div className="sm:hidden pt-2 mt-2 border-t border-gray-800/50">
                 <LanguageSwitcher />
               </div>
