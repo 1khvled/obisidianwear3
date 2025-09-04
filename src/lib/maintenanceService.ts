@@ -1,5 +1,5 @@
 // Maintenance service that stores status in database for all users
-import { supabase } from './supabaseDatabase';
+import { getMaintenanceStatus as getMaintenanceFromDB, setMaintenanceStatus as setMaintenanceToDB } from './optimizedDatabase';
 
 export interface MaintenanceStatus {
   id: string;
@@ -29,18 +29,13 @@ class MaintenanceService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('maintenance_status')
-        .select('*')
-        .single();
-
-      if (error) {
-        console.error('Error fetching maintenance status:', error);
-        return null;
+      const data = await getMaintenanceFromDB();
+      
+      if (data) {
+        this.cache = data;
+        this.cacheTime = now;
       }
-
-      this.cache = data;
-      this.cacheTime = now;
+      
       return data;
     } catch (error) {
       console.error('Error fetching maintenance status:', error);
@@ -52,33 +47,18 @@ class MaintenanceService {
     try {
       console.log('Setting maintenance status:', { isMaintenance, dropDate });
       
-      const { data, error } = await supabase
-        .from('maintenance_status')
-        .upsert({
-          id: 'maintenance',
-          is_maintenance: isMaintenance,
-          drop_date: dropDate || new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select();
-
-      console.log('Maintenance status update result:', { data, error });
-
-      if (error) {
-        console.error('Error updating maintenance status:', error);
-        console.error('Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        return false;
+      const success = await setMaintenanceToDB(isMaintenance, dropDate);
+      
+      if (success) {
+        // Clear cache to force refresh
+        this.cache = null;
+        this.cacheTime = 0;
+        console.log('Maintenance status updated successfully');
+      } else {
+        console.error('Failed to update maintenance status');
       }
-
-      // Clear cache to force refresh
-      this.cache = null;
-      this.cacheTime = 0;
-      return true;
+      
+      return success;
     } catch (error) {
       console.error('Error updating maintenance status:', error);
       return false;
