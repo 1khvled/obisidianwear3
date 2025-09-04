@@ -24,7 +24,9 @@ import {
   Menu,
   X,
   Home,
-  Archive
+  Archive,
+  RefreshCw,
+  CheckCircle
 } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminDashboard from '@/components/AdminDashboard';
@@ -403,14 +405,14 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
   };
 
   const sidebarItems = [
-    { id: 'dashboard', icon: BarChart3, label: 'Dashboard', color: 'text-blue-400' },
-    { id: 'products', icon: Package, label: 'Products', color: 'text-green-400' },
-    { id: 'inventory', icon: Archive, label: 'Inventory', color: 'text-cyan-400' },
-    { id: 'orders', icon: ShoppingCart, label: 'Orders', color: 'text-orange-400' },
-    { id: 'analytics', icon: TrendingUp, label: 'Analytics', color: 'text-pink-400' },
-    { id: 'customers', icon: Users, label: 'Customers', color: 'text-purple-400' },
-    { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', color: 'text-yellow-400' },
-    { id: 'wilayas', icon: MapPin, label: 'Wilayas', color: 'text-red-400' }
+    { id: 'dashboard', icon: BarChart3, label: 'Dashboard', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    { id: 'products', icon: Package, label: 'Products', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
+    { id: 'inventory', icon: Archive, label: 'Inventory', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    { id: 'orders', icon: ShoppingCart, label: 'Orders', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    { id: 'analytics', icon: TrendingUp, label: 'Analytics', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+    { id: 'customers', icon: Users, label: 'Customers', color: 'text-pink-400', bgColor: 'bg-pink-500/20' },
+    { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+    { id: 'wilayas', icon: MapPin, label: 'Wilayas', color: 'text-red-400', bgColor: 'bg-red-500/20' }
   ];
 
   const filteredProducts = products.filter(product => {
@@ -421,7 +423,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
   });
 
   return (
-    <div className="min-h-screen bg-black flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col lg:flex-row">
       {/* Mobile Header */}
       <div className="lg:hidden bg-gray-900 border-b border-gray-800 p-4">
         <div className="flex items-center justify-between">
@@ -448,7 +450,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
       </div>
 
       {/* Sidebar */}
-      <div className="hidden lg:flex w-64 bg-gray-900 border-r border-gray-800 flex-col">
+      <div className="hidden lg:flex w-64 bg-gradient-to-b from-gray-900 to-black border-r border-gray-700/50 flex-col backdrop-blur-sm">
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
           <h1 className="text-2xl font-bold text-white">OBSIDIAN</h1>
@@ -471,12 +473,12 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all group ${
                   activeTab === item.id
-                    ? 'bg-white text-black shadow-lg'
+                    ? `${item.bgColor} ${item.color} shadow-lg border border-current/20`
                     : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
                 }`}
               >
                 <item.icon className={`w-5 h-5 mr-3 transition-colors ${
-                  activeTab === item.id ? 'text-black' : item.color + ' group-hover:text-white'
+                  activeTab === item.id ? item.color : item.color + ' group-hover:text-white'
                 }`} />
                 <span className="font-medium">{item.label}</span>
               </button>
@@ -572,24 +574,314 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
             </div>
           )}
 
-          {activeTab === 'inventory' && <InventoryManager />}
+          {activeTab === 'inventory' && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Inventory Management</h2>
+                  <p className="text-gray-400">Manage product stock and inventory levels</p>
+                </div>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </button>
+              </div>
+
+              {products.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No products found</h3>
+                  <p className="text-gray-400">Add products to manage inventory.</p>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800">
+                        <tr>
+                          <th className="text-left text-white font-medium py-4 px-6">Product</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Category</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Colors</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Sizes</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Stock Levels</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Total Stock</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Status</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {products.map((product) => {
+                          const getTotalStock = () => {
+                            if (!product.stock) return 0;
+                            return Object.values(product.stock).reduce((total: number, colorStock: any) => {
+                              if (typeof colorStock === 'object' && colorStock !== null) {
+                                return total + Object.values(colorStock).reduce((sum: number, qty: any) => {
+                                  return sum + (typeof qty === 'number' ? qty : 0);
+                                }, 0);
+                              }
+                              return total;
+                            }, 0);
+                          };
+
+                          const getStockBySize = (size: string) => {
+                            if (!product.stock) return 0;
+                            return Object.values(product.stock).reduce((total: number, colorStock: any) => {
+                              if (typeof colorStock === 'object' && colorStock !== null) {
+                                return total + (typeof colorStock[size] === 'number' ? colorStock[size] : 0);
+                              }
+                              return total;
+                            }, 0);
+                          };
+
+                          const totalStock = getTotalStock();
+                          const isLowStock = totalStock < 10;
+                          const isOutOfStock = totalStock === 0;
+
+                          return (
+                            <tr key={product.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                              <td className="py-4 px-6">
+                                <div className="flex items-center space-x-3">
+                                  <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-12 h-12 object-cover rounded"
+                                  />
+                                  <div>
+                                    <div className="text-white font-medium">{product.name}</div>
+                                    <div className="text-gray-400 text-sm">SKU: {product.sku || 'N/A'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm">
+                                  {product.category}
+                                </span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="flex flex-wrap gap-1">
+                                  {product.colors.map((color, index) => (
+                                    <span
+                                      key={index}
+                                      className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                    >
+                                      {color}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="flex flex-wrap gap-1">
+                                  {product.sizes.map((size, index) => (
+                                    <span
+                                      key={index}
+                                      className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                    >
+                                      {size}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="space-y-1">
+                                  {product.sizes.map((size) => {
+                                    const sizeStock = getStockBySize(size);
+                                    return (
+                                      <div key={size} className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-300">{size}:</span>
+                                        <span className={`font-medium ${
+                                          sizeStock === 0 ? 'text-red-400' :
+                                          sizeStock < 5 ? 'text-yellow-400' :
+                                          'text-green-400'
+                                        }`}>
+                                          {sizeStock}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="text-white font-semibold text-lg">{totalStock}</div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="flex items-center space-x-2">
+                                  {isOutOfStock ? (
+                                    <span className="flex items-center text-red-400 text-sm">
+                                      <AlertTriangle className="w-4 h-4 mr-1" />
+                                      Out of Stock
+                                    </span>
+                                  ) : isLowStock ? (
+                                    <span className="flex items-center text-yellow-400 text-sm">
+                                      <AlertTriangle className="w-4 h-4 mr-1" />
+                                      Low Stock
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center text-green-400 text-sm">
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      In Stock
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <button
+                                  onClick={() => setEditingProduct(product)}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                                  title="Edit Stock"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {activeTab === 'maintenance' && <MaintenanceManager />}
 
           {activeTab === 'orders' && (
-            <div className="p-4 sm:p-6">
-              <EnhancedOrderManager
-                orders={orders}
-                onUpdateOrder={(id, updates) => {
-                  // Update order logic here
-                  console.log('Update order:', id, updates);
-                }}
-                onDeleteOrder={handleDeleteOrder}
-                onViewOrder={(order) => {
-                  // View order logic here
-                  console.log('View order:', order);
-                }}
-              />
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Orders</h2>
+                  <p className="text-gray-400">Manage customer orders and track fulfillment</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </button>
+                  <button 
+                    onClick={() => exportOrdersToExcel()}
+                    className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </button>
+                </div>
+              </div>
+
+              {orders.length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingCart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No orders yet</h3>
+                  <p className="text-gray-400">Orders will appear here when customers make purchases.</p>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800">
+                        <tr>
+                          <th className="text-left text-white font-medium py-4 px-6">Order ID</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Customer</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Product</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Address</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Shipping</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Total</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Date</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 px-6">
+                              <div className="text-white font-mono text-sm">{order.id}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white font-medium">{order.customerName}</div>
+                              <div className="text-gray-400 text-sm">{order.customerEmail}</div>
+                              <div className="text-gray-400 text-sm">{order.customerPhone}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center space-x-3">
+                                <img
+                                  src={order.productImage}
+                                  alt={order.productName}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                                <div>
+                                  <div className="text-white font-medium">{order.productName}</div>
+                                  <div className="text-gray-400 text-sm">
+                                    {order.selectedSize} • {order.selectedColor} • Qty: {order.quantity}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white text-sm max-w-xs">
+                                {order.customerAddress}
+                              </div>
+                              <div className="text-gray-400 text-sm">{order.wilayaName}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white text-sm">
+                                {order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
+                              </div>
+                              <div className="text-gray-400 text-sm">{order.shippingCost} DA</div>
+                              {order.trackingNumber && (
+                                <div className="text-blue-400 text-sm">#{order.trackingNumber}</div>
+                              )}
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white font-semibold">{order.total.toLocaleString()} DA</div>
+                              <div className="text-gray-400 text-sm">
+                                {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}
+                              </div>
+                              <div className={`text-xs px-2 py-1 rounded mt-1 ${
+                                order.paymentStatus === 'paid' ? 'bg-green-900 text-green-300' :
+                                order.paymentStatus === 'pending' ? 'bg-yellow-900 text-yellow-300' :
+                                'bg-red-900 text-red-300'
+                              }`}>
+                                {order.paymentStatus.toUpperCase()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-gray-300 text-sm">
+                                {new Date(order.orderDate).toLocaleDateString()}
+                              </div>
+                              <div className="text-gray-400 text-xs">
+                                {new Date(order.orderDate).toLocaleTimeString()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    // View order details
+                                    alert(`Order Details:\n\nID: ${order.id}\nCustomer: ${order.customerName}\nProduct: ${order.productName}\nTotal: ${order.total} DA\nStatus: ${order.status}\nPayment: ${order.paymentStatus}`);
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="text-red-400 hover:text-red-300 transition-colors"
+                                  title="Delete Order"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -601,11 +893,146 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
 
           {activeTab === 'customers' && (
             <div className="p-6">
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">Customers</h3>
-                <p className="text-gray-400">Customer management coming soon.</p>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Customers</h2>
+                  <p className="text-gray-400">Manage customer information and order history</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </button>
+                  <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </button>
+                </div>
               </div>
+
+              {/* Customer Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-white">{customers.length}</div>
+                  <div className="text-sm text-gray-400">Total Customers</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-green-400">
+                    {customers.filter(c => c.status === 'active').length}
+                  </div>
+                  <div className="text-sm text-gray-400">Active Customers</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-blue-400">
+                    {customers.reduce((sum, c) => sum + c.totalOrders, 0)}
+                  </div>
+                  <div className="text-sm text-gray-400">Total Orders</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-purple-400">
+                    {customers.length > 0 ? Math.round(customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length) : 0} DA
+                  </div>
+                  <div className="text-sm text-gray-400">Avg. Customer Value</div>
+                </div>
+              </div>
+
+              {customers.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No customers yet</h3>
+                  <p className="text-gray-400">Customer data will appear here when orders are placed.</p>
+                </div>
+              ) : (
+                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800">
+                        <tr>
+                          <th className="text-left text-white font-medium py-4 px-6">Customer</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Contact</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Location</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Orders</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Total Spent</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Last Order</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Status</th>
+                          <th className="text-left text-white font-medium py-4 px-6">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customers.map((customer) => (
+                          <tr key={customer.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 px-6">
+                              <div className="text-white font-medium">{customer.name}</div>
+                              <div className="text-gray-400 text-sm">ID: {customer.id}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white text-sm">{customer.phone}</div>
+                              {customer.email && (
+                                <div className="text-gray-400 text-sm">{customer.email}</div>
+                              )}
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white text-sm">{customer.wilayaName}</div>
+                              <div className="text-gray-400 text-sm max-w-xs truncate">{customer.address}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white font-semibold">{customer.totalOrders}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white font-semibold">{customer.totalSpent.toLocaleString()} DA</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-gray-300 text-sm">
+                                {new Date(customer.lastOrderDate).toLocaleDateString()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                customer.status === 'active' 
+                                  ? 'bg-green-900 text-green-300' 
+                                  : 'bg-gray-900 text-gray-300'
+                              }`}>
+                                {customer.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    // View customer details
+                                    alert(`Customer Details:\n\nName: ${customer.name}\nPhone: ${customer.phone}\nEmail: ${customer.email || 'N/A'}\nAddress: ${customer.address}\nWilaya: ${customer.wilayaName}\nTotal Orders: ${customer.totalOrders}\nTotal Spent: ${customer.totalSpent} DA\nStatus: ${customer.status}`);
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // View customer orders
+                                    const customerOrders = orders.filter(order => 
+                                      order.customerName === customer.name || 
+                                      order.customerEmail === customer.email ||
+                                      order.customerPhone === customer.phone
+                                    );
+                                    alert(`Customer Orders (${customerOrders.length}):\n\n${customerOrders.map(order => 
+                                      `Order ${order.id}: ${order.productName} - ${order.total} DA (${order.status})`
+                                    ).join('\n')}`);
+                                  }}
+                                  className="text-green-400 hover:text-green-300 transition-colors"
+                                  title="View Orders"
+                                >
+                                  <ShoppingCart className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -52,7 +52,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     return orderDate >= startDate && orderDate <= endDate;
   });
 
-  // Calculate analytics
+  // Calculate analytics from real data only
   const analytics = {
     totalRevenue: filteredOrders.reduce((sum, order) => sum + order.total, 0),
     totalOrders: filteredOrders.length,
@@ -225,8 +225,6 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
         <StatCard
           title="Total Revenue"
           value={`${analytics.totalRevenue.toLocaleString()} DA`}
-          change={12}
-          changeType="positive"
           icon={DollarSign}
           color="green"
           loading={isLoading}
@@ -234,8 +232,6 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
         <StatCard
           title="Total Orders"
           value={<AnimatedCounter value={analytics.totalOrders} />}
-          change={8}
-          changeType="positive"
           icon={ShoppingCart}
           color="blue"
           loading={isLoading}
@@ -243,8 +239,6 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
         <StatCard
           title="Average Order Value"
           value={`${Math.round(analytics.averageOrderValue).toLocaleString()} DA`}
-          change={5}
-          changeType="positive"
           icon={TrendingUp}
           color="purple"
           loading={isLoading}
@@ -252,8 +246,6 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
         <StatCard
           title="Conversion Rate"
           value={`${analytics.conversionRate.toFixed(1)}%`}
-          change={-2}
-          changeType="negative"
           icon={Users}
           color="orange"
           loading={isLoading}
