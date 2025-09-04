@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { fileStorageService } from '@/lib/fileStorageService';
+import { getProduct, updateProduct, deleteProduct } from '@/lib/supabaseDatabase';
+
+// Ensure we use Node.js runtime for Supabase compatibility
+export const runtime = 'nodejs';
 
 // GET /api/products/[id] - Get single product
 export async function GET(
@@ -9,7 +12,17 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    const product = await fileStorageService.getProduct(id);
+    
+    // Check if Supabase is available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Products API: Missing Supabase environment variables');
+      return NextResponse.json(
+        { success: false, error: 'Database configuration missing' },
+        { status: 500 }
+      );
+    }
+    
+    const product = await getProduct(id);
     
     if (!product) {
       return NextResponse.json(
@@ -43,7 +56,16 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const updatedProduct = await fileStorageService.updateProduct(id, {
+    // Check if Supabase is available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Products API: Missing Supabase environment variables');
+      return NextResponse.json(
+        { success: false, error: 'Database configuration missing' },
+        { status: 500 }
+      );
+    }
+    
+    const updatedProduct = await updateProduct(id, {
       ...updateData,
       updatedAt: new Date()
     });
@@ -80,7 +102,16 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const deletedProduct = await fileStorageService.getProduct(id);
+    // Check if Supabase is available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Products API: Missing Supabase environment variables');
+      return NextResponse.json(
+        { success: false, error: 'Database configuration missing' },
+        { status: 500 }
+      );
+    }
+    
+    const deletedProduct = await getProduct(id);
     if (!deletedProduct) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
@@ -88,7 +119,7 @@ export async function DELETE(
       );
     }
 
-    const success = await fileStorageService.deleteProduct(id);
+    const success = await deleteProduct(id);
     if (!success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete product' },

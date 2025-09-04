@@ -23,8 +23,15 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Load products from backend service
     const loadProducts = async () => {
-      const savedProducts = await backendService.getProducts();
-      setProducts(savedProducts);
+      try {
+        console.log('ProductContext: Loading products...');
+        const savedProducts = await backendService.getProducts();
+        console.log('ProductContext: Loaded products:', savedProducts.length);
+        setProducts(savedProducts);
+      } catch (error) {
+        console.error('ProductContext: Error loading products:', error);
+        setProducts([]);
+      }
     };
 
     loadProducts();
@@ -83,9 +90,17 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProduct = async (id: string) => {
-    const success = await backendService.deleteProduct(id);
-    if (success) {
-      setProducts(prev => prev.filter(product => product.id !== id));
+    try {
+      console.log('ProductContext: Deleting product:', id);
+      const success = await backendService.deleteProduct(id);
+      if (success) {
+        console.log('ProductContext: Product deleted successfully:', id);
+        setProducts(prev => prev.filter(product => product.id !== id));
+      } else {
+        console.error('ProductContext: Failed to delete product:', id);
+      }
+    } catch (error) {
+      console.error('ProductContext: Error deleting product:', error);
     }
   };
 
