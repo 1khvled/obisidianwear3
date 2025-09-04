@@ -1,152 +1,121 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertTriangle, XCircle, Info, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, X, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { useNotifications } from '@/context/NotificationContext';
 
-export type NotificationType = 'success' | 'error' | 'warning' | 'info';
+export default function NotificationSystem() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { notifications, removeNotification, clearAllNotifications } = useNotifications();
 
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  duration?: number;
-}
-
-interface NotificationSystemProps {
-  notifications: Notification[];
-  onRemove: (id: string) => void;
-}
-
-const NotificationItem = ({ notification, onRemove }: { notification: Notification; onRemove: (id: string) => void }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-    
-    if (notification.duration !== 0) {
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        setTimeout(() => onRemove(notification.id), 300);
-      }, notification.duration || 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [notification.id, notification.duration, onRemove]);
-
-  const getIcon = () => {
-    switch (notification.type) {
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5" />;
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
       case 'error':
-        return <XCircle className="w-5 h-5" />;
+        return <XCircle className="w-5 h-5 text-red-400" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5" />;
+        return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
       case 'info':
-        return <Info className="w-5 h-5" />;
+        return <Info className="w-5 h-5 text-blue-400" />;
       default:
-        return <Info className="w-5 h-5" />;
+        return <Bell className="w-5 h-5 text-gray-400" />;
     }
   };
 
-  const getColorClasses = () => {
-    switch (notification.type) {
+  const getNotificationBgColor = (type: string) => {
+    switch (type) {
       case 'success':
-        return 'bg-green-600 border-green-500 text-white';
+        return 'bg-green-500/10 border-green-500/20';
       case 'error':
-        return 'bg-red-600 border-red-500 text-white';
+        return 'bg-red-500/10 border-red-500/20';
       case 'warning':
-        return 'bg-yellow-600 border-yellow-500 text-white';
+        return 'bg-yellow-500/10 border-yellow-500/20';
       case 'info':
-        return 'bg-blue-600 border-blue-500 text-white';
+        return 'bg-blue-500/10 border-blue-500/20';
       default:
-        return 'bg-gray-600 border-gray-500 text-white';
+        return 'bg-gray-500/10 border-gray-500/20';
     }
   };
 
   return (
-    <div
-      className={`
-        transform transition-all duration-300 ease-in-out
-        ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
-        ${getColorClasses()}
-        rounded-lg border shadow-lg p-4 mb-3 max-w-sm w-full
-        backdrop-blur-sm
-      `}
-    >
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
-        <div className="ml-3 flex-1">
-          <h4 className="text-sm font-semibold">{notification.title}</h4>
-          <p className="text-sm opacity-90 mt-1">{notification.message}</p>
-        </div>
-        <button
-          onClick={() => {
-            setIsVisible(false);
-            setTimeout(() => onRemove(notification.id), 300);
-          }}
-          className="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-white/20 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-};
+    <div className="relative">
+      {/* Notification Bell */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-gray-400 hover:text-white transition-colors"
+        title="Notifications"
+      >
+        <Bell className="w-5 h-5" />
+        {notifications.length > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            {notifications.length}
+          </span>
+        )}
+      </button>
 
-export default function NotificationSystem({ notifications, onRemove }: NotificationSystemProps) {
-  return (
-    <div className="fixed top-4 right-4 z-50 pointer-events-none">
-      <div className="pointer-events-auto">
-        {notifications.map((notification) => (
-          <NotificationItem
-            key={notification.id}
-            notification={notification}
-            onRemove={onRemove}
-          />
-        ))}
-      </div>
+      {/* Notification Dropdown */}
+      {isOpen && (
+        <div className="absolute right-0 top-12 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-semibold">Notifications</h3>
+              <div className="flex items-center space-x-2">
+                {notifications.length > 0 && (
+                  <button
+                    onClick={clearAllNotifications}
+                    className="text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-400">
+                <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>No notifications</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-700">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 border-l-4 ${getNotificationBgColor(notification.type)}`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      {getNotificationIcon(notification.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm">{notification.message}</p>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {notification.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeNotification(notification.id)}
+                        className="text-gray-400 hover:text-white transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Hook for using notifications
-export const useNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  const addNotification = (notification: Omit<Notification, 'id'>) => {
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [...prev, { ...notification, id }]);
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const showSuccess = (title: string, message: string, duration?: number) => {
-    addNotification({ type: 'success', title, message, duration });
-  };
-
-  const showError = (title: string, message: string, duration?: number) => {
-    addNotification({ type: 'error', title, message, duration });
-  };
-
-  const showWarning = (title: string, message: string, duration?: number) => {
-    addNotification({ type: 'warning', title, message, duration });
-  };
-
-  const showInfo = (title: string, message: string, duration?: number) => {
-    addNotification({ type: 'info', title, message, duration });
-  };
-
-  return {
-    notifications,
-    removeNotification,
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo
-  };
-};
+export { useNotifications };

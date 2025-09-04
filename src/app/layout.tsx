@@ -5,6 +5,8 @@ import { ProductProvider } from '@/context/ProductContext'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
+import { ThemeProvider } from '@/context/ThemeContext'
+import { NotificationProvider } from '@/context/NotificationContext'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
 
 const inter = Inter({ 
@@ -91,16 +93,20 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        <AuthProvider>
-          <LanguageProvider>
-            <ProductProvider>
-              <CartProvider>
-                <StoreStatusChecker />
-                {children}
-              </CartProvider>
-            </ProductProvider>
-          </LanguageProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <NotificationProvider>
+            <AuthProvider>
+              <LanguageProvider>
+                <ProductProvider>
+                  <CartProvider>
+                    <StoreStatusChecker />
+                    {children}
+                  </CartProvider>
+                </ProductProvider>
+              </LanguageProvider>
+            </AuthProvider>
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

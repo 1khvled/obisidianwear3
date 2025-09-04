@@ -4,15 +4,23 @@ import { Product } from '@/types';
 import { Star, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCart } from '@/context/CartContext';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { addToCart } = useCart();
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const handleAddToCart = () => {
+    if (product.inStock && product.colors && product.colors.length > 0) {
+      addToCart(product, 'M', product.colors[0], 1);
+    }
+  };
 
   return (
     <div className="group bg-gray-900/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-800/50 hover:border-gray-700/50 transition-all duration-300 hover:shadow-xl hover:shadow-white/5 active:scale-[0.98] sm:active:scale-100">
@@ -43,15 +51,14 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Add to Cart Button - Hidden on mobile for better UX */}
         <div className="hidden sm:flex absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 items-center justify-center opacity-0 group-hover:opacity-100">
-          <Link href={`/checkout?productId=${product.id}&size=M&color=${product.colors[0]}&quantity=1`}>
-            <button 
-              className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
-              disabled={!product.inStock}
-            >
-              <ShoppingCart size={16} />
-              <span>Add to Cart</span>
-            </button>
-          </Link>
+          <button 
+            onClick={handleAddToCart}
+            className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
+            disabled={!product.inStock}
+          >
+            <ShoppingCart size={16} />
+            <span>Add to Cart</span>
+          </button>
         </div>
       </div>
 
@@ -102,13 +109,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             </button>
           </Link>
           {product.inStock && (
-            <Link 
-              href={`/checkout?productId=${product.id}&size=M&color=${product.colors[0]}&quantity=1`}
+            <button 
+              onClick={handleAddToCart}
+              className="w-full bg-gray-800 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm sm:text-base touch-target"
             >
-              <button className="w-full bg-gray-800 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm sm:text-base touch-target">
-                Add to Cart
-              </button>
-            </Link>
+              Add to Cart
+            </button>
           )}
         </div>
       </div>

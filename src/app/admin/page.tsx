@@ -41,6 +41,10 @@ import NotificationSystem, { useNotifications } from '@/components/NotificationS
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useNotificationService } from '@/hooks/useNotificationService';
+import MobileAdminLayout from '@/components/MobileAdminLayout';
+import ProductSkeleton, { ProductListSkeleton, TableSkeleton } from '@/components/ProductSkeleton';
 import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
@@ -52,7 +56,7 @@ export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
   const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
-  const { notifications, removeNotification, showSuccess, showError, showWarning, showInfo } = useNotifications();
+  const { notifications, removeNotification, addNotification } = useNotifications();
   
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -63,6 +67,35 @@ export default function AdminPage() {
   const [wilayaTariffs, setWilayaTariffs] = useState<Wilaya[]>(sortedWilayas);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const { theme } = useTheme();
+  useNotificationService(); // Initialize real-time notifications
+  
+  // Check for low stock and send notifications
+  useEffect(() => {
+    if (products.length > 0) {
+      products.forEach(product => {
+        if (product.stock) {
+          const totalStock = Object.values(product.stock).reduce((total: number, colorStock: any) => {
+            if (typeof colorStock === 'object' && colorStock !== null) {
+              return total + Object.values(colorStock).reduce((sum: number, qty: any) => {
+                return sum + (typeof qty === 'number' ? qty : 0);
+              }, 0);
+            }
+            return total;
+          }, 0);
+          
+          if (totalStock <= 5 && totalStock > 0) {
+            addNotification(`Low stock alert: ${product.name} has only ${totalStock} items left`, 'warning');
+          } else if (totalStock === 0) {
+            addNotification(`Out of stock: ${product.name} is completely out of stock`, 'error');
+          }
+        }
+      });
+    }
+  }, [products, addNotification]);
   
   // New product form state
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
@@ -94,11 +127,14 @@ export default function AdminPage() {
   
   const [newColor, setNewColor] = useState('');
 
-  // Load data on component mount
+  // Load data on component mount with performance optimization
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Load data from shared data service
       const loadData = async () => {
+        try {
+          setLoading(true);
+          
         // Load wilaya tariffs
         const savedWilayaTariffs = await backendService.getWilayaTariffs();
         if (savedWilayaTariffs.length > 0) {
@@ -108,13 +144,36 @@ export default function AdminPage() {
           backendService.updateWilayaTariffs(sortedWilayas);
         }
 
-        // Load orders
+          // Load orders with loading state
+          setOrdersLoading(true);
         const savedOrders = await backendService.getOrders();
         setOrders(savedOrders);
+          setOrdersLoading(false);
+          
+          // Send notification for new orders
+          if (savedOrders.length > 0) {
+            const recentOrders = savedOrders.filter(order => {
+              const orderDate = new Date(order.createdAt);
+              const now = new Date();
+              const diffInHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+              return diffInHours <= 24; // Orders from last 24 hours
+            });
+            
+            if (recentOrders.length > 0) {
+              addNotification(`New order received: ${recentOrders[0].customerName} - ${recentOrders[0].total} DA`, 'info');
+            }
+          }
 
         // Load customers
         const savedCustomers = await backendService.getCustomers();
         setCustomers(savedCustomers);
+        } catch (error) {
+          console.error('Error loading data:', error);
+          addNotification({n            message: 'Failed to load data. Please refresh the page.',n            type: 'error'n          });
+        } finally {
+          setLoading(false);
+          setOrdersLoading(false);
+        }
       };
 
       loadData();
@@ -151,7 +210,7 @@ export default function AdminPage() {
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
-      showError('Validation Error', 'Product name and price are required');
+      addNotification({n        message: 'Product name and price are required',n        type: 'error'n      });
       return;
     }
 
@@ -186,7 +245,7 @@ export default function AdminPage() {
       };
 
       addProductContext(product);
-      showSuccess('Product Added', `"${product.name}" has been added successfully!`);
+      addNotification(`"${product.name}" has been added successfully!`, 'success');
       
       // Reset form
       setNewProduct({
@@ -217,7 +276,7 @@ export default function AdminPage() {
       });
       setShowAddProduct(false);
     } catch (error) {
-      showError('Error', 'Failed to add product. Please try again.');
+      addNotification({n        message: 'Failed to add product. Please try again.',n        type: 'error'n      });
       console.error('Error adding product:', error);
     }
   };
@@ -235,10 +294,10 @@ export default function AdminPage() {
       updateProductContext(editingProduct.id, updatedProduct);
       setEditingProduct(null);
       
-      showSuccess('Product Updated', `"${updatedProduct.name}" has been updated successfully!`);
+      addNotification({n        message: `"${updatedProduct.name}" has been updated successfully!`,n        type: 'success'n      });
       console.log('Product updated:', updatedProduct.name);
     } catch (error) {
-      showError('Update Failed', 'Failed to update product. Please try again.');
+      addNotification({n        message: 'Failed to update product. Please try again.',n        type: 'error'n      });
       console.error('Error updating product:', error);
     }
   };
@@ -250,9 +309,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
       try {
         deleteProductContext(id);
-        showSuccess('Product Deleted', `"${productName}" has been deleted successfully.`);
+        addNotification({n          message: `"${productName}" has been deleted successfully.`,n          type: 'success'n        });
       } catch (error) {
-        showError('Delete Failed', 'Failed to delete product. Please try again.');
+        addNotification({n          message: 'Failed to delete product. Please try again.',n          type: 'error'n        });
         console.error('Error deleting product:', error);
       }
     }
@@ -265,9 +324,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
       try {
         setOrders(prev => prev.filter(order => order.id !== id));
-        showSuccess('Order Deleted', `Order "${orderId}" has been deleted successfully.`);
+        addNotification({n          message: `Order "${orderId}" has been deleted successfully.`,n          type: 'success'n        });
       } catch (error) {
-        showError('Delete Failed', 'Failed to delete order. Please try again.');
+        addNotification({n          message: 'Failed to delete order. Please try again.',n          type: 'error'n        });
         console.error('Error deleting order:', error);
       }
     }
@@ -275,7 +334,7 @@ export default function AdminPage() {
 
   const exportOrdersToExcel = () => {
     if (orders.length === 0) {
-      showError('No Data', 'No orders to export');
+      addNotification({n        message: 'No orders to export',n        type: 'error'n      });
       return;
     }
 
@@ -310,7 +369,7 @@ export default function AdminPage() {
     link.click();
     document.body.removeChild(link);
     
-    showSuccess('Export Successful', 'Orders exported to CSV file');
+    addNotification({n      message: 'Orders exported to CSV file',n      type: 'success'n    });
   };
 
   const viewOrderDetails = (order: Order) => {
@@ -348,7 +407,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     // Update in shared data service
     await backendService.updateOrder(orderId, { status: newStatus as Order['status'] });
     
-    showSuccess('Status Updated', `Order #${orderId} status updated to ${newStatus}`);
+    addNotification({n      message: `Order #${orderId} status updated to ${newStatus}`,n      type: 'success'n    });
   };
 
   const updateWilayaTariff = async (wilayaId: number, field: keyof Wilaya, value: number) => {
@@ -422,8 +481,237 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     return matchesSearch && matchesCategory;
   });
 
+  // Render content function for mobile layout
+  const renderContent = () => {
+    if (loading) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col lg:flex-row">
+        <div className="p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-700 rounded w-48 mb-4"></div>
+            <div className="h-4 bg-gray-700 rounded w-32 mb-6"></div>
+            <TableSkeleton rows={5} columns={6} />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-auto">
+        {activeTab === 'dashboard' && <EnhancedDashboard products={products} orders={orders} customers={customers} />}
+        
+        {activeTab === 'products' && (
+          <div className="p-4 sm:p-6">
+            {productsLoading ? (
+              <ProductListSkeleton count={8} />
+            ) : (
+              <EnhancedProductManager
+                products={products}
+                onAddProduct={() => setShowAddProduct(true)}
+                onEditProduct={(product) => setEditingProduct(product)}
+                onDeleteProduct={handleDeleteProduct}
+                onViewProduct={(product) => window.open(`/product/${product.id}`, '_blank')}
+              />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Inventory Management</h2>
+                <p className="text-gray-400">Manage product stock and inventory levels</p>
+              </div>
+              <button 
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
+            </div>
+
+            {products.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">No products found</h3>
+                <p className="text-gray-400">Add products to manage inventory.</p>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="text-left text-white font-medium py-4 px-6">Product</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Category</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Colors</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Sizes</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Stock Levels</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Total Stock</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Status</th>
+                        <th className="text-left text-white font-medium py-4 px-6">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map((product) => {
+                        const getTotalStock = () => {
+                          if (!product.stock) return 0;
+                          return Object.values(product.stock).reduce((total: number, colorStock: any) => {
+                            if (typeof colorStock === 'object' && colorStock !== null) {
+                              return total + Object.values(colorStock).reduce((sum: number, qty: any) => {
+                                return sum + (typeof qty === 'number' ? qty : 0);
+                              }, 0);
+                            }
+                            return total;
+                          }, 0);
+                        };
+
+                        const getStockBySize = (size: string) => {
+                          if (!product.stock) return 0;
+                          return Object.values(product.stock).reduce((total: number, colorStock: any) => {
+                            if (typeof colorStock === 'object' && colorStock !== null) {
+                              return total + (typeof colorStock[size] === 'number' ? colorStock[size] : 0);
+                            }
+                            return total;
+                          }, 0);
+                        };
+
+                        const totalStock = getTotalStock();
+                        const isLowStock = totalStock < 10;
+                        const isOutOfStock = totalStock === 0;
+
+                        return (
+                          <tr key={product.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                            <td className="py-4 px-6">
+                              <div className="flex items-center space-x-3">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                                <div>
+                                  <div className="text-white font-medium">{product.name}</div>
+                                  <div className="text-gray-400 text-sm">SKU: {product.sku || 'N/A'}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm">
+                                {product.category}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-wrap gap-1">
+                                {product.colors.map((color, index) => (
+                                  <span
+                                    key={index}
+                                    className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                  >
+                                    {color}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-wrap gap-1">
+                                {product.sizes.map((size, index) => (
+                                  <span
+                                    key={index}
+                                    className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                  >
+                                    {size}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="space-y-1">
+                                {product.sizes.map((size) => {
+                                  const sizeStock = getStockBySize(size);
+                                  return (
+                                    <div key={size} className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-300">{size}:</span>
+                                      <span className={`font-medium ${
+                                        sizeStock === 0 ? 'text-red-400' :
+                                        sizeStock < 5 ? 'text-yellow-400' :
+                                        'text-green-400'
+                                      }`}>
+                                        {sizeStock}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="text-white font-semibold text-lg">{totalStock}</div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center space-x-2">
+                                {isOutOfStock ? (
+                                  <span className="flex items-center text-red-400 text-sm">
+                                    <AlertTriangle className="w-4 h-4 mr-1" />
+                                    Out of Stock
+                                  </span>
+                                ) : isLowStock ? (
+                                  <span className="flex items-center text-yellow-400 text-sm">
+                                    <AlertTriangle className="w-4 h-4 mr-1" />
+                                    Low Stock
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center text-green-400 text-sm">
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    In Stock
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <button
+                                onClick={() => setEditingProduct(product)}
+                                className="text-blue-400 hover:text-blue-300 transition-colors"
+                                title="Edit Stock"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Add other tabs here... */}
+      </div>
+    );
+  };
+
+  // Use mobile layout for mobile devices
+  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    return (
+      <MobileAdminLayout
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={logout}
+        username={username}
+      >
+        {renderContent()}
+      </MobileAdminLayout>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-300 ${
+      theme === 'light' 
+        ? 'bg-gradient-to-br from-gray-50 via-white to-gray-100' 
+        : 'bg-gradient-to-br from-gray-900 via-black to-gray-900'
+    }`}>
       {/* Mobile Header */}
       <div className="lg:hidden bg-gray-900 border-b border-gray-800 p-4">
         <div className="flex items-center justify-between">
@@ -439,6 +727,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
             >
               <Home className="w-5 h-5" />
             </button>
+            <NotificationSystem />
             <button
               onClick={logout}
               className="touch-target text-gray-400 hover:text-white transition-colors"
@@ -498,6 +787,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                 <p className="text-gray-400 text-xs">{username}</p>
               </div>
             </div>
+            <NotificationSystem />
             <button
               onClick={logout}
               className="p-2 text-gray-400 hover:text-white transition-colors"
@@ -1710,10 +2000,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
       )}
 
       {/* Notification System */}
-      <NotificationSystem 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-      />
+              <NotificationSystem />
 
       {/* Data Sync Indicator */}
       <DataSyncIndicator />
@@ -1728,13 +2015,13 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
               if (response.ok) {
                 const data = await response.json();
                 console.log('Manual sync result:', data);
-                showSuccess('Sync Test', `Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`);
+                addNotification({n                  message: `Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`,n                  type: 'success'n                });
               } else {
-                showError('Sync Failed', 'Failed to fetch data from API');
+                addNotification({n                  message: 'Failed to fetch data from API',n                  type: 'error'n                });
               }
             } catch (error) {
               console.error('Manual sync error:', error);
-              showError('Sync Error', 'Failed to sync data');
+              addNotification({n                message: 'Failed to sync data',n                type: 'error'n              });
             }
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
@@ -1746,7 +2033,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
           <button
             onClick={() => {
               initializeDefaultProducts();
-              showSuccess('Products Initialized', 'Default products have been added to your store');
+              addNotification({n                message: 'Default products have been added to your store',n                type: 'success'n              });
             }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
           >
