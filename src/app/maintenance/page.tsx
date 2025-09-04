@@ -13,17 +13,32 @@ export default function MaintenancePage() {
   });
 
   useEffect(() => {
-    // Load saved drop date or use default (30 days from today)
-    const savedDate = localStorage.getItem('obsidian-drop-date');
-    if (savedDate) {
-      setDropDate(savedDate);
-    } else {
-      const today = new Date();
-      const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
-      const defaultDate = futureDate.toISOString();
-      setDropDate(defaultDate);
-      localStorage.setItem('obsidian-drop-date', defaultDate);
-    }
+    // Load drop date from API
+    const loadDropDate = async () => {
+      try {
+        const response = await fetch('/api/maintenance');
+        const data = await response.json();
+        
+        if (data?.drop_date) {
+          setDropDate(data.drop_date);
+        } else {
+          // Default to 30 days from now
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+          const defaultDate = futureDate.toISOString();
+          setDropDate(defaultDate);
+        }
+      } catch (error) {
+        console.error('Error loading drop date:', error);
+        // Set default on error
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+        const defaultDate = futureDate.toISOString();
+        setDropDate(defaultDate);
+      }
+    };
+
+    loadDropDate();
   }, []);
 
   useEffect(() => {

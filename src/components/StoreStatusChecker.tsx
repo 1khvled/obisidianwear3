@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function StoreStatusChecker() {
   const pathname = usePathname();
   const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     // Skip check for admin routes, maintenance page, and static files
@@ -15,18 +16,42 @@ export default function StoreStatusChecker() {
       pathname.startsWith('/_next') ||
       pathname.includes('.')
     ) {
+      setIsChecking(false);
       return;
     }
 
-    // Check store status from localStorage
-    const storeStatus = localStorage.getItem('obsidian-store-status');
-    
-    // If store is OFF (false) and not on maintenance page, redirect to maintenance
-    if (storeStatus === 'false' && pathname !== '/maintenance') {
-      console.log('🔴 Store is OFF - Redirecting to maintenance page');
-      router.push('/maintenance');
-    }
+    // Check store status from API
+    const checkMaintenanceStatus = async () => {
+      try {
+        const response = await fetch('/api/maintenance');
+        const data = await response.json();
+        
+        // If store is in maintenance mode and not on maintenance page, redirect
+        if (data?.is_maintenance && pathname !== '/maintenance') {
+          console.log('🔴 Store is in MAINTENANCE MODE - Redirecting to maintenance page');
+          router.push('/maintenance');
+        }
+      } catch (error) {
+        console.error('Error checking maintenance status:', error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkMaintenanceStatus();
   }, [pathname, router]);
+
+  // Show loading state while checking
+  if (isChecking) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-gray-900 rounded-lg p-6 flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+          <span className="text-white">Checking store status...</span>
+        </div>
+      </div>
+    );
+  }
 
   return null; // This component doesn't render anything
 }

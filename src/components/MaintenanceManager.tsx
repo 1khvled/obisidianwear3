@@ -7,48 +7,124 @@ export default function MaintenanceManager() {
   const [dropDate, setDropDate] = useState('');
   const [storeStatus, setStoreStatus] = useState(true); // true = open, false = maintenance
   const [dropTime, setDropTime] = useState('00:00');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load saved settings
-    const savedDate = localStorage.getItem('obsidian-drop-date');
-    const savedStatus = localStorage.getItem('obsidian-store-status');
-    
-    if (savedDate) {
-      const date = new Date(savedDate);
-      setDropDate(date.toISOString().split('T')[0]);
-      setDropTime(date.toTimeString().slice(0, 5));
-    } else {
-      const today = new Date();
-      const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
-      setDropDate(futureDate.toISOString().split('T')[0]);
-      setDropTime('00:00');
-    }
-    
-    setStoreStatus(savedStatus !== 'false');
+    // Load settings from API
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/maintenance');
+        const data = await response.json();
+        
+        if (data) {
+          setStoreStatus(!data.is_maintenance);
+          
+          if (data.drop_date) {
+            const date = new Date(data.drop_date);
+            setDropDate(date.toISOString().split('T')[0]);
+            setDropTime(date.toTimeString().slice(0, 5));
+          } else {
+            // Default to 30 days from now
+            const today = new Date();
+            const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+            setDropDate(futureDate.toISOString().split('T')[0]);
+            setDropTime('00:00');
+          }
+        } else {
+          // No data found, set defaults
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+          setDropDate(futureDate.toISOString().split('T')[0]);
+          setDropTime('00:00');
+        }
+      } catch (error) {
+        console.error('Error loading maintenance settings:', error);
+        // Set defaults on error
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+        setDropDate(futureDate.toISOString().split('T')[0]);
+        setDropTime('00:00');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
   }, []);
 
-  const handleDateTimeChange = () => {
+  const handleDateTimeChange = async () => {
     const combinedDateTime = `${dropDate}T${dropTime}:00`;
-    localStorage.setItem('obsidian-drop-date', combinedDateTime);
-    alert('Drop date updated successfully!');
+    
+    try {
+      const response = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isMaintenance: !storeStatus,
+          dropDate: combinedDateTime
+        }),
+      });
+
+      if (response.ok) {
+        alert('Drop date updated successfully!');
+      } else {
+        alert('Failed to update drop date. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating drop date:', error);
+      alert('Failed to update drop date. Please try again.');
+    }
   };
 
-  const toggleStoreStatus = () => {
+  const toggleStoreStatus = async () => {
     const newStatus = !storeStatus;
-    setStoreStatus(newStatus);
-    localStorage.setItem('obsidian-store-status', newStatus.toString());
+    const combinedDateTime = `${dropDate}T${dropTime}:00`;
     
-    if (!newStatus) {
-      // Store is now in maintenance mode
-      alert('Store is now in MAINTENANCE MODE. Customers will see the maintenance page.');
-    } else {
-      alert('Store is now OPEN. Customers can shop normally.');
+    try {
+      const response = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isMaintenance: !newStatus,
+          dropDate: combinedDateTime
+        }),
+      });
+
+      if (response.ok) {
+        setStoreStatus(newStatus);
+        
+        if (!newStatus) {
+          alert('Store is now in MAINTENANCE MODE. All customers will see the maintenance page.');
+        } else {
+          alert('Store is now OPEN. Customers can shop normally.');
+        }
+      } else {
+        alert('Failed to update store status. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating store status:', error);
+      alert('Failed to update store status. Please try again.');
     }
   };
 
   const previewMaintenance = () => {
     window.open('/maintenance', '_blank');
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading maintenance settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
