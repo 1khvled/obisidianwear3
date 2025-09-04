@@ -49,7 +49,23 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
   // Filter data by time range
   const filteredOrders = orders.filter(order => {
     const orderDate = new Date(order.orderDate);
-    return orderDate >= startDate && orderDate <= endDate;
+    // More flexible date filtering - check if order is within the time range
+    const isWithinRange = orderDate >= startDate && orderDate <= endDate;
+    
+    // Debug: Log filtering details
+    if (orders.length > 0 && orders.indexOf(order) < 3) {
+      console.log('Analytics: Order filtering:', {
+        orderId: order.id,
+        orderDate: order.orderDate,
+        parsedDate: orderDate,
+        startDate,
+        endDate,
+        isWithinRange,
+        total: order.total
+      });
+    }
+    
+    return isWithinRange;
   });
 
   // Calculate analytics from real data only
@@ -86,13 +102,27 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     const days = [];
     const currentDate = new Date(startDate);
     
+    // Debug: Log the date range and orders
+    console.log('Analytics: Date range:', { startDate, endDate });
+    console.log('Analytics: Filtered orders:', filteredOrders.length);
+    console.log('Analytics: Sample order dates:', filteredOrders.slice(0, 3).map(o => ({ id: o.id, date: o.orderDate, total: o.total })));
+    
     while (currentDate <= endDate) {
       const dayOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.orderDate);
-        return orderDate.toDateString() === currentDate.toDateString();
+        // More flexible date comparison - check if dates are on the same day
+        const isSameDay = orderDate.getFullYear() === currentDate.getFullYear() &&
+                         orderDate.getMonth() === currentDate.getMonth() &&
+                         orderDate.getDate() === currentDate.getDate();
+        return isSameDay;
       });
       
       const revenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      
+      // Debug: Log each day's data
+      if (dayOrders.length > 0) {
+        console.log(`Analytics: ${currentDate.toDateString()} - ${dayOrders.length} orders, ${revenue} revenue`);
+      }
       
       days.push({
         date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -265,11 +295,15 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
             </div>
           </div>
           <Chart 
-            data={analytics.revenueByDay.map(day => ({
-              label: day.date,
-              value: day.revenue,
-              color: '#3b82f6'
-            }))} 
+            data={analytics.revenueByDay.map(day => {
+              // Debug: Log each day's data
+              console.log('Analytics: Chart data for', day.date, ':', day.revenue);
+              return {
+                label: day.date,
+                value: day.revenue,
+                color: '#3b82f6'
+              };
+            })} 
             type="bar" 
             height={200} 
           />
