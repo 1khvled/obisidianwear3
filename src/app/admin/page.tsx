@@ -398,16 +398,16 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     alert(details);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, updates: Partial<Order>) => {
     const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus as Order['status'] } : order
+      order.id === orderId ? { ...order, ...updates } : order
     );
     setOrders(updatedOrders);
     
     // Update in shared data service
-    await backendService.updateOrder(orderId, { status: newStatus as Order['status'] });
+    await backendService.updateOrder(orderId, updates);
     
-    addNotification(`Order #${orderId} status updated to ${newStatus}`, 'success');
+    addNotification(`Order #${orderId} updated successfully`, 'success');
   };
 
   const updateWilayaTariff = async (wilayaId: number, field: keyof Wilaya, value: number) => {
