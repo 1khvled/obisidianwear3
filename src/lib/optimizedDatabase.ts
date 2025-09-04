@@ -55,11 +55,13 @@ class DatabaseCache {
 
   invalidate(pattern?: string) {
     if (pattern) {
-      for (const key of this.cache.keys()) {
+      const keysToDelete: string[] = [];
+      this.cache.forEach((_, key) => {
         if (key.includes(pattern)) {
-          this.cache.delete(key);
+          keysToDelete.push(key);
         }
-      }
+      });
+      keysToDelete.forEach(key => this.cache.delete(key));
     } else {
       this.cache.clear();
     }
