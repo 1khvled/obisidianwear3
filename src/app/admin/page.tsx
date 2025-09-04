@@ -28,8 +28,12 @@ import {
 } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminDashboard from '@/components/AdminDashboard';
+import EnhancedDashboard from '@/components/EnhancedDashboard';
 import ProductManager from '@/components/ProductManager';
+import EnhancedProductManager from '@/components/EnhancedProductManager';
 import InventoryManager from '@/components/InventoryManager';
+import EnhancedOrderManager from '@/components/EnhancedOrderManager';
+import Analytics from '@/components/Analytics';
 import MaintenanceManager from '@/components/MaintenanceManager';
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem';
 import { useAuth } from '@/context/AuthContext';
@@ -252,6 +256,21 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteOrder = (id: string) => {
+    const order = orders.find(o => o.id === id);
+    const orderId = order?.id || 'Unknown Order';
+    
+    if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
+      try {
+        setOrders(prev => prev.filter(order => order.id !== id));
+        showSuccess('Order Deleted', `Order "${orderId}" has been deleted successfully.`);
+      } catch (error) {
+        showError('Delete Failed', 'Failed to delete order. Please try again.');
+        console.error('Error deleting order:', error);
+      }
+    }
+  };
+
   const exportOrdersToExcel = () => {
     if (orders.length === 0) {
       showError('No Data', 'No orders to export');
@@ -388,6 +407,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     { id: 'products', icon: Package, label: 'Products', color: 'text-green-400' },
     { id: 'inventory', icon: Archive, label: 'Inventory', color: 'text-cyan-400' },
     { id: 'orders', icon: ShoppingCart, label: 'Orders', color: 'text-orange-400' },
+    { id: 'analytics', icon: TrendingUp, label: 'Analytics', color: 'text-pink-400' },
     { id: 'customers', icon: Users, label: 'Customers', color: 'text-purple-400' },
     { id: 'maintenance', icon: AlertTriangle, label: 'Maintenance', color: 'text-yellow-400' },
     { id: 'wilayas', icon: MapPin, label: 'Wilayas', color: 'text-red-400' }
@@ -538,14 +558,16 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto">
-          {activeTab === 'dashboard' && <AdminDashboard />}
+                      {activeTab === 'dashboard' && <EnhancedDashboard products={products} orders={orders} customers={customers} />}
           
           {activeTab === 'products' && (
             <div className="p-4 sm:p-6">
-              <ProductManager
+              <EnhancedProductManager
+                products={products}
                 onAddProduct={() => setShowAddProduct(true)}
                 onEditProduct={(product) => setEditingProduct(product)}
                 onDeleteProduct={handleDeleteProduct}
+                onViewProduct={(product) => window.open(`/product/${product.id}`, '_blank')}
               />
             </div>
           )}
@@ -555,27 +577,51 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
           {activeTab === 'maintenance' && <MaintenanceManager />}
 
           {activeTab === 'orders' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Orders</h2>
-                  <p className="text-gray-400">Manage customer orders</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
-                  </button>
-                  <button 
-                    onClick={() => exportOrdersToExcel()}
-                    className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                  </button>
-                </div>
-              </div>
+            <div className="p-4 sm:p-6">
+              <EnhancedOrderManager
+                orders={orders}
+                onUpdateOrder={(id, updates) => {
+                  // Update order logic here
+                  console.log('Update order:', id, updates);
+                }}
+                onDeleteOrder={handleDeleteOrder}
+                onViewOrder={(order) => {
+                  // View order logic here
+                  console.log('View order:', order);
+                }}
+              />
+            </div>
+          )}
 
+          {activeTab === 'analytics' && (
+            <div className="p-4 sm:p-6">
+              <Analytics products={products} orders={orders} customers={customers} />
+            </div>
+          )}
+
+          {activeTab === 'customers' && (
+            <div className="p-6">
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Customers</h3>
+                <p className="text-gray-400">Customer management coming soon.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'wilayas' && (
+            <div className="p-6">
+              <div className="text-center py-12">
+                <MapPin className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Wilayas</h3>
+                <p className="text-gray-400">Wilaya management coming soon.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Legacy orders section - keeping for reference */}
+          {false && (
+            <div className="p-6">
               {orders.length === 0 ? (
                 <div className="text-center py-12">
                   <ShoppingCart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
