@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
                         }
                       }}
                       disabled={isOutOfStock}
-                      className={`px-4 py-2 border rounded-lg font-medium transition-colors relative ${
+                      className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
                         selectedSize === size
                           ? 'border-white bg-white text-black'
                           : isOutOfStock 
@@ -211,16 +211,6 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       {size}
-                      {isOutOfStock && (
-                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1">
-                          0
-                        </span>
-                      )}
-                      {!isOutOfStock && sizeStock < 5 && sizeStock > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                          {sizeStock}
-                        </span>
-                      )}
                     </button>
                   );
                 })}

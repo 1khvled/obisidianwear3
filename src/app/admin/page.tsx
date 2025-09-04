@@ -70,7 +70,7 @@ export default function AdminPage() {
     sizes: ['S', 'M', 'L', 'XL'],
     colors: ['Black'],
     inStock: true,
-    rating: 0,
+    rating: 5,
     reviews: 0,
     stock: {
       S: { Black: 10 },
@@ -194,7 +194,7 @@ export default function AdminPage() {
         sizes: ['S', 'M', 'L', 'XL'],
         colors: ['Black'],
         inStock: true,
-        rating: 0,
+        rating: 5,
         reviews: 0,
         stock: {
           S: { Black: 10 },
