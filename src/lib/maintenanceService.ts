@@ -50,17 +50,28 @@ class MaintenanceService {
 
   async setMaintenanceStatus(isMaintenance: boolean, dropDate?: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('Setting maintenance status:', { isMaintenance, dropDate });
+      
+      const { data, error } = await supabase
         .from('maintenance_status')
         .upsert({
           id: 'maintenance',
           is_maintenance: isMaintenance,
           drop_date: dropDate || new Date().toISOString(),
           updated_at: new Date().toISOString()
-        });
+        })
+        .select();
+
+      console.log('Maintenance status update result:', { data, error });
 
       if (error) {
         console.error('Error updating maintenance status:', error);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         return false;
       }
 
