@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseDatabase';
+import { updateInventory } from '@/lib/supabaseDatabase';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -32,53 +32,13 @@ export async function PUT(
       );
     }
     
-    // Prepare update object
-    const updateObj: any = {
-      updated_at: new Date().toISOString()
-    };
-    
-    if (updateData.stock) {
-      updateObj.stock = updateData.stock;
-    }
-    
-    if (updateData.inStock !== undefined) {
-      updateObj.in_stock = updateData.inStock;
-    }
-    
-    // Update the product
-    const { data: updatedProduct, error } = await supabase
-      .from('products')
-      .update(updateObj)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Inventory API: Error updating inventory:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to update inventory' },
-        { status: 500 }
-      );
-    }
-    
-    if (!updatedProduct) {
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
-    }
+    const updatedProduct = await updateInventory(id, updateData);
     
     console.log('Inventory API: Successfully updated inventory for product:', id);
     
     return NextResponse.json({
       success: true,
-      data: {
-        id: updatedProduct.id,
-        name: updatedProduct.name,
-        stock: updatedProduct.stock,
-        inStock: updatedProduct.in_stock,
-        totalStock: calculateTotalStock(updatedProduct.stock)
-      },
+      data: updatedProduct,
       message: 'Inventory updated successfully',
       timestamp: Date.now()
     });
@@ -89,19 +49,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
-
-// Helper function to calculate total stock
-function calculateTotalStock(stock: any): number {
-  if (!stock || typeof stock !== 'object') return 0;
-  
-  let total = 0;
-  for (const size in stock) {
-    if (typeof stock[size] === 'object') {
-      for (const color in stock[size]) {
-        total += Number(stock[size][color]) || 0;
-      }
-    }
-  }
-  return total;
 }

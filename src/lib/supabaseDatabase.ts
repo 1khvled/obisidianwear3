@@ -14,6 +14,9 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Export the supabase client for direct use
+export { supabase };
+
 // Helper function to convert database product to Product interface
 function convertDbProductToProduct(dbProduct: any): Product {
   return {
@@ -460,4 +463,104 @@ export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
     console.error('Supabase updateWilayaTariffs error:', error);
     throw error;
   }
+}
+
+// Inventory operations
+export async function getInventory(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, sku, stock, sizes, colors, in_stock, category')
+      .order('name');
+    
+    if (error) {
+      console.error('Supabase getInventory error:', error);
+      return [];
+    }
+    
+    // Transform data for inventory management
+    return (data || []).map(product => ({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      inStock: product.in_stock,
+      stock: product.stock || {},
+      sizes: product.sizes || [],
+      colors: product.colors || [],
+      totalStock: calculateTotalStock(product.stock || {}),
+      stockBySize: calculateStockBySize(product.stock || {}, product.sizes || [], product.colors || [])
+    }));
+  } catch (error) {
+    console.error('Supabase getInventory error:', error);
+    return [];
+  }
+}
+
+export async function updateInventory(productId: string, stockData: any): Promise<any> {
+  try {
+    const updateObj: any = {
+      updated_at: new Date().toISOString()
+    };
+    
+    if (stockData.stock) {
+      updateObj.stock = stockData.stock;
+    }
+    
+    if (stockData.inStock !== undefined) {
+      updateObj.in_stock = stockData.inStock;
+    }
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateObj)
+      .eq('id', productId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Supabase updateInventory error:', error);
+      throw error;
+    }
+    
+    console.log('Supabase: Updated inventory for product:', productId);
+    return {
+      id: data.id,
+      name: data.name,
+      stock: data.stock,
+      inStock: data.in_stock,
+      totalStock: calculateTotalStock(data.stock)
+    };
+  } catch (error) {
+    console.error('Supabase updateInventory error:', error);
+    throw error;
+  }
+}
+
+// Helper functions for inventory calculations
+function calculateTotalStock(stock: any): number {
+  if (!stock || typeof stock !== 'object') return 0;
+  
+  let total = 0;
+  for (const size in stock) {
+    if (typeof stock[size] === 'object') {
+      for (const color in stock[size]) {
+        total += Number(stock[size][color]) || 0;
+      }
+    }
+  }
+  return total;
+}
+
+function calculateStockBySize(stock: any, sizes: string[], colors: string[]): any {
+  const result: any = {};
+  
+  sizes.forEach(size => {
+    result[size] = {};
+    colors.forEach(color => {
+      result[size][color] = Number(stock[size]?.[color]) || 0;
+    });
+  });
+  
+  return result;
 }

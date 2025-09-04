@@ -60,7 +60,7 @@ export default function InventoryManager({ onInventoryUpdate }: InventoryManager
 
   const updateStockValue = (size: string, color: string, value: string) => {
     const numValue = parseInt(value) || 0;
-    setEditingStock(prev => ({
+    setEditingStock((prev: any) => ({
       ...prev,
       [size]: {
         ...prev[size],
