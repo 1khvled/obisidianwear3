@@ -25,6 +25,22 @@ export default function Home() {
     }
   }, [products, selectedCategory]);
 
+  // Show loading state only if no products are available yet
+  if (products.length === 0) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading products...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   const handleCategoryFilter = (category: string) => {
     setSelectedCategory(category);
   };

@@ -26,7 +26,19 @@ class BackendService {
   // Products API
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await fetch(this.getApiUrl('/products'));
+      const response = await fetch(this.getApiUrl('/products'), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'max-age=30'
+        },
+        next: { revalidate: 30 } // Next.js caching
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
@@ -130,7 +142,18 @@ class BackendService {
   // Orders API
   async getOrders(): Promise<Order[]> {
     try {
-      const response = await fetch(this.getApiUrl('/orders'));
+      const response = await fetch(this.getApiUrl('/orders'), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'max-age=30'
+        },
+        next: { revalidate: 30 } // Next.js caching
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       // Check if response is HTML (error page) instead of JSON
       const contentType = response.headers.get('content-type');

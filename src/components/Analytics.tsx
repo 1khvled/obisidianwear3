@@ -54,11 +54,11 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
 
   // Calculate analytics from real data only
   const analytics = {
-    totalRevenue: filteredOrders.reduce((sum, order) => sum + order.total, 0),
+    totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
     totalOrders: filteredOrders.length,
     totalCustomers: customers.length,
     totalProducts: products.length,
-    averageOrderValue: filteredOrders.length > 0 ? filteredOrders.reduce((sum, order) => sum + order.total, 0) / filteredOrders.length : 0,
+    averageOrderValue: filteredOrders.length > 0 ? filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0) / filteredOrders.length : 0,
     conversionRate: customers.length > 0 ? (filteredOrders.length / customers.length) * 100 : 0,
     topProducts: getTopProducts(),
     revenueByDay: getRevenueByDay(),
@@ -69,8 +69,8 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
   function getTopProducts() {
     const productSales = products.map(product => {
       const productOrders = filteredOrders.filter(order => order.productId === product.id);
-      const totalRevenue = productOrders.reduce((sum, order) => sum + order.total, 0);
-      const totalQuantity = productOrders.reduce((sum, order) => sum + order.quantity, 0);
+      const totalRevenue = productOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const totalQuantity = productOrders.reduce((sum, order) => sum + (order.quantity || 0), 0);
       return {
         product,
         orders: productOrders.length,
@@ -92,7 +92,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
         return orderDate.toDateString() === currentDate.toDateString();
       });
       
-      const revenue = dayOrders.reduce((sum, order) => sum + order.total, 0);
+      const revenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
       
       days.push({
         date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -132,7 +132,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     filteredOrders.forEach(order => {
       const product = products.find(p => p.id === order.productId);
       if (product) {
-        categoryRevenue[product.category] = (categoryRevenue[product.category] || 0) + order.total;
+        categoryRevenue[product.category] = (categoryRevenue[product.category] || 0) + (order.total || 0);
       }
     });
     

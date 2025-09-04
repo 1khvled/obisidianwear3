@@ -1039,139 +1039,38 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
           {activeTab === 'maintenance' && <MaintenanceManager />}
 
           {activeTab === 'orders' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Orders</h2>
-                  <p className="text-gray-400">Manage customer orders and track fulfillment</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
-                  </button>
-                  <button 
-                    onClick={() => exportOrdersToExcel()}
-                    className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                  </button>
-                </div>
-              </div>
+            <div className="p-4 sm:p-6">
+              <EnhancedOrderManager
+                orders={orders}
+                onUpdateOrder={updateOrderStatus}
+                onDeleteOrder={handleDeleteOrder}
+                onViewOrder={(order) => {
+                  const details = `
+Order Details:
+ID: #${order.id}
+Customer: ${order.customerName}
+Phone: ${order.customerPhone}
+${order.customerEmail ? `Email: ${order.customerEmail}` : ''}
+Address: ${order.customerAddress || 'No address provided'}
+Wilaya: ${order.wilayaName}
 
-              {orders.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingCart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No orders yet</h3>
-                  <p className="text-gray-400">Orders will appear here when customers make purchases.</p>
-                </div>
-              ) : (
-                <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-800">
-                        <tr>
-                          <th className="text-left text-white font-medium py-4 px-6">Order ID</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Customer</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Product</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Address</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Shipping</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Total</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Date</th>
-                          <th className="text-left text-white font-medium py-4 px-6">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((order) => (
-                          <tr key={order.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
-                            <td className="py-4 px-6">
-                              <div className="text-white font-mono text-sm">{order.id}</div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="text-white font-medium">{order.customerName}</div>
-                              <div className="text-gray-400 text-sm">{order.customerEmail}</div>
-                              <div className="text-gray-400 text-sm">{order.customerPhone}</div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center space-x-3">
-                                <img
-                                  src={order.productImage}
-                                  alt={order.productName}
-                                  className="w-12 h-12 object-cover rounded"
-                                />
-                                <div>
-                                  <div className="text-white font-medium">{order.productName}</div>
-                                  <div className="text-gray-400 text-sm">
-                                    {order.selectedSize} • {order.selectedColor} • Qty: {order.quantity}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="text-white text-sm max-w-xs">
-                                {order.customerAddress}
-                              </div>
-                              <div className="text-gray-400 text-sm">{order.wilayaName}</div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="text-white text-sm">
-                                {order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
-                              </div>
-                              <div className="text-gray-400 text-sm">{order.shippingCost} DA</div>
-                              {order.trackingNumber && (
-                                <div className="text-blue-400 text-sm">#{order.trackingNumber}</div>
-                              )}
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="text-white font-semibold">{order.total.toLocaleString()} DA</div>
-                              <div className="text-gray-400 text-sm">
-                                {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded mt-1 ${
-                                order.paymentStatus === 'paid' ? 'bg-green-900 text-green-300' :
-                                order.paymentStatus === 'pending' ? 'bg-yellow-900 text-yellow-300' :
-                                'bg-red-900 text-red-300'
-                              }`}>
-                                {order.paymentStatus.toUpperCase()}
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="text-gray-300 text-sm">
-                                {new Date(order.orderDate).toLocaleDateString()}
-                              </div>
-                              <div className="text-gray-400 text-xs">
-                                {new Date(order.orderDate).toLocaleTimeString()}
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => {
-                                    // View order details
-                                    alert(`Order Details:\n\nID: ${order.id}\nCustomer: ${order.customerName}\nProduct: ${order.productName}\nTotal: ${order.total} DA\nStatus: ${order.status}\nPayment: ${order.paymentStatus}`);
-                                  }}
-                                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                                  title="View Details"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteOrder(order.id)}
-                                  className="text-red-400 hover:text-red-300 transition-colors"
-                                  title="Delete Order"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+Product: ${order.productName}
+Size: ${order.selectedSize}
+Color: ${order.selectedColor}
+Quantity: ${order.quantity}
+
+Shipping: ${order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
+Shipping Cost: ${order.shippingCost} DA
+Subtotal: ${order.subtotal} DA
+Total: ${order.total} DA
+
+Order Date: ${new Date(order.orderDate).toLocaleString()}
+Status: ${order.status}
+Payment Status: ${order.paymentStatus}
+                  `;
+                  alert(details);
+                }}
+              />
             </div>
           )}
 

@@ -30,7 +30,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         setProducts(savedProducts);
       } catch (error) {
         console.error('ProductContext: Error loading products:', error);
-        setProducts([]);
+        // Don't set empty array immediately, keep existing products if any
+        if (products.length === 0) {
+          setProducts([]);
+        }
       }
     };
 

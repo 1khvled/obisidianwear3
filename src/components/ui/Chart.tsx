@@ -22,25 +22,28 @@ export default function Chart({ data, type = 'bar', height = 200, className = ''
   if (type === 'bar') {
     return (
       <div className={`space-y-2 ${className}`} style={{ height }}>
-        {data.map((item, index) => (
-          <div key={index} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">{item.label}</span>
-              <span className="text-white font-medium">{item.value}</span>
+        {data.map((item, index) => {
+          const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+          return (
+            <div key={index} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">{item.label}</span>
+                <span className="text-white font-medium">{item.value.toLocaleString()}</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-1000 ease-out ${
+                    isLoaded ? 'w-full' : 'w-0'
+                  }`}
+                  style={{
+                    width: isLoaded ? `${percentage}%` : '0%',
+                    backgroundColor: item.color || '#3b82f6'
+                  }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-1000 ease-out ${
-                  isLoaded ? 'w-full' : 'w-0'
-                }`}
-                style={{
-                  width: isLoaded ? `${(item.value / maxValue) * 100}%` : '0%',
-                  backgroundColor: item.color || '#3b82f6'
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

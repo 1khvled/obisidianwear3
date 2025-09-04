@@ -44,9 +44,20 @@ function convertDbProductToProduct(dbProduct: any): Product {
   };
 }
 
+// Cache for products to reduce database calls
+let productsCache: Product[] | null = null;
+let productsCacheTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds
+
 // Products operations
 export async function getProducts(): Promise<Product[]> {
   try {
+    // Return cached data if still fresh
+    if (productsCache && Date.now() - productsCacheTime < CACHE_DURATION) {
+      console.log('Supabase: Returning cached products');
+      return productsCache;
+    }
+
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -54,13 +65,19 @@ export async function getProducts(): Promise<Product[]> {
     
     if (error) {
       console.error('Supabase getProducts error:', error);
-      return [];
+      return productsCache || [];
     }
     
-    return (data || []).map(convertDbProductToProduct);
+    const products = (data || []).map(convertDbProductToProduct);
+    
+    // Update cache
+    productsCache = products;
+    productsCacheTime = Date.now();
+    
+    return products;
   } catch (error) {
     console.error('Supabase getProducts error:', error);
-    return [];
+    return productsCache || [];
   }
 }
 
@@ -123,6 +140,9 @@ export async function addProduct(product: Product): Promise<Product> {
     
     console.log('Supabase: Added product:', product.id);
     
+    // Invalidate cache
+    productsCache = null;
+    
     // Convert back to camelCase
     return convertDbProductToProduct(data);
   } catch (error) {
@@ -168,6 +188,10 @@ export async function updateProduct(id: string, product: Partial<Product>): Prom
     }
     
     console.log('Supabase: Updated product:', id);
+    
+    // Invalidate cache
+    productsCache = null;
+    
     return convertDbProductToProduct(data);
   } catch (error) {
     console.error('Supabase updateProduct error:', error);
@@ -188,6 +212,10 @@ export async function deleteProduct(id: string): Promise<boolean> {
     }
     
     console.log('Supabase: Deleted product:', id);
+    
+    // Invalidate cache
+    productsCache = null;
+    
     return true;
   } catch (error) {
     console.error('Supabase deleteProduct error:', error);
@@ -230,9 +258,19 @@ function convertDbOrderToOrder(dbOrder: any): Order {
   };
 }
 
+// Cache for orders to reduce database calls
+let ordersCache: Order[] | null = null;
+let ordersCacheTime = 0;
+
 // Orders operations
 export async function getOrders(): Promise<Order[]> {
   try {
+    // Return cached data if still fresh
+    if (ordersCache && Date.now() - ordersCacheTime < CACHE_DURATION) {
+      console.log('Supabase: Returning cached orders');
+      return ordersCache;
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -240,13 +278,19 @@ export async function getOrders(): Promise<Order[]> {
     
     if (error) {
       console.error('Supabase getOrders error:', error);
-      return [];
+      return ordersCache || [];
     }
     
-    return (data || []).map(convertDbOrderToOrder);
+    const orders = (data || []).map(convertDbOrderToOrder);
+    
+    // Update cache
+    ordersCache = orders;
+    ordersCacheTime = Date.now();
+    
+    return orders;
   } catch (error) {
     console.error('Supabase getOrders error:', error);
-    return [];
+    return ordersCache || [];
   }
 }
 
