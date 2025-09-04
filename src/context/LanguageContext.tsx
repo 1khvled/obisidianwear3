@@ -208,19 +208,53 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>('fr');
 
   useEffect(() => {
-    // Load saved language from localStorage
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('obsidian-language') as Language;
-      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
-        setLanguage(savedLanguage);
+    // Load saved language from database with localStorage fallback
+    const loadLanguage = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          // Try to get from database first
+          const prefsService = (await import('@/lib/preferencesService')).default;
+          const dbLanguage = await prefsService.getLanguage();
+          
+          if (dbLanguage && (dbLanguage === 'en' || dbLanguage === 'fr')) {
+            setLanguage(dbLanguage);
+          } else {
+            // Fallback to localStorage
+            const savedLanguage = localStorage.getItem('obsidian-language') as Language;
+            if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
+              setLanguage(savedLanguage);
+              // Sync to database
+              await prefsService.setLanguage(savedLanguage);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading language:', error);
+          // Fallback to localStorage
+          const savedLanguage = localStorage.getItem('obsidian-language') as Language;
+          if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
+            setLanguage(savedLanguage);
+          }
+        }
       }
-    }
+    };
+
+    loadLanguage();
   }, []);
 
-  const handleSetLanguage = (lang: Language) => {
+  const handleSetLanguage = async (lang: Language) => {
     setLanguage(lang);
+    
     if (typeof window !== 'undefined') {
+      // Update localStorage immediately for responsive UI
       localStorage.setItem('obsidian-language', lang);
+      
+      // Update database in background
+      try {
+        const prefsService = (await import('@/lib/preferencesService')).default;
+        await prefsService.setLanguage(lang);
+      } catch (error) {
+        console.error('Error saving language to database:', error);
+      }
     }
   };
 

@@ -19,10 +19,29 @@ export default function OrderSuccessPage() {
     if (id) {
       setOrderId(id);
       
-      // Load order data from localStorage
-      const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
-      const order = orders.find((o: any) => o.id === id);
-      setOrderData(order);
+      // Load order data from database
+      const loadOrder = async () => {
+        try {
+          const response = await fetch(`/api/orders/${id}`);
+          if (response.ok) {
+            const order = await response.json();
+            setOrderData(order);
+          } else {
+            // Fallback to localStorage if database fails
+            const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
+            const order = orders.find((o: any) => o.id === id);
+            setOrderData(order);
+          }
+        } catch (error) {
+          console.error('Error loading order:', error);
+          // Fallback to localStorage
+          const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
+          const order = orders.find((o: any) => o.id === id);
+          setOrderData(order);
+        }
+      };
+
+      loadOrder();
     }
   }, [searchParams]);
 

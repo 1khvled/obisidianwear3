@@ -1,18 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-export interface CartItem {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  image: string;
-  selectedSize: string;
-  selectedColor: string;
-  quantity: number;
-  availableStock: number;
-}
+import cartService, { CartItem } from '@/lib/cartService';
 
 interface CartContextType {
   items: CartItem[];
@@ -22,105 +11,105 @@ interface CartContextType {
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
+  loading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load cart from localStorage
-    if (typeof window !== 'undefined') {
-      const savedCart = localStorage.getItem('obsidian-cart');
-      if (savedCart) {
-        try {
-          setItems(JSON.parse(savedCart));
-        } catch (error) {
-          console.error('Error loading cart:', error);
-        }
+    // Load cart from database
+    const loadCart = async () => {
+      try {
+        setLoading(true);
+        const cartItems = await cartService.getCart();
+        setItems(cartItems);
+      } catch (error) {
+        console.error('Error loading cart:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadCart();
   }, []);
 
-  useEffect(() => {
-    // Save cart to localStorage whenever it changes
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('obsidian-cart', JSON.stringify(items));
-    }
-  }, [items]);
-
-  const addToCart = (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
+  const addToCart = async (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
     console.log('CartContext: addToCart called with:', { product, selectedSize, selectedColor, quantity });
-    const cartItemId = `${product.id}-${selectedSize}-${selectedColor}`;
     
-    setItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === cartItemId);
-      
-      if (existingItem) {
-        // Update existing item quantity
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity <= existingItem.availableStock) {
-          return prevItems.map(item =>
-            item.id === cartItemId
-              ? { ...item, quantity: newQuantity }
-              : item
-          );
-        } else {
-          alert(`Only ${existingItem.availableStock} items available in stock!`);
-          return prevItems;
-        }
-      } else {
-        // Add new item
-        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
-        if (quantity <= availableStock) {
-          const newItem: CartItem = {
-            id: cartItemId,
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image,
-            selectedSize,
-            selectedColor,
-            quantity,
-            availableStock
-          };
-          return [...prevItems, newItem];
-        } else {
-          alert(`Only ${availableStock} items available in stock!`);
-          return prevItems;
-        }
+    const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+    
+    if (quantity > availableStock) {
+      alert(`Only ${availableStock} items available in stock!`);
+      return;
+    }
+
+    const cartItem: Omit<CartItem, 'id'> = {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      selectedSize,
+      selectedColor,
+      quantity,
+      availableStock
+    };
+
+    try {
+      const success = await cartService.addToCart(cartItem);
+      if (success) {
+        // Reload cart from database
+        const updatedCart = await cartService.getCart();
+        setItems(updatedCart);
       }
-    });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
   };
 
-  const removeFromCart = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id));
+  const removeFromCart = async (id: string) => {
+    try {
+      const success = await cartService.removeFromCart(id);
+      if (success) {
+        // Reload cart from database
+        const updatedCart = await cartService.getCart();
+        setItems(updatedCart);
+      }
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+    }
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = async (id: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(id);
       return;
     }
 
-    setItems(prevItems =>
-      prevItems.map(item => {
-        if (item.id === id) {
-          if (quantity <= item.availableStock) {
-            return { ...item, quantity };
-          } else {
-            alert(`Only ${item.availableStock} items available in stock!`);
-            return item;
-          }
-        }
-        return item;
-      })
-    );
+    try {
+      const success = await cartService.updateCartItem(id, { quantity });
+      if (success) {
+        // Reload cart from database
+        const updatedCart = await cartService.getCart();
+        setItems(updatedCart);
+      }
+    } catch (error) {
+      console.error('Error updating cart quantity:', error);
+    }
   };
 
-  const clearCart = () => {
-    setItems([]);
+  const clearCart = async () => {
+    try {
+      const success = await cartService.clearCart();
+      if (success) {
+        setItems([]);
+      }
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+    }
   };
 
   const getTotalItems = () => {
@@ -139,7 +128,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       updateQuantity,
       clearCart,
       getTotalItems,
-      getTotalPrice
+      getTotalPrice,
+      loading
     }}>
       {children}
     </CartContext.Provider>
