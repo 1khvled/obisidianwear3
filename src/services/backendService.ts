@@ -131,6 +131,19 @@ class BackendService {
   async getOrders(): Promise<Order[]> {
     try {
       const response = await fetch(this.getApiUrl('/orders'));
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('BackendService: Received non-JSON response:', {
+          status: response.status,
+          contentType,
+          text: text.substring(0, 200)
+        });
+        return [];
+      }
+      
       const result = await response.json();
       
       if (result.success) {
