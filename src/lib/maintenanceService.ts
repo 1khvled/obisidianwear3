@@ -35,27 +35,7 @@ class MaintenanceService {
         .single();
 
       if (error) {
-        console.error('Database fetch failed, falling back to localStorage:', error);
-        
-        // Fallback to localStorage
-        if (typeof window !== 'undefined') {
-          const storeStatus = localStorage.getItem('obsidian-store-status');
-          const dropDate = localStorage.getItem('obsidian-drop-date');
-          
-          if (storeStatus !== null) {
-            const fallbackStatus: MaintenanceStatus = {
-              id: 'maintenance',
-              is_maintenance: storeStatus === 'true',
-              drop_date: dropDate || new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-            
-            this.cache = fallbackStatus;
-            this.cacheTime = now;
-            return fallbackStatus;
-          }
-        }
-        
+        console.error('Error fetching maintenance status:', error);
         return null;
       }
 
@@ -63,27 +43,7 @@ class MaintenanceService {
       this.cacheTime = now;
       return data;
     } catch (error) {
-      console.error('Error fetching maintenance status, falling back to localStorage:', error);
-      
-      // Fallback to localStorage
-      if (typeof window !== 'undefined') {
-        const storeStatus = localStorage.getItem('obsidian-store-status');
-        const dropDate = localStorage.getItem('obsidian-drop-date');
-        
-        if (storeStatus !== null) {
-          const fallbackStatus: MaintenanceStatus = {
-            id: 'maintenance',
-            is_maintenance: storeStatus === 'true',
-            drop_date: dropDate || new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          
-          this.cache = fallbackStatus;
-          this.cacheTime = now;
-          return fallbackStatus;
-        }
-      }
-      
+      console.error('Error fetching maintenance status:', error);
       return null;
     }
   }
@@ -92,7 +52,6 @@ class MaintenanceService {
     try {
       console.log('Setting maintenance status:', { isMaintenance, dropDate });
       
-      // Try database first
       const { data, error } = await supabase
         .from('maintenance_status')
         .upsert({
@@ -106,20 +65,14 @@ class MaintenanceService {
       console.log('Maintenance status update result:', { data, error });
 
       if (error) {
-        console.error('Database update failed, falling back to localStorage:', error);
-        
-        // Fallback to localStorage
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('obsidian-store-status', isMaintenance.toString());
-          if (dropDate) {
-            localStorage.setItem('obsidian-drop-date', dropDate);
-          }
-        }
-        
-        // Clear cache to force refresh
-        this.cache = null;
-        this.cacheTime = 0;
-        return true;
+        console.error('Error updating maintenance status:', error);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        return false;
       }
 
       // Clear cache to force refresh
@@ -127,17 +80,8 @@ class MaintenanceService {
       this.cacheTime = 0;
       return true;
     } catch (error) {
-      console.error('Error updating maintenance status, falling back to localStorage:', error);
-      
-      // Fallback to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('obsidian-store-status', isMaintenance.toString());
-        if (dropDate) {
-          localStorage.setItem('obsidian-drop-date', dropDate);
-        }
-      }
-      
-      return true;
+      console.error('Error updating maintenance status:', error);
+      return false;
     }
   }
 
