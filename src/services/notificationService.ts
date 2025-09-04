@@ -25,12 +25,12 @@ class NotificationService {
   }
 
   // Emit notification to all listeners
-  private emit(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): void {
+  private emit(message: string, type: 'success' | 'error' | 'warning' | 'info'): void {
     const newNotification: Notification = {
-      ...notification,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
-      read: false
+      message,
+      type,
+      timestamp: new Date()
     };
 
     this.listeners.forEach(listener => listener(newNotification));
@@ -58,12 +58,7 @@ class NotificationService {
 
       if (newOrders.length > 0) {
         newOrders.forEach((order: any) => {
-          this.emit({
-            type: 'order',
-            title: 'New Order Received',
-            message: `Order #${order.id} from ${order.customerName} - ${order.total} DA`,
-            actionUrl: `/admin?tab=orders`
-          });
+          this.emit(`New Order: #${order.id} from ${order.customerName} - ${order.total} DA`, 'info');
         });
 
         this.lastOrderCheck = new Date();
@@ -102,12 +97,7 @@ class NotificationService {
 
       if (lowStockProducts.length > 0) {
         lowStockProducts.forEach((product: any) => {
-          this.emit({
-            type: 'stock',
-            title: 'Low Stock Alert',
-            message: `${product.name} is running low on stock`,
-            actionUrl: `/admin?tab=inventory`
-          });
+          this.emit(`Low Stock Alert: ${product.name} is running low on stock`, 'warning');
         });
       }
     } catch (error) {
@@ -117,45 +107,23 @@ class NotificationService {
 
   // Manual notification methods
   public notifyOrderCreated(order: any): void {
-    this.emit({
-      type: 'order',
-      title: 'New Order Received',
-      message: `Order #${order.id} from ${order.customerName} - ${order.total} DA`,
-      actionUrl: `/admin?tab=orders`
-    });
+    this.emit(`New Order: #${order.id} from ${order.customerName} - ${order.total} DA`, 'info');
   }
 
   public notifyStockLow(product: any): void {
-    this.emit({
-      type: 'stock',
-      title: 'Low Stock Alert',
-      message: `${product.name} is running low on stock`,
-      actionUrl: `/admin?tab=inventory`
-    });
+    this.emit(`Low Stock Alert: ${product.name} is running low on stock`, 'warning');
   }
 
-  public notifySuccess(title: string, message: string): void {
-    this.emit({
-      type: 'success',
-      title,
-      message
-    });
+  public notifySuccess(message: string): void {
+    this.emit(message, 'success');
   }
 
-  public notifyError(title: string, message: string): void {
-    this.emit({
-      type: 'error',
-      title,
-      message
-    });
+  public notifyError(message: string): void {
+    this.emit(message, 'error');
   }
 
-  public notifyInfo(title: string, message: string): void {
-    this.emit({
-      type: 'info',
-      title,
-      message
-    });
+  public notifyInfo(message: string): void {
+    this.emit(message, 'info');
   }
 
   // Cleanup

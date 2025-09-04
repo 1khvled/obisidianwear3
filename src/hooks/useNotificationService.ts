@@ -12,7 +12,7 @@ export const useNotificationService = () => {
     
     // Subscribe to notifications from the service
     const unsubscribe = notificationService.subscribe((notification) => {
-      addNotification(notification);
+      addNotification(notification.message, notification.type);
     });
 
     // Cleanup on unmount
