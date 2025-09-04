@@ -1068,11 +1068,11 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                   <MultiImageUpload
                     value={editingProduct.images || []}
                     onChange={(urls) => {
-                      setEditingProduct({
-                        ...editingProduct, 
+                      setEditingProduct(prev => prev ? ({
+                        ...prev, 
                         images: urls,
-                        image: urls[0] || editingProduct.image // Keep current image if no new images
-                      });
+                        image: urls[0] || prev.image // Keep current image if no new images
+                      }) : null);
                     }}
                     placeholder="Upload product images"
                     maxImages={5}
