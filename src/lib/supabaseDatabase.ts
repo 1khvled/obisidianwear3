@@ -192,6 +192,41 @@ export async function deleteProduct(id: string): Promise<boolean> {
   }
 }
 
+// Helper function to convert database order to Order interface
+function convertDbOrderToOrder(dbOrder: any): Order {
+  // Extract customer info from items or use defaults
+  const firstItem = dbOrder.items && dbOrder.items.length > 0 ? dbOrder.items[0] : {};
+  
+  return {
+    id: dbOrder.id,
+    productId: firstItem.productId || '',
+    productName: firstItem.productName || '',
+    productImage: firstItem.productImage || '',
+    customerName: firstItem.customerName || '',
+    customerPhone: firstItem.customerPhone || '',
+    customerEmail: firstItem.customerEmail || '',
+    customerAddress: firstItem.customerAddress || '',
+    wilayaId: firstItem.wilayaId || 0,
+    wilayaName: firstItem.wilayaName || '',
+    shippingType: dbOrder.shipping_type || 'homeDelivery',
+    shippingCost: Number(dbOrder.shipping_cost) || 0,
+    quantity: firstItem.quantity || 1,
+    selectedSize: firstItem.selectedSize || '',
+    selectedColor: firstItem.selectedColor || '',
+    subtotal: Number(dbOrder.total) - Number(dbOrder.shipping_cost) || 0,
+    total: Number(dbOrder.total) || 0,
+    orderDate: new Date(dbOrder.order_date),
+    status: dbOrder.status || 'pending',
+    trackingNumber: dbOrder.tracking_number,
+    notes: firstItem.notes,
+    paymentMethod: dbOrder.payment_method || 'cod',
+    paymentStatus: dbOrder.payment_status || 'pending',
+    estimatedDelivery: firstItem.estimatedDelivery,
+    createdAt: new Date(dbOrder.created_at),
+    updatedAt: new Date(dbOrder.updated_at)
+  };
+}
+
 // Orders operations
 export async function getOrders(): Promise<Order[]> {
   try {
@@ -205,7 +240,7 @@ export async function getOrders(): Promise<Order[]> {
       return [];
     }
     
-    return data || [];
+    return (data || []).map(convertDbOrderToOrder);
   } catch (error) {
     console.error('Supabase getOrders error:', error);
     return [];
@@ -225,7 +260,7 @@ export async function getOrder(id: string): Promise<Order | null> {
       return null;
     }
     
-    return data;
+    return convertDbOrderToOrder(data);
   } catch (error) {
     console.error('Supabase getOrder error:', error);
     return null;
@@ -234,9 +269,41 @@ export async function getOrder(id: string): Promise<Order | null> {
 
 export async function addOrder(order: Order): Promise<Order> {
   try {
+    // Convert Order interface to database format
+    const dbOrder = {
+      id: order.id,
+      customer_id: `CUST-${Date.now()}`, // Generate customer ID
+      items: [{
+        productId: order.productId,
+        productName: order.productName,
+        productImage: order.productImage,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        customerAddress: order.customerAddress,
+        wilayaId: order.wilayaId,
+        wilayaName: order.wilayaName,
+        quantity: order.quantity,
+        selectedSize: order.selectedSize,
+        selectedColor: order.selectedColor,
+        notes: order.notes,
+        estimatedDelivery: order.estimatedDelivery
+      }],
+      total: order.total,
+      shipping_cost: order.shippingCost,
+      shipping_type: order.shippingType,
+      payment_method: order.paymentMethod,
+      payment_status: order.paymentStatus,
+      status: order.status,
+      tracking_number: order.trackingNumber,
+      order_date: order.orderDate.toISOString(),
+      created_at: order.createdAt.toISOString(),
+      updated_at: order.updatedAt.toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('orders')
-      .insert([order])
+      .insert([dbOrder])
       .select()
       .single();
     
@@ -246,7 +313,7 @@ export async function addOrder(order: Order): Promise<Order> {
     }
     
     console.log('Supabase: Added order:', order.id);
-    return data;
+    return convertDbOrderToOrder(data);
   } catch (error) {
     console.error('Supabase addOrder error:', error);
     throw error;
@@ -255,9 +322,22 @@ export async function addOrder(order: Order): Promise<Order> {
 
 export async function updateOrder(id: string, order: Partial<Order>): Promise<Order | null> {
   try {
+    // Convert partial Order to database format
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+    
+    if (order.status !== undefined) updateData.status = order.status;
+    if (order.paymentStatus !== undefined) updateData.payment_status = order.paymentStatus;
+    if (order.trackingNumber !== undefined) updateData.tracking_number = order.trackingNumber;
+    if (order.shippingType !== undefined) updateData.shipping_type = order.shippingType;
+    if (order.shippingCost !== undefined) updateData.shipping_cost = order.shippingCost;
+    if (order.total !== undefined) updateData.total = order.total;
+    if (order.paymentMethod !== undefined) updateData.payment_method = order.paymentMethod;
+    
     const { data, error } = await supabase
       .from('orders')
-      .update({ ...order, id })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -268,7 +348,7 @@ export async function updateOrder(id: string, order: Partial<Order>): Promise<Or
     }
     
     console.log('Supabase: Updated order:', id);
-    return data;
+    return convertDbOrderToOrder(data);
   } catch (error) {
     console.error('Supabase updateOrder error:', error);
     return null;
