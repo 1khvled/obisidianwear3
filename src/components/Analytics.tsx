@@ -94,15 +94,29 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     const days = [];
     const currentDate = new Date(startDate);
     
+    // Debug: Log the data we're working with
+    console.log('getRevenueByDay - Start date:', startDate);
+    console.log('getRevenueByDay - End date:', endDate);
+    console.log('getRevenueByDay - Filtered orders count:', filteredOrders.length);
+    console.log('getRevenueByDay - Sample orders:', filteredOrders.slice(0, 2));
+    
     while (currentDate <= endDate) {
       const dayOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.orderDate);
-        return orderDate.getFullYear() === currentDate.getFullYear() &&
-               orderDate.getMonth() === currentDate.getMonth() &&
-               orderDate.getDate() === currentDate.getDate();
+        const isSameDay = orderDate.getFullYear() === currentDate.getFullYear() &&
+                         orderDate.getMonth() === currentDate.getMonth() &&
+                         orderDate.getDate() === currentDate.getDate();
+        
+        if (isSameDay) {
+          console.log('Found matching order for', currentDate.toDateString(), ':', order);
+        }
+        
+        return isSameDay;
       });
       
       const revenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      
+      console.log('Day:', currentDate.toDateString(), 'Orders:', dayOrders.length, 'Revenue:', revenue);
       
       days.push({
         date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -113,6 +127,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    console.log('getRevenueByDay - Final days data:', days);
     return days;
   }
 
@@ -264,7 +279,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Revenue Trend */}
         <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
           <div className="flex items-center justify-between mb-6">
@@ -276,15 +291,17 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
                timeRange === '90d' ? '3 months' : '1 year'}
             </div>
           </div>
-          <Chart 
-            data={analytics.revenueByDay.map(day => ({
-              label: day.date,
-              value: day.revenue,
-              color: '#3b82f6'
-            }))} 
-            type="bar" 
-            height={200} 
-          />
+          <div className="min-h-[200px]">
+            <Chart 
+              data={analytics.revenueByDay.map(day => ({
+                label: day.date,
+                value: day.revenue,
+                color: '#3b82f6'
+              }))} 
+              type="bar" 
+              height={200} 
+            />
+          </div>
         </div>
 
         {/* Orders by Status */}
@@ -309,7 +326,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
             <h3 className="text-lg font-semibold text-white">Top Products</h3>
             <div className="text-sm text-gray-400">By revenue</div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-80 overflow-y-auto">
             {analytics.topProducts.map((item, index) => (
               <div key={item.product.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
                 <div className="flex items-center space-x-3">
