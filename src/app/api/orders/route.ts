@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
-import { fileStorageService } from '@/lib/fileStorageService';
+import { getOrders, addOrder } from '@/lib/supabaseDatabase';
+
+// Ensure we use Node.js runtime for Supabase compatibility
+export const runtime = 'nodejs';
 
 // GET /api/orders - Get all orders
 export async function GET() {
   try {
-    const orders = await fileStorageService.getOrders();
+    const orders = await getOrders();
     console.log('Orders API: GET request - returning', orders.length, 'orders');
     return NextResponse.json({
       success: true,
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending'
     };
 
-    const addedOrder = await fileStorageService.addOrder(newOrder);
+    const addedOrder = await addOrder(newOrder);
     
     console.log('Orders API: POST request - created order:', newOrder.id);
     

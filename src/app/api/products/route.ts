@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { fileStorageService } from '@/lib/fileStorageService';
+import { getProducts, addProduct } from '@/lib/supabaseDatabase';
+
+// Ensure we use Node.js runtime for Supabase compatibility
+export const runtime = 'nodejs';
 
 // GET /api/products - Get all products
 export async function GET() {
   try {
-    const products = await fileStorageService.getProducts();
+    const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
       success: true,
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    const addedProduct = await fileStorageService.addProduct(newProduct);
+    const addedProduct = await addProduct(newProduct);
     
     console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
     
