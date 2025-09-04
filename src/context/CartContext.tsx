@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import cartService, { CartItem } from '@/lib/cartService';
+import { useToast } from './ToastContext';
 
 interface CartContextType {
   items: CartItem[];
@@ -19,6 +20,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
   useEffect(() => {
     // Load cart from database
@@ -64,9 +66,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         // Reload cart from database
         const updatedCart = await cartService.getCart();
         setItems(updatedCart);
+        // Show success toast
+        showToast(`${product.name} added to cart!`, 'success');
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
+      showToast('Failed to add item to cart', 'error');
     }
   };
 
@@ -77,9 +82,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         // Reload cart from database
         const updatedCart = await cartService.getCart();
         setItems(updatedCart);
+        showToast('Item removed from cart', 'info');
       }
     } catch (error) {
       console.error('Error removing from cart:', error);
+      showToast('Failed to remove item from cart', 'error');
     }
   };
 

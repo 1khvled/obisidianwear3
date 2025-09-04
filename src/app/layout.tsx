@@ -6,6 +6,7 @@ import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { ThemeProvider } from '@/context/ThemeContext'
+import { ToastProvider } from '@/context/ToastContext'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
 
 const inter = Inter({ 
@@ -97,8 +98,10 @@ export default function RootLayout({
             <LanguageProvider>
               <ProductProvider>
                 <CartProvider>
-                  <StoreStatusChecker />
-                  {children}
+                  <ToastProvider>
+                    <StoreStatusChecker />
+                    {children}
+                  </ToastProvider>
                 </CartProvider>
               </ProductProvider>
             </LanguageProvider>
