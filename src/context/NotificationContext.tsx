@@ -20,20 +20,31 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const MAX_NOTIFICATIONS = 5; // Limit to prevent spam
 
   const addNotification = (message: string, type: Notification['type']) => {
-    const newNotification: Notification = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      message,
-      type,
-      timestamp: new Date(),
-    };
-    setNotifications(prev => [newNotification, ...prev]);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
-    }, 5000);
+    // Check if this exact message already exists
+    setNotifications(prev => {
+      const exists = prev.some(n => n.message === message && n.type === type);
+      if (exists) return prev; // Don't add duplicate notifications
+      
+      const newNotification: Notification = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        message,
+        type,
+        timestamp: new Date(),
+      };
+      
+      // Keep only the latest MAX_NOTIFICATIONS
+      const updated = [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS);
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        setNotifications(current => current.filter(n => n.id !== newNotification.id));
+      }, 5000);
+      
+      return updated;
+    });
   };
 
   const removeNotification = (id: string) => {

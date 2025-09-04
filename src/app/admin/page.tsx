@@ -73,9 +73,12 @@ export default function AdminPage() {
   const { theme } = useTheme();
   useNotificationService(); // Initialize real-time notifications
   
-  // Check for low stock and send notifications
+  // Check for low stock and send notifications (only once on mount)
   useEffect(() => {
     if (products.length > 0) {
+      const lowStockProducts: string[] = [];
+      const outOfStockProducts: string[] = [];
+      
       products.forEach(product => {
         if (product.stock) {
           const totalStock = Object.values(product.stock).reduce((total: number, colorStock: any) => {
@@ -88,14 +91,22 @@ export default function AdminPage() {
           }, 0);
           
           if (totalStock <= 5 && totalStock > 0) {
-            addNotification(`Low stock alert: ${product.name} has only ${totalStock} items left`, 'warning');
+            lowStockProducts.push(`${product.name} (${totalStock} left)`);
           } else if (totalStock === 0) {
-            addNotification(`Out of stock: ${product.name} is completely out of stock`, 'error');
+            outOfStockProducts.push(product.name);
           }
         }
       });
+      
+      // Show consolidated notifications
+      if (lowStockProducts.length > 0) {
+        addNotification(`Low stock alert: ${lowStockProducts.join(', ')}`, 'warning');
+      }
+      if (outOfStockProducts.length > 0) {
+        addNotification(`Out of stock: ${outOfStockProducts.join(', ')}`, 'error');
+      }
     }
-  }, [products, addNotification]);
+  }, []); // Only run once on mount
   
   // New product form state
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
