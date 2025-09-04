@@ -153,9 +153,6 @@ export default function ProductDetailPage() {
                   />
                 ))}
               </div>
-              <span className="text-gray-400">
-                {product.rating} ({product.reviews} reviews)
-              </span>
             </div>
 
             {/* Price */}

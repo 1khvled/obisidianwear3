@@ -279,7 +279,6 @@ export default function EnhancedProductManager({
                         className={i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-600'}
                       />
                     ))}
-                    <span className="text-gray-400 text-xs ml-1">({product.reviews})</span>
                   </div>
                   
                   <div className="flex items-center justify-between mb-3">
@@ -327,7 +326,6 @@ export default function EnhancedProductManager({
                             className={i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-600'}
                           />
                         ))}
-                        <span className="text-gray-400 text-xs ml-1">({product.reviews})</span>
                       </div>
                     </div>
                   </div>

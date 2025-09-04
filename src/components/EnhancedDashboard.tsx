@@ -92,14 +92,11 @@ export default function EnhancedDashboard({ products, orders, customers }: Enhan
     setTopProducts(productOrderCounts);
   }, [products, orders, customers]);
 
-  // Chart data
-  const revenueData = [
-    { label: 'Jan', value: 12000, color: '#3b82f6' },
-    { label: 'Feb', value: 15000, color: '#3b82f6' },
-    { label: 'Mar', value: 18000, color: '#3b82f6' },
-    { label: 'Apr', value: 22000, color: '#3b82f6' },
-    { label: 'May', value: 25000, color: '#3b82f6' },
-    { label: 'Jun', value: stats.monthlyRevenue, color: '#10b981' }
+  // Chart data - based on real order data
+  const revenueData = orders.length > 0 ? [
+    { label: 'This Month', value: stats.monthlyRevenue, color: '#10b981' }
+  ] : [
+    { label: 'No Data', value: 0, color: '#6b7280' }
   ];
 
   const categoryData = products.reduce((acc, product) => {

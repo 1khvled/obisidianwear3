@@ -41,15 +41,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
-        {/* Quick Add to Cart Button - Hidden on mobile for better UX */}
+        {/* Add to Cart Button - Hidden on mobile for better UX */}
         <div className="hidden sm:flex absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 items-center justify-center opacity-0 group-hover:opacity-100">
-          <button 
-            className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
-            disabled={!product.inStock}
-          >
-            <ShoppingCart size={16} />
-            <span>Quick Add</span>
-          </button>
+          <Link href={`/checkout?productId=${product.id}&size=M&color=${product.colors[0]}&quantity=1`}>
+            <button 
+              className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
+              disabled={!product.inStock}
+            >
+              <ShoppingCart size={16} />
+              <span>Add to Cart</span>
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -75,9 +77,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className="text-gray-400 text-xs sm:text-sm">
-            ({product.reviews})
-          </span>
         </div>
 
         {/* Price */}
@@ -107,7 +106,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               href={`/checkout?productId=${product.id}&size=M&color=${product.colors[0]}&quantity=1`}
             >
               <button className="w-full bg-gray-800 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm sm:text-base touch-target">
-                Quick Buy
+                Add to Cart
               </button>
             </Link>
           )}
