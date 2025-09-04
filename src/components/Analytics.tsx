@@ -94,29 +94,17 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     const days = [];
     const currentDate = new Date(startDate);
     
-    // Debug: Log the data we're working with
-    console.log('getRevenueByDay - Start date:', startDate);
-    console.log('getRevenueByDay - End date:', endDate);
-    console.log('getRevenueByDay - Filtered orders count:', filteredOrders.length);
-    console.log('getRevenueByDay - Sample orders:', filteredOrders.slice(0, 2));
     
     while (currentDate <= endDate) {
       const dayOrders = filteredOrders.filter(order => {
-        const orderDate = new Date(order.orderDate);
-        const isSameDay = orderDate.getFullYear() === currentDate.getFullYear() &&
-                         orderDate.getMonth() === currentDate.getMonth() &&
-                         orderDate.getDate() === currentDate.getDate();
-        
-        if (isSameDay) {
-          console.log('Found matching order for', currentDate.toDateString(), ':', order);
-        }
-        
-        return isSameDay;
+        // Use createdAt instead of orderDate
+        const orderDate = new Date(order.createdAt);
+        return orderDate.getFullYear() === currentDate.getFullYear() &&
+               orderDate.getMonth() === currentDate.getMonth() &&
+               orderDate.getDate() === currentDate.getDate();
       });
       
       const revenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-      
-      console.log('Day:', currentDate.toDateString(), 'Orders:', dayOrders.length, 'Revenue:', revenue);
       
       days.push({
         date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -127,7 +115,6 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log('getRevenueByDay - Final days data:', days);
     return days;
   }
 

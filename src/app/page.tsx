@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import SearchBar from '@/components/SearchBar';
 import { categories } from '@/data/products';
 import { Product } from '@/types';
 import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag } from 'lucide-react';
@@ -13,17 +14,84 @@ import { useProducts } from '@/context/ProductContext';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFilters, setSearchFilters] = useState({
+    category: 'All',
+    priceRange: [0, 1000],
+    inStock: null,
+    sortBy: 'name' as 'name' | 'price' | 'created' | 'rating',
+    sortOrder: 'asc' as 'asc' | 'desc'
+  });
   const { products } = useProducts();
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const { t } = useLanguage();
 
-  useEffect(() => {
-    if (selectedCategory === 'All') {
-      setFilteredProducts(products);
-    } else {
-      setFilteredProducts(products.filter(product => product.category === selectedCategory));
+  // Memoized filtered and sorted products
+  const filteredProducts = useMemo(() => {
+    let filtered = products;
+
+    // Apply search query
+    if (searchQuery) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
     }
-  }, [products, selectedCategory]);
+
+    // Apply category filter
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(product => product.category === selectedCategory);
+    }
+
+    // Apply additional filters
+    if (searchFilters.category !== 'All') {
+      filtered = filtered.filter(product => product.category === searchFilters.category);
+    }
+
+    if (searchFilters.inStock !== null) {
+      filtered = filtered.filter(product => product.inStock === searchFilters.inStock);
+    }
+
+    // Apply price range filter
+    filtered = filtered.filter(product => 
+      product.price >= searchFilters.priceRange[0] && 
+      product.price <= searchFilters.priceRange[1]
+    );
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (searchFilters.sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'created':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case 'rating':
+          aValue = a.rating;
+          bValue = b.rating;
+          break;
+        default:
+          return 0;
+      }
+
+      if (searchFilters.sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+    return filtered;
+  }, [products, selectedCategory, searchQuery, searchFilters]);
 
   // Show loading state only if no products are available yet
   if (products.length === 0) {
@@ -59,6 +127,7 @@ export default function Home() {
                 width={220}
                 height={220}
                 priority
+                sizes="(max-width: 640px) 192px, 224px"
                 className="w-48 sm:w-56 h-auto"
               />
               <h1 className="heading-responsive font-bold font-poppins text-white leading-tight">
@@ -99,6 +168,19 @@ export default function Home() {
             <h2 className="heading-responsive font-bold font-poppins mb-4 text-white">
               {t('products.title')}
             </h2>
+            <p className="text-responsive text-gray-400 max-w-2xl mx-auto mb-8">
+              {t('products.subtitle')}
+            </p>
+            
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <SearchBar
+                onSearch={setSearchQuery}
+                onFilter={setSearchFilters}
+                placeholder="Search products, tags, or descriptions..."
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Category Filter */}

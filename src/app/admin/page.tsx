@@ -41,6 +41,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useRealtime } from '@/hooks/useRealtime';
 import MobileAdminLayout from '@/components/MobileAdminLayout';
 import ProductSkeleton, { ProductListSkeleton, TableSkeleton } from '@/components/ProductSkeleton';
 import ImageUpload from '@/components/ImageUpload';
@@ -54,6 +55,7 @@ export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
   const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
+  const { isConnected: isRealtimeConnected } = useRealtime();
   
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
