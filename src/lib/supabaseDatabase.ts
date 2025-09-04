@@ -564,3 +564,56 @@ function calculateStockBySize(stock: any, sizes: string[], colors: string[]): an
   
   return result;
 }
+
+// Stock deduction function for orders
+export async function deductStockFromOrder(order: Order): Promise<boolean> {
+  try {
+    console.log('Supabase: Deducting stock for order:', order.id);
+    
+    // Get the product
+    const product = await getProduct(order.productId);
+    if (!product) {
+      console.error('Supabase: Product not found for order:', order.productId);
+      return false;
+    }
+    
+    // Check if we have enough stock
+    const currentStock = product.stock?.[order.selectedSize]?.[order.selectedColor] || 0;
+    if (currentStock < order.quantity) {
+      console.error('Supabase: Insufficient stock for order:', {
+        productId: order.productId,
+        size: order.selectedSize,
+        color: order.selectedColor,
+        requested: order.quantity,
+        available: currentStock
+      });
+      return false;
+    }
+    
+    // Deduct the stock
+    const newStock = {
+      ...product.stock,
+      [order.selectedSize]: {
+        ...product.stock?.[order.selectedSize],
+        [order.selectedColor]: currentStock - order.quantity
+      }
+    };
+    
+    // Update the product stock
+    const updatedProduct = await updateProduct(order.productId, {
+      stock: newStock,
+      inStock: calculateTotalStock(newStock) > 0
+    });
+    
+    if (updatedProduct) {
+      console.log('Supabase: Successfully deducted stock for order:', order.id);
+      return true;
+    } else {
+      console.error('Supabase: Failed to update product stock for order:', order.id);
+      return false;
+    }
+  } catch (error) {
+    console.error('Supabase: Error deducting stock for order:', error);
+    return false;
+  }
+}
