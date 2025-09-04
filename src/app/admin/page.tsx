@@ -169,7 +169,7 @@ export default function AdminPage() {
         setCustomers(savedCustomers);
         } catch (error) {
           console.error('Error loading data:', error);
-          addNotification({n            message: 'Failed to load data. Please refresh the page.',n            type: 'error'n          });
+          addNotification('Failed to load data. Please refresh the page.', 'error');
         } finally {
           setLoading(false);
           setOrdersLoading(false);
@@ -210,7 +210,7 @@ export default function AdminPage() {
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
-      addNotification({n        message: 'Product name and price are required',n        type: 'error'n      });
+      addNotification('Product name and price are required', 'error');
       return;
     }
 
@@ -276,7 +276,7 @@ export default function AdminPage() {
       });
       setShowAddProduct(false);
     } catch (error) {
-      addNotification({n        message: 'Failed to add product. Please try again.',n        type: 'error'n      });
+      addNotification('Failed to add product. Please try again.', 'error');
       console.error('Error adding product:', error);
     }
   };
@@ -294,10 +294,10 @@ export default function AdminPage() {
       updateProductContext(editingProduct.id, updatedProduct);
       setEditingProduct(null);
       
-      addNotification({n        message: `"${updatedProduct.name}" has been updated successfully!`,n        type: 'success'n      });
+      addNotification(`"${updatedProduct.name}" has been updated successfully!`, 'success');
       console.log('Product updated:', updatedProduct.name);
     } catch (error) {
-      addNotification({n        message: 'Failed to update product. Please try again.',n        type: 'error'n      });
+      addNotification('Failed to update product. Please try again.', 'error');
       console.error('Error updating product:', error);
     }
   };
@@ -309,9 +309,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
       try {
         deleteProductContext(id);
-        addNotification({n          message: `"${productName}" has been deleted successfully.`,n          type: 'success'n        });
+        addNotification(`"${productName}" has been deleted successfully.`, 'success');
       } catch (error) {
-        addNotification({n          message: 'Failed to delete product. Please try again.',n          type: 'error'n        });
+        addNotification('Failed to delete product. Please try again.', 'error');
         console.error('Error deleting product:', error);
       }
     }
@@ -324,9 +324,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
       try {
         setOrders(prev => prev.filter(order => order.id !== id));
-        addNotification({n          message: `Order "${orderId}" has been deleted successfully.`,n          type: 'success'n        });
+        addNotification(`Order "${orderId}" has been deleted successfully.`, 'success');
       } catch (error) {
-        addNotification({n          message: 'Failed to delete order. Please try again.',n          type: 'error'n        });
+        addNotification('Failed to delete order. Please try again.', 'error');
         console.error('Error deleting order:', error);
       }
     }
@@ -334,7 +334,7 @@ export default function AdminPage() {
 
   const exportOrdersToExcel = () => {
     if (orders.length === 0) {
-      addNotification({n        message: 'No orders to export',n        type: 'error'n      });
+      addNotification('No orders to export', 'error');
       return;
     }
 
@@ -369,7 +369,7 @@ export default function AdminPage() {
     link.click();
     document.body.removeChild(link);
     
-    addNotification({n      message: 'Orders exported to CSV file',n      type: 'success'n    });
+    addNotification('Orders exported to CSV file', 'success');
   };
 
   const viewOrderDetails = (order: Order) => {
@@ -407,7 +407,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     // Update in shared data service
     await backendService.updateOrder(orderId, { status: newStatus as Order['status'] });
     
-    addNotification({n      message: `Order #${orderId} status updated to ${newStatus}`,n      type: 'success'n    });
+    addNotification(`Order #${orderId} status updated to ${newStatus}`, 'success');
   };
 
   const updateWilayaTariff = async (wilayaId: number, field: keyof Wilaya, value: number) => {
@@ -2015,13 +2015,13 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
               if (response.ok) {
                 const data = await response.json();
                 console.log('Manual sync result:', data);
-                addNotification({n                  message: `Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`,n                  type: 'success'n                });
+                addNotification(`Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`, 'success');
               } else {
-                addNotification({n                  message: 'Failed to fetch data from API',n                  type: 'error'n                });
+                addNotification('Failed to fetch data from API', 'error');
               }
             } catch (error) {
               console.error('Manual sync error:', error);
-              addNotification({n                message: 'Failed to sync data',n                type: 'error'n              });
+              addNotification('Failed to sync data', 'error');
             }
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
@@ -2033,7 +2033,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
           <button
             onClick={() => {
               initializeDefaultProducts();
-              addNotification({n                message: 'Default products have been added to your store',n                type: 'success'n              });
+              addNotification('Default products have been added to your store', 'success');
             }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
           >
