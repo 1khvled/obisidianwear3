@@ -25,10 +25,10 @@ interface AnalyticsProps {
   customers: any[];
 }
 
-type TimeRange = '7d' | '30d' | '90d' | '1y';
+type TimeRange = '7d' | '14d' | '30d' | '90d' | '1y' | 'custom';
 
 export default function Analytics({ products, orders, customers }: AnalyticsProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
   const [isLoading, setIsLoading] = useState(false);
 
   // Calculate date range
@@ -36,10 +36,18 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     const now = new Date();
     const days = {
       '7d': 7,
+      '14d': 14,
       '30d': 30,
       '90d': 90,
       '1y': 365
     };
+    
+    if (range === 'custom') {
+      // For custom range, use the last 7 days as default
+      const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return { startDate, endDate: now };
+    }
+    
     const startDate = new Date(now.getTime() - days[range] * 24 * 60 * 60 * 1000);
     return { startDate, endDate: now };
   };
@@ -49,23 +57,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
   // Filter data by time range
   const filteredOrders = orders.filter(order => {
     const orderDate = new Date(order.orderDate);
-    // More flexible date filtering - check if order is within the time range
-    const isWithinRange = orderDate >= startDate && orderDate <= endDate;
-    
-    // Debug: Log filtering details
-    if (orders.length > 0 && orders.indexOf(order) < 3) {
-      console.log('Analytics: Order filtering:', {
-        orderId: order.id,
-        orderDate: order.orderDate,
-        parsedDate: orderDate,
-        startDate,
-        endDate,
-        isWithinRange,
-        total: order.total
-      });
-    }
-    
-    return isWithinRange;
+    return orderDate >= startDate && orderDate <= endDate;
   });
 
   // Calculate analytics from real data only
@@ -102,27 +94,15 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
     const days = [];
     const currentDate = new Date(startDate);
     
-    // Debug: Log the date range and orders
-    console.log('Analytics: Date range:', { startDate, endDate });
-    console.log('Analytics: Filtered orders:', filteredOrders.length);
-    console.log('Analytics: Sample order dates:', filteredOrders.slice(0, 3).map(o => ({ id: o.id, date: o.orderDate, total: o.total })));
-    
     while (currentDate <= endDate) {
       const dayOrders = filteredOrders.filter(order => {
         const orderDate = new Date(order.orderDate);
-        // More flexible date comparison - check if dates are on the same day
-        const isSameDay = orderDate.getFullYear() === currentDate.getFullYear() &&
-                         orderDate.getMonth() === currentDate.getMonth() &&
-                         orderDate.getDate() === currentDate.getDate();
-        return isSameDay;
+        return orderDate.getFullYear() === currentDate.getFullYear() &&
+               orderDate.getMonth() === currentDate.getMonth() &&
+               orderDate.getDate() === currentDate.getDate();
       });
       
       const revenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-      
-      // Debug: Log each day's data
-      if (dayOrders.length > 0) {
-        console.log(`Analytics: ${currentDate.toDateString()} - ${dayOrders.length} orders, ${revenue} revenue`);
-      }
       
       days.push({
         date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -236,8 +216,9 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
             className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
           >
             <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
+            <option value="14d">Last 2 weeks</option>
+            <option value="30d">Last month</option>
+            <option value="90d">Last 3 months</option>
             <option value="1y">Last year</option>
           </select>
           <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
@@ -290,20 +271,17 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
             <h3 className="text-lg font-semibold text-white">Revenue Trend</h3>
             <div className="text-sm text-gray-400">
               {timeRange === '7d' ? '7 days' : 
-               timeRange === '30d' ? '30 days' : 
-               timeRange === '90d' ? '90 days' : '1 year'}
+               timeRange === '14d' ? '2 weeks' : 
+               timeRange === '30d' ? '1 month' : 
+               timeRange === '90d' ? '3 months' : '1 year'}
             </div>
           </div>
           <Chart 
-            data={analytics.revenueByDay.map(day => {
-              // Debug: Log each day's data
-              console.log('Analytics: Chart data for', day.date, ':', day.revenue);
-              return {
-                label: day.date,
-                value: day.revenue,
-                color: '#3b82f6'
-              };
-            })} 
+            data={analytics.revenueByDay.map(day => ({
+              label: day.date,
+              value: day.revenue,
+              color: '#3b82f6'
+            }))} 
             type="bar" 
             height={200} 
           />
