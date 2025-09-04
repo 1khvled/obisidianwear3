@@ -37,12 +37,10 @@ import InventoryManager from '@/components/InventoryManager';
 import EnhancedOrderManager from '@/components/EnhancedOrderManager';
 import Analytics from '@/components/Analytics';
 import MaintenanceManager from '@/components/MaintenanceManager';
-import NotificationSystem, { useNotifications } from '@/components/NotificationSystem';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
 import { useTheme } from '@/context/ThemeContext';
-import { useNotificationService } from '@/hooks/useNotificationService';
 import MobileAdminLayout from '@/components/MobileAdminLayout';
 import ProductSkeleton, { ProductListSkeleton, TableSkeleton } from '@/components/ProductSkeleton';
 import ImageUpload from '@/components/ImageUpload';
@@ -56,7 +54,6 @@ export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
   const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
-  const { notifications, removeNotification, addNotification } = useNotifications();
   
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -71,7 +68,6 @@ export default function AdminPage() {
   const [productsLoading, setProductsLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const { theme } = useTheme();
-  useNotificationService(); // Initialize real-time notifications
   
   // Check for low stock and send notifications (only once on mount)
   useEffect(() => {
@@ -98,13 +94,7 @@ export default function AdminPage() {
         }
       });
       
-      // Show consolidated notifications
-      if (lowStockProducts.length > 0) {
-        addNotification(`Low stock alert: ${lowStockProducts.join(', ')}`, 'warning');
-      }
-      if (outOfStockProducts.length > 0) {
-        addNotification(`Out of stock: ${outOfStockProducts.join(', ')}`, 'error');
-      }
+      // Stock alerts removed - no notifications
     }
   }, []); // Only run once on mount
   
@@ -161,26 +151,14 @@ export default function AdminPage() {
         setOrders(savedOrders);
           setOrdersLoading(false);
           
-          // Send notification for new orders
-          if (savedOrders.length > 0) {
-            const recentOrders = savedOrders.filter(order => {
-              const orderDate = new Date(order.createdAt);
-              const now = new Date();
-              const diffInHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
-              return diffInHours <= 24; // Orders from last 24 hours
-            });
-            
-            if (recentOrders.length > 0) {
-              addNotification(`New order received: ${recentOrders[0].customerName} - ${recentOrders[0].total} DA`, 'info');
-            }
-          }
+          // Order notifications removed
 
         // Load customers
         const savedCustomers = await backendService.getCustomers();
         setCustomers(savedCustomers);
         } catch (error) {
           console.error('Error loading data:', error);
-          addNotification('Failed to load data. Please refresh the page.', 'error');
+          console.error('Failed to load data:', error);
         } finally {
           setLoading(false);
           setOrdersLoading(false);
@@ -221,7 +199,7 @@ export default function AdminPage() {
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
-      addNotification('Product name and price are required', 'error');
+      console.error('Product name and price are required');
       return;
     }
 
@@ -256,7 +234,7 @@ export default function AdminPage() {
       };
 
       addProductContext(product);
-      addNotification(`"${product.name}" has been added successfully!`, 'success');
+      console.log(`"${product.name}" has been added successfully!`);
       
       // Reset form
       setNewProduct({
@@ -287,7 +265,7 @@ export default function AdminPage() {
       });
       setShowAddProduct(false);
     } catch (error) {
-      addNotification('Failed to add product. Please try again.', 'error');
+      console.error('Failed to add product. Please try again.');
       console.error('Error adding product:', error);
     }
   };
@@ -305,10 +283,10 @@ export default function AdminPage() {
       updateProductContext(editingProduct.id, updatedProduct);
       setEditingProduct(null);
       
-      addNotification(`"${updatedProduct.name}" has been updated successfully!`, 'success');
+      console.log(`"${updatedProduct.name}" has been updated successfully!`);
       console.log('Product updated:', updatedProduct.name);
     } catch (error) {
-      addNotification('Failed to update product. Please try again.', 'error');
+      console.error('Failed to update product. Please try again.');
       console.error('Error updating product:', error);
     }
   };
@@ -320,9 +298,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
       try {
         deleteProductContext(id);
-        addNotification(`"${productName}" has been deleted successfully.`, 'success');
+        console.log(`"${productName}" has been deleted successfully.`);
       } catch (error) {
-        addNotification('Failed to delete product. Please try again.', 'error');
+        console.error('Failed to delete product. Please try again.');
         console.error('Error deleting product:', error);
       }
     }
@@ -335,9 +313,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
       try {
         setOrders(prev => prev.filter(order => order.id !== id));
-        addNotification(`Order "${orderId}" has been deleted successfully.`, 'success');
+        console.log(`Order "${orderId}" has been deleted successfully.`);
       } catch (error) {
-        addNotification('Failed to delete order. Please try again.', 'error');
+        console.error('Failed to delete order. Please try again.');
         console.error('Error deleting order:', error);
       }
     }
@@ -345,7 +323,7 @@ export default function AdminPage() {
 
   const exportOrdersToExcel = () => {
     if (orders.length === 0) {
-      addNotification('No orders to export', 'error');
+      console.warn('No orders to export');
       return;
     }
 
@@ -380,7 +358,7 @@ export default function AdminPage() {
     link.click();
     document.body.removeChild(link);
     
-    addNotification('Orders exported to CSV file', 'success');
+    console.log('Orders exported to CSV file');
   };
 
   const viewOrderDetails = (order: Order) => {
@@ -418,7 +396,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
     // Update in shared data service
     await backendService.updateOrder(orderId, updates);
     
-    addNotification(`Order #${orderId} updated successfully`, 'success');
+    console.log(`Order #${orderId} updated successfully`);
   };
 
   const updateWilayaTariff = async (wilayaId: number, field: keyof Wilaya, value: number) => {
@@ -738,7 +716,6 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
             >
               <Home className="w-5 h-5" />
             </button>
-            <NotificationSystem />
             <button
               onClick={logout}
               className="touch-target text-gray-400 hover:text-white transition-colors"
@@ -798,7 +775,6 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                 <p className="text-gray-400 text-xs">{username}</p>
               </div>
             </div>
-            <NotificationSystem />
             <button
               onClick={logout}
               className="p-2 text-gray-400 hover:text-white transition-colors"
@@ -1910,7 +1886,6 @@ Payment Status: ${order.paymentStatus}
       )}
 
       {/* Notification System */}
-              <NotificationSystem />
 
       {/* Data Sync Indicator */}
       <DataSyncIndicator />
@@ -1925,13 +1900,13 @@ Payment Status: ${order.paymentStatus}
               if (response.ok) {
                 const data = await response.json();
                 console.log('Manual sync result:', data);
-                addNotification(`Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`, 'success');
+                console.log(`Data synced! Version: ${data.version}, Products: ${data.products?.length || 0}`);
               } else {
-                addNotification('Failed to fetch data from API', 'error');
+                console.error('Failed to fetch data from API');
               }
             } catch (error) {
               console.error('Manual sync error:', error);
-              addNotification('Failed to sync data', 'error');
+              console.error('Failed to sync data');
             }
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
@@ -1943,7 +1918,7 @@ Payment Status: ${order.paymentStatus}
           <button
             onClick={() => {
               initializeDefaultProducts();
-              addNotification('Default products have been added to your store', 'success');
+              console.log('Default products have been added to your store');
             }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
           >

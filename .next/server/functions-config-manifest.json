@@ -1,0 +1,1 @@
+{"version":1,"functions":{"/api/fix-products":{},"/api/inventory":{},"/api/inventory/[id]":{},"/api/orders/[id]":{},"/api/orders":{},"/api/fix-ratings":{},"/api/products/[id]":{},"/api/products":{},"/api/test-supabase":{}}}
