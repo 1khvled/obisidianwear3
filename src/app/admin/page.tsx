@@ -1318,7 +1318,7 @@ Payment Status: ${order.paymentStatus}
                                 </button>
                                 <select
                                   value={order.status || 'pending'}
-                                  onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                  onChange={(e) => updateOrderStatus(order.id, { status: e.target.value as Order['status'] })}
                                   className="bg-gray-800 border border-gray-700 rounded text-white text-xs px-2 py-1 focus:outline-none focus:border-white"
                                 >
                                   <option value="pending">Pending</option>
