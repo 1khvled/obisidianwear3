@@ -98,6 +98,11 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProduct(id: string): Promise<Product | null> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -118,6 +123,11 @@ export async function getProduct(id: string): Promise<Product | null> {
 
 export async function addProduct(product: Product): Promise<Product> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      throw new Error('Database not available');
+    }
+
     // Convert camelCase to snake_case for database
     const dbProduct = {
       id: product.id,
@@ -168,6 +178,11 @@ export async function addProduct(product: Product): Promise<Product> {
 
 export async function updateProduct(id: string, product: Partial<Product>): Promise<Product | null> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
     // Convert camelCase to snake_case for database
     const dbProduct: any = {};
     
@@ -216,6 +231,11 @@ export async function updateProduct(id: string, product: Partial<Product>): Prom
 
 export async function deleteProduct(id: string): Promise<boolean> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return false;
+    }
+
     const { error } = await supabase
       .from('products')
       .delete()
@@ -315,6 +335,11 @@ let ordersCacheTime = 0;
 // Orders operations
 export async function getOrders(): Promise<Order[]> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return ordersCache || [];
+    }
+
     // Return cached data if still fresh
     if (ordersCache && Date.now() - ordersCacheTime < CACHE_DURATION) {
       console.log('Supabase: Returning cached orders');
@@ -346,6 +371,11 @@ export async function getOrders(): Promise<Order[]> {
 
 export async function getOrder(id: string): Promise<Order | null> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -366,6 +396,11 @@ export async function getOrder(id: string): Promise<Order | null> {
 
 export async function addOrder(order: Order): Promise<Order> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      throw new Error('Database not available');
+    }
+
     // Convert Order interface to database format (matching the orders table schema)
     const dbOrder = {
       id: order.id,
@@ -417,6 +452,11 @@ export async function addOrder(order: Order): Promise<Order> {
 
 export async function updateOrder(id: string, order: Partial<Order>): Promise<Order | null> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
     // Convert partial Order to database format
     const updateData: any = {
       updated_at: new Date().toISOString()
@@ -452,6 +492,11 @@ export async function updateOrder(id: string, order: Partial<Order>): Promise<Or
 
 export async function deleteOrder(id: string): Promise<boolean> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return false;
+    }
+
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -473,6 +518,11 @@ export async function deleteOrder(id: string): Promise<boolean> {
 // Customers operations
 export async function getCustomers(): Promise<any[]> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -492,6 +542,11 @@ export async function getCustomers(): Promise<any[]> {
 
 export async function addCustomer(customer: any): Promise<any> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .insert([customer])
@@ -573,6 +628,11 @@ export async function updateMaintenanceStatus(isMaintenance: boolean, dropDate?:
 // Wilaya operations
 export async function getWilayaTariffs(): Promise<any[]> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('wilaya_tariffs')
       .select('*')
@@ -592,6 +652,11 @@ export async function getWilayaTariffs(): Promise<any[]> {
 
 export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      throw new Error('Database not available');
+    }
+
     // Delete all existing tariffs
     await supabase
       .from('wilaya_tariffs')
@@ -620,6 +685,11 @@ export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
 // Inventory operations
 export async function getInventory(): Promise<any[]> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('products')
       .select('id, name, sku, stock, sizes, colors, in_stock, category')
@@ -651,6 +721,11 @@ export async function getInventory(): Promise<any[]> {
 
 export async function updateInventory(productId: string, stockData: any): Promise<any> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      throw new Error('Database not available');
+    }
+
     const updateObj: any = {
       updated_at: new Date().toISOString()
     };
