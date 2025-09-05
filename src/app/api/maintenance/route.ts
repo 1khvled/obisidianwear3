@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import maintenanceService from '@/lib/maintenanceService';
+import { getMaintenanceStatus, updateMaintenanceStatus } from '@/lib/supabaseDatabase';
 
 export async function GET() {
   try {
-    const status = await maintenanceService.getMaintenanceStatus();
+    const status = await getMaintenanceStatus();
     return NextResponse.json(status);
   } catch (error) {
     console.error('Error fetching maintenance status:', error);
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const isMaintenance = body.isMaintenance || body.is_maintenance;
     const dropDate = body.dropDate || body.drop_date;
     
-    const success = await maintenanceService.setMaintenanceStatus(isMaintenance, dropDate);
+    const success = await updateMaintenanceStatus(isMaintenance, dropDate);
     
     if (success) {
       return NextResponse.json({ success: true });

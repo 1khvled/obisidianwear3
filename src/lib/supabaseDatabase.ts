@@ -496,13 +496,63 @@ export async function addCustomer(customer: any): Promise<any> {
   }
 }
 
+// Maintenance operations
+export async function getMaintenanceStatus(): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from('maintenance_status')
+      .select('*')
+      .eq('id', 'maintenance')
+      .single();
+    
+    if (error) {
+      console.error('Supabase getMaintenanceStatus error:', error);
+      return { is_maintenance: false, drop_date: null };
+    }
+    
+    return data || { is_maintenance: false, drop_date: null };
+  } catch (error) {
+    console.error('Supabase getMaintenanceStatus error:', error);
+    return { is_maintenance: false, drop_date: null };
+  }
+}
+
+export async function updateMaintenanceStatus(isMaintenance: boolean, dropDate?: string): Promise<boolean> {
+  try {
+    const updateData: any = {
+      is_maintenance: isMaintenance,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (dropDate) {
+      updateData.drop_date = dropDate;
+    }
+    
+    const { error } = await supabase
+      .from('maintenance_status')
+      .update(updateData)
+      .eq('id', 'maintenance');
+    
+    if (error) {
+      console.error('Supabase updateMaintenanceStatus error:', error);
+      return false;
+    }
+    
+    console.log('Supabase: Updated maintenance status');
+    return true;
+  } catch (error) {
+    console.error('Supabase updateMaintenanceStatus error:', error);
+    return false;
+  }
+}
+
 // Wilaya operations
 export async function getWilayaTariffs(): Promise<any[]> {
   try {
     const { data, error } = await supabase
       .from('wilaya_tariffs')
       .select('*')
-      .order('order', { ascending: true });
+      .order('wilaya_code', { ascending: true });
     
     if (error) {
       console.error('Supabase getWilayaTariffs error:', error);
