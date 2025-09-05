@@ -62,6 +62,11 @@ class CartService {
     }
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('carts')
         .select('*')
@@ -118,6 +123,11 @@ class CartService {
       }
 
       // Save to database
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('carts')
         .upsert({
@@ -154,6 +164,11 @@ class CartService {
       updatedItems[itemIndex] = { ...updatedItems[itemIndex], ...updates };
 
       // Save to database
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('carts')
         .upsert({
@@ -183,6 +198,11 @@ class CartService {
       const updatedItems = currentCart.filter(item => item.id !== itemId);
 
       // Save to database
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('carts')
         .upsert({
@@ -208,6 +228,11 @@ class CartService {
 
   async clearCart(): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('carts')
         .delete()
