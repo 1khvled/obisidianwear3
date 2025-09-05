@@ -16,7 +16,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
     category: 'All',
-    priceRange: [0, 1000] as [number, number],
+    priceRange: [0, 10000] as [number, number],
     inStock: null as boolean | null,
     sortBy: 'name' as 'name' | 'price' | 'created' | 'rating',
     sortOrder: 'asc' as 'asc' | 'desc'

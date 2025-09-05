@@ -28,7 +28,7 @@ export default function SearchBar({
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     category: 'All',
-    priceRange: [0, 1000],
+    priceRange: [0, 10000],
     inStock: null,
     sortBy: 'name',
     sortOrder: 'asc'
