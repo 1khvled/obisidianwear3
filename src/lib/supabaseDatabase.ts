@@ -8,15 +8,20 @@ import { Product, Order } from '@/types';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// Only throw error if we're not in build mode
 if (!supabaseUrl || !supabaseKey) {
-  const missingVars = [];
-  if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
-  if (!supabaseKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  
-  throw new Error(`Missing Supabase environment variables: ${missingVars.join(', ')}. Please set these in your Vercel environment variables or .env.local file.`);
+  // Only throw error during runtime, not during build
+  if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
+    const missingVars = [];
+    if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    
+    throw new Error(`Missing Supabase environment variables: ${missingVars.join(', ')}. Please set these in your Vercel environment variables or .env.local file.`);
+  }
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create supabase client with fallback for build time
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Export the supabase client for direct use
 export { supabase };
@@ -61,6 +66,11 @@ export async function getProducts(): Promise<Product[]> {
     if (productsCache && Date.now() - productsCacheTime < CACHE_DURATION) {
       console.log('Supabase: Returning cached products');
       return productsCache;
+    }
+
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return productsCache || [];
     }
 
     const { data, error } = await supabase
@@ -503,6 +513,11 @@ export async function addCustomer(customer: any): Promise<any> {
 // Maintenance operations
 export async function getMaintenanceStatus(): Promise<any> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return { is_maintenance: false, drop_date: null };
+    }
+
     const { data, error } = await supabase
       .from('maintenance_status')
       .select('*')
@@ -523,6 +538,11 @@ export async function getMaintenanceStatus(): Promise<any> {
 
 export async function updateMaintenanceStatus(isMaintenance: boolean, dropDate?: string): Promise<boolean> {
   try {
+    if (!supabase) {
+      console.error('Supabase client not initialized');
+      return false;
+    }
+
     const updateData: any = {
       is_maintenance: isMaintenance,
       updated_at: new Date().toISOString()
