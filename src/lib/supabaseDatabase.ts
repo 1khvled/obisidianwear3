@@ -9,7 +9,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  const missingVars = [];
+  if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!supabaseKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  
+  throw new Error(`Missing Supabase environment variables: ${missingVars.join(', ')}. Please set these in your Vercel environment variables or .env.local file.`);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
