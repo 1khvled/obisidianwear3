@@ -8,6 +8,17 @@ export const runtime = 'nodejs';
 // GET /api/products - Get all products
 export async function GET() {
   try {
+    console.log('Products API: GET request started');
+    
+    // Check if Supabase is available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Products API: Missing Supabase environment variables');
+      return NextResponse.json(
+        { success: false, error: 'Database configuration missing' },
+        { status: 500 }
+      );
+    }
+    
     const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
     return NextResponse.json({
@@ -18,8 +29,16 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Products API: GET error:', error);
+    console.error('Products API: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch products' },
+      { 
+        success: false, 
+        error: 'Failed to fetch products',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

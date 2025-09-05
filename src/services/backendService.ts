@@ -26,6 +26,12 @@ class BackendService {
   // Products API
   async getProducts(): Promise<Product[]> {
     try {
+      // Skip API calls during build time
+      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        console.log('BackendService: Skipping products fetch during build');
+        return [];
+      }
+
       const response = await fetch(this.getApiUrl('/products'), {
         method: 'GET',
         headers: {
@@ -142,6 +148,12 @@ class BackendService {
   // Orders API
   async getOrders(): Promise<Order[]> {
     try {
+      // Skip API calls during build time
+      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        console.log('BackendService: Skipping orders fetch during build');
+        return [];
+      }
+
       const response = await fetch(this.getApiUrl('/orders'), {
         method: 'GET',
         headers: {
@@ -270,6 +282,12 @@ class BackendService {
   // Customers API
   async getCustomers(): Promise<any[]> {
     try {
+      // Skip API calls during build time
+      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        console.log('BackendService: Skipping customers fetch during build');
+        return [];
+      }
+
       const response = await fetch(this.getApiUrl('/customers'));
       const result = await response.json();
       
@@ -312,6 +330,12 @@ class BackendService {
   // Wilaya API
   async getWilayaTariffs(): Promise<any[]> {
     try {
+      // Skip API calls during build time
+      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        console.log('BackendService: Skipping wilaya fetch during build');
+        return [];
+      }
+
       const response = await fetch(this.getApiUrl('/wilaya'));
       const result = await response.json();
       

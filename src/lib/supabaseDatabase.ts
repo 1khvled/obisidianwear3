@@ -226,34 +226,72 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 // Helper function to convert database order to Order interface
 function convertDbOrderToOrder(dbOrder: any): Order {
-  return {
-    id: dbOrder.id,
-    productId: dbOrder.product_id || '',
-    productName: dbOrder.product_name || '',
-    productImage: dbOrder.product_image || '',
-    customerName: dbOrder.customer_name || '',
-    customerPhone: dbOrder.customer_phone || '',
-    customerEmail: dbOrder.customer_email || '',
-    customerAddress: dbOrder.customer_address || '',
-    wilayaId: dbOrder.wilaya_id || 0,
-    wilayaName: dbOrder.wilaya_name || '',
-    shippingType: dbOrder.shipping_type || 'homeDelivery',
-    shippingCost: Number(dbOrder.shipping_cost) || 0,
-    quantity: dbOrder.quantity || 1,
-    selectedSize: dbOrder.selected_size || '',
-    selectedColor: dbOrder.selected_color || '',
-    subtotal: Number(dbOrder.subtotal) || 0,
-    total: Number(dbOrder.total) || 0,
-    orderDate: new Date(dbOrder.order_date),
-    status: dbOrder.status || 'pending',
-    trackingNumber: dbOrder.tracking_number || '',
-    notes: dbOrder.notes || '',
-    paymentMethod: dbOrder.payment_method || 'cod',
-    paymentStatus: dbOrder.payment_status || 'pending',
-    estimatedDelivery: dbOrder.estimated_delivery || '',
-    createdAt: new Date(dbOrder.created_at),
-    updatedAt: new Date(dbOrder.updated_at)
-  };
+  // Handle both old and new schema
+  const isOldSchema = dbOrder.items && Array.isArray(dbOrder.items);
+  
+  if (isOldSchema) {
+    // Old schema with items array
+    const firstItem = dbOrder.items && dbOrder.items.length > 0 ? dbOrder.items[0] : {};
+    
+    return {
+      id: dbOrder.id,
+      productId: firstItem.productId || '',
+      productName: firstItem.productName || '',
+      productImage: firstItem.productImage || '',
+      customerName: firstItem.customerName || '',
+      customerPhone: firstItem.customerPhone || '',
+      customerEmail: firstItem.customerEmail || '',
+      customerAddress: firstItem.customerAddress || '',
+      wilayaId: firstItem.wilayaId || 0,
+      wilayaName: firstItem.wilayaName || '',
+      shippingType: dbOrder.shipping_type || 'homeDelivery',
+      shippingCost: Number(dbOrder.shipping_cost) || 0,
+      quantity: firstItem.quantity || 1,
+      selectedSize: firstItem.selectedSize || '',
+      selectedColor: firstItem.selectedColor || '',
+      subtotal: Number(dbOrder.total) - Number(dbOrder.shipping_cost) || 0,
+      total: Number(dbOrder.total) || 0,
+      orderDate: new Date(dbOrder.order_date),
+      status: dbOrder.status || 'pending',
+      trackingNumber: dbOrder.tracking_number || '',
+      notes: firstItem.notes || '',
+      paymentMethod: dbOrder.payment_method || 'cod',
+      paymentStatus: dbOrder.payment_status || 'pending',
+      estimatedDelivery: firstItem.estimatedDelivery || '',
+      createdAt: new Date(dbOrder.created_at),
+      updatedAt: new Date(dbOrder.updated_at)
+    };
+  } else {
+    // New schema with direct fields
+    return {
+      id: dbOrder.id,
+      productId: dbOrder.product_id || '',
+      productName: dbOrder.product_name || '',
+      productImage: dbOrder.product_image || '',
+      customerName: dbOrder.customer_name || '',
+      customerPhone: dbOrder.customer_phone || '',
+      customerEmail: dbOrder.customer_email || '',
+      customerAddress: dbOrder.customer_address || '',
+      wilayaId: dbOrder.wilaya_id || 0,
+      wilayaName: dbOrder.wilaya_name || '',
+      shippingType: dbOrder.shipping_type || 'homeDelivery',
+      shippingCost: Number(dbOrder.shipping_cost) || 0,
+      quantity: dbOrder.quantity || 1,
+      selectedSize: dbOrder.selected_size || '',
+      selectedColor: dbOrder.selected_color || '',
+      subtotal: Number(dbOrder.subtotal) || 0,
+      total: Number(dbOrder.total) || 0,
+      orderDate: new Date(dbOrder.order_date),
+      status: dbOrder.status || 'pending',
+      trackingNumber: dbOrder.tracking_number || '',
+      notes: dbOrder.notes || '',
+      paymentMethod: dbOrder.payment_method || 'cod',
+      paymentStatus: dbOrder.payment_status || 'pending',
+      estimatedDelivery: dbOrder.estimated_delivery || '',
+      createdAt: new Date(dbOrder.created_at),
+      updatedAt: new Date(dbOrder.updated_at)
+    };
+  }
 }
 
 // Cache for orders to reduce database calls
