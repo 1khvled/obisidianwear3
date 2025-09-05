@@ -5,6 +5,13 @@ export async function POST() {
   try {
     console.log('Checking database tables...');
 
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Supabase client not initialized. Please check environment variables.',
+      }, { status: 500 });
+    }
+
     // Test if maintenance_status table exists
     const { data: maintenanceData, error: maintenanceError } = await supabase
       .from('maintenance_status')
