@@ -14,7 +14,7 @@ export default function Header() {
   const { getTotalItems } = useCart();
 
   return (
-    <header className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 sticky top-0 z-50">
+    <header className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto container-padding">
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}

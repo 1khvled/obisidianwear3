@@ -17,20 +17,29 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Custom hook to safely use toast context
+const useSafeToast = () => {
+  const [toastFunction, setToastFunction] = useState<((message: string, type?: 'success' | 'error' | 'info', duration?: number) => void)>(() => () => {});
+  
+  useEffect(() => {
+    try {
+      const toastContext = useToast();
+      if (toastContext?.showToast) {
+        setToastFunction(() => toastContext.showToast);
+      }
+    } catch (error) {
+      // Fallback for SSR/build time
+      console.log('Toast context not available during SSR');
+    }
+  }, []);
+  
+  return toastFunction;
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Use toast context properly with SSR safety
-  let showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void = () => {};
-  
-  try {
-    const toastContext = useToast();
-    showToast = toastContext?.showToast || (() => {});
-  } catch (error) {
-    // Fallback for SSR/build time
-    showToast = () => {};
-  }
+  const showToast = useSafeToast();
 
   useEffect(() => {
     // Load cart from database

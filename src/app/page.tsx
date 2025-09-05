@@ -112,7 +112,7 @@ export default function Home() {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative bg-black py-16 sm:py-24 lg:py-32">
+      <section className="relative bg-black py-16 sm:py-24 lg:py-32 pt-24 sm:pt-28 lg:pt-36">
         <div className="max-w-7xl mx-auto container-padding">
                       <div className="flex flex-col items-center text-center space-y-8">
               <Image
