@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 
 // Server-side admin credentials (NEVER expose these in client code)
 const ADMIN_CREDENTIALS = {

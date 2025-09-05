@@ -101,14 +101,14 @@ async function deactivateSessionById(sessionId: string) {
 }
 
 export function createAuthenticatedHandler(
-  handler: (request: AuthenticatedRequest) => Promise<NextResponse>
+  handler: (request: AuthenticatedRequest, context?: any) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
     const authError = await requireAuth(request);
     if (authError) {
       return authError;
     }
 
-    return handler(request as AuthenticatedRequest);
+    return handler(request as AuthenticatedRequest, context);
   };
 }
