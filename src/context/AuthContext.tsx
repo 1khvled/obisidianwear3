@@ -15,8 +15,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Admin credentials from environment variables
 const ADMIN_CREDENTIALS = {
-  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin',
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123',
+  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'khvled',
+  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'Dzt3ch456@',
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
