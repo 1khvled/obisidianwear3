@@ -13,7 +13,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { isMaintenance, dropDate } = await request.json();
+    const body = await request.json();
+    console.log('Maintenance API received:', body);
+    
+    // Handle different parameter names
+    const isMaintenance = body.isMaintenance || body.is_maintenance;
+    const dropDate = body.dropDate || body.drop_date;
     
     const success = await maintenanceService.setMaintenanceStatus(isMaintenance, dropDate);
     

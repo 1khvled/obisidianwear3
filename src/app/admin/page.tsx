@@ -141,6 +141,16 @@ export default function AdminPage() {
           setLoading(true);
           setError(null);
           
+          // Initialize database first
+          try {
+            const initResponse = await fetch('/api/init-db', { method: 'POST' });
+            if (!initResponse.ok) {
+              console.warn('Database initialization failed, continuing...');
+            }
+          } catch (initError) {
+            console.warn('Database initialization error:', initError);
+          }
+          
           // Load wilaya tariffs with retry
           try {
         const savedWilayaTariffs = await backendService.getWilayaTariffs();
