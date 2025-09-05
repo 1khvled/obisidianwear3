@@ -490,6 +490,13 @@ export async function updateOrder(id: string, updates: Partial<Order>): Promise<
 
 export async function deleteOrder(id: string): Promise<void> {
   try {
+    // First, get the order to return stock
+    const order = await getOrder(id);
+    if (order) {
+      // Return stock for the order
+      await returnStockFromOrder(order);
+    }
+    
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -503,6 +510,7 @@ export async function deleteOrder(id: string): Promise<void> {
     // Invalidate caches
     dbCache.invalidate('orders');
     dbCache.invalidate(`order_${id}`);
+    dbCache.invalidate('products'); // Invalidate products cache since stock changed
   } catch (error) {
     console.error('Database deleteOrder error:', error);
     throw error;
@@ -562,6 +570,78 @@ export async function setMaintenanceStatus(isMaintenance: boolean, dropDate?: st
     console.error('Database setMaintenanceStatus error:', error);
     return false;
   }
+}
+
+// Stock return function for cancelled/deleted orders
+export async function returnStockFromOrder(order: Order): Promise<boolean> {
+  try {
+    console.log('Database: Returning stock for order:', order.id);
+    
+    // Get the product
+    const product = await getProduct(order.productId);
+    if (!product) {
+      console.error('Database: Product not found for order:', order.productId);
+      return false;
+    }
+    
+    // Get current stock
+    const currentStock = product.stock?.[order.selectedSize]?.[order.selectedColor] || 0;
+    
+    // Return the stock
+    const newStock = {
+      ...product.stock,
+      [order.selectedSize]: {
+        ...product.stock?.[order.selectedSize],
+        [order.selectedColor]: currentStock + order.quantity
+      }
+    };
+    
+    // Update the product stock
+    const updatedProduct = await updateProduct(order.productId, {
+      stock: newStock,
+      inStock: calculateTotalStock(newStock) > 0
+    });
+    
+    if (updatedProduct) {
+      console.log('Database: Successfully returned stock for order:', order.id, {
+        productId: order.productId,
+        size: order.selectedSize,
+        color: order.selectedColor,
+        quantity: order.quantity,
+        newTotalStock: calculateTotalStock(newStock)
+      });
+      
+      // Invalidate product cache
+      dbCache.invalidate('products');
+      dbCache.invalidate(`product_${order.productId}`);
+      
+      return true;
+    } else {
+      console.error('Database: Failed to return product stock for order:', order.id);
+      return false;
+    }
+  } catch (error) {
+    console.error('Database: Error returning stock for order:', error);
+    return false;
+  }
+}
+
+// Helper function to calculate total stock
+function calculateTotalStock(stock: any): number {
+  if (!stock || typeof stock !== 'object') return 0;
+  
+  let total = 0;
+  Object.values(stock).forEach((colorStock: any) => {
+    if (colorStock && typeof colorStock === 'object') {
+      Object.values(colorStock).forEach((qty: any) => {
+        if (typeof qty === 'number') {
+          total += qty;
+        }
+      });
+    }
+  });
+  
+  return total;
 }
 
 // Initialize cache on module load

@@ -661,3 +661,52 @@ export async function deductStockFromOrder(order: Order): Promise<boolean> {
     return false;
   }
 }
+
+// Stock return function for cancelled/deleted orders
+export async function returnStockFromOrder(order: Order): Promise<boolean> {
+  try {
+    console.log('Supabase: Returning stock for order:', order.id);
+    
+    // Get the product
+    const product = await getProduct(order.productId);
+    if (!product) {
+      console.error('Supabase: Product not found for order:', order.productId);
+      return false;
+    }
+    
+    // Get current stock
+    const currentStock = product.stock?.[order.selectedSize]?.[order.selectedColor] || 0;
+    
+    // Return the stock
+    const newStock = {
+      ...product.stock,
+      [order.selectedSize]: {
+        ...product.stock?.[order.selectedSize],
+        [order.selectedColor]: currentStock + order.quantity
+      }
+    };
+    
+    // Update the product stock
+    const updatedProduct = await updateProduct(order.productId, {
+      stock: newStock,
+      inStock: calculateTotalStock(newStock) > 0
+    });
+    
+    if (updatedProduct) {
+      console.log('Supabase: Successfully returned stock for order:', order.id, {
+        productId: order.productId,
+        size: order.selectedSize,
+        color: order.selectedColor,
+        quantity: order.quantity,
+        newTotalStock: calculateTotalStock(newStock)
+      });
+      return true;
+    } else {
+      console.error('Supabase: Failed to return product stock for order:', order.id);
+      return false;
+    }
+  } catch (error) {
+    console.error('Supabase: Error returning stock for order:', error);
+    return false;
+  }
+}
