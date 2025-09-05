@@ -226,34 +226,31 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 // Helper function to convert database order to Order interface
 function convertDbOrderToOrder(dbOrder: any): Order {
-  // Extract customer info from items or use defaults
-  const firstItem = dbOrder.items && dbOrder.items.length > 0 ? dbOrder.items[0] : {};
-  
   return {
     id: dbOrder.id,
-    productId: firstItem.productId || '',
-    productName: firstItem.productName || '',
-    productImage: firstItem.productImage || '',
-    customerName: firstItem.customerName || '',
-    customerPhone: firstItem.customerPhone || '',
-    customerEmail: firstItem.customerEmail || '',
-    customerAddress: firstItem.customerAddress || '',
-    wilayaId: firstItem.wilayaId || 0,
-    wilayaName: firstItem.wilayaName || '',
+    productId: dbOrder.product_id || '',
+    productName: dbOrder.product_name || '',
+    productImage: dbOrder.product_image || '',
+    customerName: dbOrder.customer_name || '',
+    customerPhone: dbOrder.customer_phone || '',
+    customerEmail: dbOrder.customer_email || '',
+    customerAddress: dbOrder.customer_address || '',
+    wilayaId: dbOrder.wilaya_id || 0,
+    wilayaName: dbOrder.wilaya_name || '',
     shippingType: dbOrder.shipping_type || 'homeDelivery',
     shippingCost: Number(dbOrder.shipping_cost) || 0,
-    quantity: firstItem.quantity || 1,
-    selectedSize: firstItem.selectedSize || '',
-    selectedColor: firstItem.selectedColor || '',
-    subtotal: Number(dbOrder.total) - Number(dbOrder.shipping_cost) || 0,
+    quantity: dbOrder.quantity || 1,
+    selectedSize: dbOrder.selected_size || '',
+    selectedColor: dbOrder.selected_color || '',
+    subtotal: Number(dbOrder.subtotal) || 0,
     total: Number(dbOrder.total) || 0,
     orderDate: new Date(dbOrder.order_date),
     status: dbOrder.status || 'pending',
-    trackingNumber: dbOrder.tracking_number,
-    notes: firstItem.notes,
+    trackingNumber: dbOrder.tracking_number || '',
+    notes: dbOrder.notes || '',
     paymentMethod: dbOrder.payment_method || 'cod',
     paymentStatus: dbOrder.payment_status || 'pending',
-    estimatedDelivery: firstItem.estimatedDelivery,
+    estimatedDelivery: dbOrder.estimated_delivery || '',
     createdAt: new Date(dbOrder.created_at),
     updatedAt: new Date(dbOrder.updated_at)
   };
@@ -317,34 +314,32 @@ export async function getOrder(id: string): Promise<Order | null> {
 
 export async function addOrder(order: Order): Promise<Order> {
   try {
-    // Convert Order interface to database format
+    // Convert Order interface to database format (matching the orders table schema)
     const dbOrder = {
       id: order.id,
-      customer_id: `CUST-${Date.now()}`, // Generate customer ID
-      items: [{
-        productId: order.productId,
-        productName: order.productName,
-        productImage: order.productImage,
-        customerName: order.customerName,
-        customerPhone: order.customerPhone,
-        customerEmail: order.customerEmail,
-        customerAddress: order.customerAddress,
-        wilayaId: order.wilayaId,
-        wilayaName: order.wilayaName,
-        quantity: order.quantity,
-        selectedSize: order.selectedSize,
-        selectedColor: order.selectedColor,
-        notes: order.notes,
-        estimatedDelivery: order.estimatedDelivery
-      }],
-      total: order.total,
+      customer_name: order.customerName,
+      customer_email: order.customerEmail,
+      customer_phone: order.customerPhone,
+      customer_address: order.customerAddress,
+      wilaya_id: order.wilayaId,
+      wilaya_name: order.wilayaName,
+      product_id: order.productId,
+      product_name: order.productName,
+      product_image: order.productImage,
+      selected_size: order.selectedSize,
+      selected_color: order.selectedColor,
+      quantity: order.quantity,
+      subtotal: order.subtotal,
       shipping_cost: order.shippingCost,
+      total: order.total,
       shipping_type: order.shippingType,
       payment_method: order.paymentMethod,
       payment_status: order.paymentStatus,
       status: order.status,
-      tracking_number: order.trackingNumber,
       order_date: order.orderDate.toISOString(),
+      notes: order.notes,
+      tracking_number: order.trackingNumber,
+      estimated_delivery: order.estimatedDelivery,
       created_at: order.createdAt.toISOString(),
       updated_at: order.updatedAt.toISOString()
     };
