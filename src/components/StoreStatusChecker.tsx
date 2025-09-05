@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useOptimizedMaintenance } from '../hooks/useOptimizedMaintenance';
 
 export default function StoreStatusChecker() {
   const pathname = usePathname();
   const router = useRouter();
+  const { status, loading, error } = useOptimizedMaintenance();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -20,26 +22,16 @@ export default function StoreStatusChecker() {
       return;
     }
 
-    // Check store status from API
-    const checkMaintenanceStatus = async () => {
-      try {
-        const response = await fetch('/api/maintenance');
-        const data = await response.json();
-        
-        // If store is in maintenance mode and not on maintenance page, redirect
-        if (data?.is_maintenance && pathname !== '/maintenance') {
-          console.log('🔴 Store is in MAINTENANCE MODE - Redirecting to maintenance page');
-          router.push('/maintenance');
-        }
-      } catch (error) {
-        console.error('Error checking maintenance status:', error);
-      } finally {
-        setIsChecking(false);
+    // Check if maintenance status is loaded
+    if (!loading && status) {
+      // If store is in maintenance mode (offline) and not on maintenance page, redirect
+      if (status.status === 'offline' && pathname !== '/maintenance') {
+        console.log('🔴 Store is in MAINTENANCE MODE - Redirecting to maintenance page');
+        router.push('/maintenance');
       }
-    };
-
-    checkMaintenanceStatus();
-  }, [pathname, router]);
+      setIsChecking(false);
+    }
+  }, [pathname, router, status, loading]);
 
   // Show loading state while checking
   if (isChecking) {

@@ -36,7 +36,7 @@ import EnhancedProductManager from '@/components/EnhancedProductManager';
 import InventoryManager from '@/components/InventoryManager';
 import EnhancedOrderManager from '@/components/EnhancedOrderManager';
 import Analytics from '@/components/Analytics';
-import MaintenanceManager from '@/components/MaintenanceManager';
+import OptimizedMaintenanceManager from '@/components/OptimizedMaintenanceManager';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
@@ -1025,7 +1025,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
             </div>
           )}
 
-          {activeTab === 'maintenance' && <MaintenanceManager />}
+          {activeTab === 'maintenance' && <OptimizedMaintenanceManager />}
 
           {activeTab === 'orders' && (
             <div className="p-4 sm:p-6">

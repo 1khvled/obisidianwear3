@@ -2,8 +2,10 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useOptimizedMaintenance } from '../hooks/useOptimizedMaintenance';
 
 export default function MaintenancePage() {
+  const { status, loading, error } = useOptimizedMaintenance();
   const [dropDate, setDropDate] = useState('');
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -73,6 +75,36 @@ export default function MaintenancePage() {
       day: 'numeric'
     });
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl">Loading maintenance status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-red-400 text-xl mb-4">Error: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center space-y-8">
