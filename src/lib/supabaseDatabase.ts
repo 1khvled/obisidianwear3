@@ -21,27 +21,27 @@ export { supabase };
 function convertDbProductToProduct(dbProduct: any): Product {
   return {
     id: dbProduct.id,
-    name: dbProduct.name,
-    description: dbProduct.description,
-    price: dbProduct.price,
-    originalPrice: dbProduct.original_price,
-    image: dbProduct.image,
+    name: dbProduct.name || '',
+    description: dbProduct.description || '',
+    price: Number(dbProduct.price) || 0,
+    originalPrice: Number(dbProduct.original_price) || 0,
+    image: dbProduct.image || '',
     images: dbProduct.images || [],
     stock: dbProduct.stock || {},
-    category: dbProduct.category,
+    category: dbProduct.category || '',
     sizes: dbProduct.sizes || [],
     colors: dbProduct.colors || [],
-    inStock: dbProduct.in_stock,
+    inStock: dbProduct.in_stock || false,
     status: dbProduct.status || 'available',
-    rating: dbProduct.rating || 0,
-    reviews: dbProduct.reviews || 0,
-    sku: dbProduct.sku,
-    weight: dbProduct.weight,
-    dimensions: dbProduct.dimensions,
+    rating: Number(dbProduct.rating) || 0,
+    reviews: Number(dbProduct.reviews) || 0,
+    sku: dbProduct.sku || '',
+    weight: Number(dbProduct.weight) || 0,
+    dimensions: dbProduct.dimensions || null,
     tags: dbProduct.tags || [],
     featured: dbProduct.featured || false,
-    createdAt: new Date(dbProduct.created_at),
-    updatedAt: new Date(dbProduct.updated_at)
+    createdAt: dbProduct.created_at ? new Date(dbProduct.created_at) : new Date(),
+    updatedAt: dbProduct.updated_at ? new Date(dbProduct.updated_at) : new Date()
   };
 }
 
