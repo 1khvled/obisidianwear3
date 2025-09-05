@@ -57,6 +57,9 @@ export default function AdminPage() {
   const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
   const { isConnected: isRealtimeConnected } = useRealtime();
   
+  // Add error boundary state
+  const [hasError, setHasError] = useState(false);
+  
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
@@ -191,7 +194,11 @@ export default function AdminPage() {
           
         } catch (error) {
           console.error('Error loading data:', error);
-          setError(`Failed to load admin data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setError(`Failed to load admin data: ${errorMessage}`);
+          
+          // Don't crash the app, just show error
+          setHasError(false);
           
           // Retry logic
           if (retryCount < 3) {
@@ -253,6 +260,7 @@ export default function AdminPage() {
                 onClick={() => {
                   setError(null);
                   setRetryCount(0);
+                  // Just clear the error, user can refresh if needed
                   window.location.reload();
                 }}
                 className="text-red-600 hover:text-red-800 text-sm font-medium underline"
@@ -371,17 +379,23 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     const product = products.find(p => p.id === id);
     const productName = product?.name || 'Unknown Product';
     
     if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
       try {
-        deleteProductContext(id);
-        console.log(`"${productName}" has been deleted successfully.`);
+        const success = await deleteProductContext(id);
+        if (success) {
+          console.log(`"${productName}" has been deleted successfully.`);
+        } else {
+          console.error('Failed to delete product. Please check your authentication and try again.');
+          setError('Failed to delete product. Please check your authentication and try again.');
+        }
       } catch (error) {
         console.error('Failed to delete product. Please try again.');
         console.error('Error deleting product:', error);
+        setError('Failed to delete product. Please try again.');
       }
     }
   };
@@ -1031,6 +1045,28 @@ Payment Status: ${order.paymentStatus}
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Error boundary fallback
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h1>
+          <p className="text-gray-600 mb-4">The admin panel encountered an error.</p>
+          <button
+            onClick={() => {
+              setHasError(false);
+              setError(null);
+              window.location.reload();
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isMobile) {
     return (

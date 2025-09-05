@@ -10,7 +10,7 @@ interface ProductContextType {
   setProducts: (products: Product[]) => void;
   addProduct: (product: Product) => void;
   updateProduct: (id: string, product: Product) => void;
-  deleteProduct: (id: string) => void;
+  deleteProduct: (id: string) => Promise<boolean>;
   getProduct: (id: string) => Product | undefined;
   initializeDefaultProducts: () => void;
 }
@@ -97,11 +97,15 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       if (success) {
         console.log('ProductContext: Product deleted successfully:', id);
         setProducts(prev => prev.filter(product => product.id !== id));
+        return true;
       } else {
         console.error('ProductContext: Failed to delete product:', id);
+        return false;
       }
     } catch (error) {
       console.error('ProductContext: Error deleting product:', error);
+      // Don't throw the error, just return false
+      return false;
     }
   };
 

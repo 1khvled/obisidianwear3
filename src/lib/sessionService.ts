@@ -61,6 +61,11 @@ class SessionService {
         return false;
       }
 
+      // Also set cookie for server-side access
+      if (typeof document !== 'undefined') {
+        document.cookie = `obsidian-admin-session-id=${this.sessionId}; path=/; max-age=${this.SESSION_DURATION / 1000}; secure; samesite=strict`;
+      }
+
       return true;
     } catch (error) {
       console.error('Error creating session:', error);
@@ -129,6 +134,11 @@ class SessionService {
       if (error) {
         console.error('Error deactivating session:', error);
         return false;
+      }
+
+      // Clear cookie as well
+      if (typeof document !== 'undefined') {
+        document.cookie = 'obsidian-admin-session-id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
 
       return true;

@@ -15,11 +15,14 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
                      request.cookies.get('obsidian-admin-session-id')?.value;
 
     if (!sessionId) {
+      console.log('No session ID found in request');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    console.log('Checking session:', sessionId);
 
     // Verify session with database using the session ID from the request
     const session = await verifySessionById(sessionId);
