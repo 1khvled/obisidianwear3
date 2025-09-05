@@ -36,8 +36,8 @@ class BackendService {
     if (typeof window !== 'undefined') {
       // Clear session data
       sessionStorage.removeItem('obsidian-admin-session-id');
-      // Redirect to login or trigger re-authentication
-      window.location.href = '/admin';
+      // Don't redirect - let the AuthContext handle it
+      console.warn('BackendService: Authentication failed, session cleared');
     }
   }
 
@@ -155,11 +155,13 @@ class BackendService {
       if (!response.ok) {
         if (response.status === 401) {
           console.error('BackendService: Authentication failed for delete product');
-          // Trigger re-authentication
+          // Clear session but don't redirect
           this.handleAuthError();
           return false;
         }
         console.error('BackendService: HTTP error deleting product:', response.status);
+        const errorText = await response.text();
+        console.error('BackendService: Error details:', errorText);
         return false;
       }
       
@@ -304,11 +306,13 @@ class BackendService {
       if (!response.ok) {
         if (response.status === 401) {
           console.error('BackendService: Authentication failed for delete order');
-          // Trigger re-authentication
+          // Clear session but don't redirect
           this.handleAuthError();
           return false;
         }
         console.error('BackendService: HTTP error deleting order:', response.status);
+        const errorText = await response.text();
+        console.error('BackendService: Error details:', errorText);
         return false;
       }
       

@@ -1,0 +1,5 @@
+[33m1ce31eef[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m  SECURITY FIXES: Complete admin panel security overhaul - Move admin credentials to server-side, add authentication to all admin APIs, fix database deletion issues, and improve admin panel stability
+[33m932b6a2f[m Fix admin panel crashes and database deletion issues
+[33ma2a37106[m[33m ([m[1;31morigin/main[m[33m)[m Fix build errors: Remove unused bcryptjs import and fix auth middleware types
+[33m9999e8ca[m Add .gitignore to exclude node_modules and other unnecessary files
+[33m4d9727cb[m  Security fixes: Move admin credentials to server-side, add authentication to all admin APIs, fix database deletion issues, and improve admin panel stability

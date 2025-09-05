@@ -385,9 +385,15 @@ export default function AdminPage() {
     
     if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
       try {
+        setLoading(true);
+        setError(null);
+        
         const success = await deleteProductContext(id);
         if (success) {
           console.log(`"${productName}" has been deleted successfully.`);
+          // Show success message instead of error
+          setError(`"${productName}" deleted successfully!`);
+          setTimeout(() => setError(null), 3000);
         } else {
           console.error('Failed to delete product. Please check your authentication and try again.');
           setError('Failed to delete product. Please check your authentication and try again.');
@@ -396,21 +402,38 @@ export default function AdminPage() {
         console.error('Failed to delete product. Please try again.');
         console.error('Error deleting product:', error);
         setError('Failed to delete product. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handleDeleteOrder = (id: string) => {
+  const handleDeleteOrder = async (id: string) => {
     const order = orders.find(o => o.id === id);
     const orderId = order?.id || 'Unknown Order';
     
     if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
       try {
-        setOrders(prev => prev.filter(order => order.id !== id));
-        console.log(`Order "${orderId}" has been deleted successfully.`);
+        setLoading(true);
+        setError(null);
+        
+        // Call the backend service to delete the order
+        const success = await backendService.deleteOrder(id);
+        if (success) {
+          setOrders(prev => prev.filter(order => order.id !== id));
+          console.log(`Order "${orderId}" has been deleted successfully.`);
+          setError(`Order "${orderId}" deleted successfully!`);
+          setTimeout(() => setError(null), 3000);
+        } else {
+          console.error('Failed to delete order. Please check your authentication and try again.');
+          setError('Failed to delete order. Please check your authentication and try again.');
+        }
       } catch (error) {
         console.error('Failed to delete order. Please try again.');
         console.error('Error deleting order:', error);
+        setError('Failed to delete order. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };
