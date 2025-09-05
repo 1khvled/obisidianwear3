@@ -31,10 +31,11 @@ class OptimizedMaintenanceService {
 
       if (error) throw error;
 
-      this.cache = data || { status: 'online', updated_at: new Date().toISOString() };
+      const statusData = data || { status: 'online', updated_at: new Date().toISOString() };
+      this.cache = statusData;
       this.lastFetch = now;
       
-      return this.cache;
+      return statusData;
     } catch (error) {
       console.error('Failed to fetch maintenance status:', error);
       // Return cached data or default
