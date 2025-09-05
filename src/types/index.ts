@@ -10,6 +10,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   inStock: boolean;
+  status?: 'available' | 'soon' | 'out_of_stock';
   rating: number;
   reviews: number;
   stock: {

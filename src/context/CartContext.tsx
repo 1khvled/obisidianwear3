@@ -21,12 +21,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Only use toast on client side
-  let showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
+  // Use toast context properly with SSR safety
+  let showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void = () => {};
+  
   try {
     const toastContext = useToast();
-    showToast = toastContext.showToast;
-  } catch {
+    showToast = toastContext?.showToast || (() => {});
+  } catch (error) {
     // Fallback for SSR/build time
     showToast = () => {};
   }

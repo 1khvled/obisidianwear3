@@ -32,6 +32,7 @@ function convertDbProductToProduct(dbProduct: any): Product {
     sizes: dbProduct.sizes || [],
     colors: dbProduct.colors || [],
     inStock: dbProduct.in_stock,
+    status: dbProduct.status || 'available',
     rating: dbProduct.rating || 0,
     reviews: dbProduct.reviews || 0,
     sku: dbProduct.sku,

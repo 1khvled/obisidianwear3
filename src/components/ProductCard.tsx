@@ -24,7 +24,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   const handleAddToCart = () => {
-    if (product.inStock && product.colors && product.colors.length > 0) {
+    if (product.inStock && product.status !== 'soon' && product.colors && product.colors.length > 0) {
       setSelectedSize(product.sizes[0] || '');
       setSelectedColor(product.colors[0] || '');
       setShowSizeModal(true);
@@ -69,7 +69,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         {/* Stock Status */}
-        {!product.inStock && (
+        {product.status === 'soon' && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-yellow-600 text-white text-xs font-semibold px-2 py-1 rounded">
+            Coming Soon
+          </div>
+        )}
+        {!product.inStock && product.status !== 'soon' && (
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-600 text-white text-xs font-semibold px-2 py-1 rounded">
             Out of Stock
           </div>
@@ -80,10 +85,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           <button 
             onClick={handleAddToCart}
             className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm"
-            disabled={!product.inStock}
+            disabled={!product.inStock || product.status === 'soon'}
           >
             <ShoppingCart size={16} />
-            <span>Add to Cart</span>
+            <span>{product.status === 'soon' ? 'Coming Soon' : 'Add to Cart'}</span>
           </button>
         </div>
       </div>
@@ -129,12 +134,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Link href={`/product/${product.id}`}>
             <button 
               className="w-full bg-white text-black py-2.5 sm:py-2 px-4 rounded-lg font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-sm sm:text-base touch-target"
-              disabled={!product.inStock}
+              disabled={!product.inStock && product.status !== 'soon'}
             >
-              {product.inStock ? 'View Product' : 'Out of Stock'}
+              {product.status === 'soon' ? 'Coming Soon' : product.inStock ? 'View Product' : 'Out of Stock'}
             </button>
           </Link>
-          {product.inStock && (
+          {product.inStock && product.status !== 'soon' && (
             <button 
               onClick={handleAddToCart}
               className="w-full bg-gray-800 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm sm:text-base touch-target"
