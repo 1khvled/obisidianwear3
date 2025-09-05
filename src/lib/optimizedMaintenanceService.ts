@@ -4,7 +4,7 @@ import { supabase } from './supabaseDatabase';
 export interface MaintenanceStatus {
   id?: string;
   is_maintenance: boolean;
-  drop_date?: string;
+  drop_date?: string | null;
   updated_at?: string;
 }
 
