@@ -8,10 +8,10 @@ import { Product, Order } from '@/types';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Only throw error if we're not in build mode
+// Only throw error during server-side rendering, not during build or client-side
 if (!supabaseUrl || !supabaseKey) {
-  // Only throw error during runtime, not during build
-  if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
+  // Only throw error during server-side rendering, not during build or client-side
+  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
     const missingVars = [];
     if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
