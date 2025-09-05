@@ -13,7 +13,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useProducts } from '@/context/ProductContext';
 
 export default function Home() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
     category: 'All',
@@ -39,11 +38,6 @@ export default function Home() {
     }
 
     // Apply category filter
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
-    }
-
-    // Apply additional filters
     if (searchFilters.category !== 'All') {
       filtered = filtered.filter(product => product.category === searchFilters.category);
     }
@@ -91,7 +85,7 @@ export default function Home() {
     });
 
     return filtered;
-  }, [products, selectedCategory, searchQuery, searchFilters]);
+  }, [products, searchQuery, searchFilters]);
 
   // Show loading state only if no products are available yet
   if (products.length === 0) {
@@ -110,7 +104,7 @@ export default function Home() {
   }
 
   const handleCategoryFilter = (category: string) => {
-    setSelectedCategory(category);
+    setSearchFilters(prev => ({ ...prev, category }));
   };
 
   return (
@@ -190,7 +184,7 @@ export default function Home() {
                 key={category}
                 onClick={() => handleCategoryFilter(category)}
                 className={`touch-target px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                  selectedCategory === category
+                  searchFilters.category === category
                     ? 'bg-white text-black'
                     : 'bg-gray-800 text-white hover:bg-gray-700 active:bg-gray-600'
                 }`}
