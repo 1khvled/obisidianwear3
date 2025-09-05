@@ -23,6 +23,11 @@ class OptimizedMaintenanceService {
     }
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return { is_maintenance: false, drop_date: null };
+      }
+
       const { data, error } = await supabase
         .from('maintenance_status')
         .select('*')
@@ -72,6 +77,11 @@ class OptimizedMaintenanceService {
       // Background database update
       setTimeout(async () => {
         try {
+          if (!supabase) {
+            console.error('Supabase client not initialized');
+            return;
+          }
+
           const { error } = await supabase
             .from('maintenance_status')
             .update({ 
@@ -108,6 +118,11 @@ class OptimizedMaintenanceService {
   // Get maintenance analytics
   async getMaintenanceAnalytics() {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return null;
+      }
+
       const { data, error } = await supabase.rpc('get_maintenance_analytics');
       if (error) throw error;
       return data?.[0] || null;

@@ -18,6 +18,11 @@ class OptimizedOrderService {
   // Fast order creation with optimistic UI
   async createOrder(orderData: Omit<OptimizedOrder, 'id' | 'created_at' | 'updated_at'>): Promise<OptimizedOrder> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        throw new Error('Database not available');
+      }
+
       // Optimistic response for instant UI update
       const optimisticOrder: OptimizedOrder = {
         ...orderData,
@@ -65,6 +70,11 @@ class OptimizedOrderService {
     }
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -89,6 +99,11 @@ class OptimizedOrderService {
   // Fast order status update
   async updateOrderStatus(orderId: number, status: string): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -111,6 +126,11 @@ class OptimizedOrderService {
   // Bulk order operations
   async bulkUpdateOrderStatus(orderIds: number[], status: string): Promise<number> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return 0;
+      }
+
       const { data, error } = await supabase.rpc('bulk_update_order_status', {
         order_ids: orderIds,
         new_status: status
@@ -135,6 +155,11 @@ class OptimizedOrderService {
     offset = 0
   ): Promise<OptimizedOrder[]> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return [];
+      }
+
       const { data, error } = await supabase.rpc('search_orders', {
         search_term: searchTerm,
         order_status: status,
@@ -153,6 +178,11 @@ class OptimizedOrderService {
   // Get order analytics
   async getOrderAnalytics() {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return null;
+      }
+
       const { data, error } = await supabase.rpc('get_order_analytics');
       if (error) throw error;
       return data?.[0] || null;

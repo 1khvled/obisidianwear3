@@ -40,6 +40,11 @@ class SessionService {
 
   async createSession(username: string): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const expiresAt = new Date(Date.now() + this.SESSION_DURATION).toISOString();
       
       const { error } = await supabase
@@ -65,6 +70,11 @@ class SessionService {
 
   async getSession(): Promise<AdminSession | null> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('admin_sessions')
         .select('*')
@@ -100,6 +110,11 @@ class SessionService {
 
   async deactivateSession(): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('admin_sessions')
         .update({ is_active: false })
@@ -130,6 +145,11 @@ class SessionService {
   // Clean up expired sessions (can be called periodically)
   async cleanupExpiredSessions(): Promise<void> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return;
+      }
+
       const now = new Date().toISOString();
       
       await supabase

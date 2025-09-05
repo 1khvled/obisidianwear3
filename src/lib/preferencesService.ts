@@ -47,6 +47,11 @@ class PreferencesService {
     }
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('user_preferences')
         .select('*')
@@ -73,6 +78,11 @@ class PreferencesService {
 
   async setLanguage(language: string): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
@@ -98,6 +108,11 @@ class PreferencesService {
 
   async setTheme(theme: string): Promise<boolean> {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return false;
+      }
+
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
