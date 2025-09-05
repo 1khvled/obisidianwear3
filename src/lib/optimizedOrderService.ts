@@ -34,6 +34,11 @@ class OptimizedOrderService {
       // Return optimistic response immediately
       setTimeout(async () => {
         try {
+          if (!supabase) {
+            console.error('Supabase client not initialized');
+            return;
+          }
+
           // Actual database operation in background
           const { data, error } = await supabase
             .from('orders')
