@@ -18,11 +18,11 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "build:analyze": "ANALYZE=true npm run build",
-    "postinstall": "node scripts/install-swc.js"
+    "build:analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@next/swc-win32-x64-msvc": "^15.5.2",
     "@supabase/supabase-js": "^2.57.0",
     "@types/pg": "^8.15.5",
     "@vercel/kv": "^3.0.0",
