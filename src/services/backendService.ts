@@ -23,6 +23,24 @@ class BackendService {
     return typeof window !== 'undefined' && typeof fetch !== 'undefined';
   }
 
+  // Get session ID from session storage
+  private getSessionId(): string {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('obsidian-admin-session-id') || '';
+    }
+    return '';
+  }
+
+  // Handle authentication errors
+  private handleAuthError(): void {
+    if (typeof window !== 'undefined') {
+      // Clear session data
+      sessionStorage.removeItem('obsidian-admin-session-id');
+      // Redirect to login or trigger re-authentication
+      window.location.href = '/admin';
+    }
+  }
+
   // Products API
   async getProducts(): Promise<Product[]> {
     try {
@@ -127,8 +145,23 @@ class BackendService {
   async deleteProduct(id: string): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl(`/products/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': this.getSessionId()
+        }
       });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('BackendService: Authentication failed for delete product');
+          // Trigger re-authentication
+          this.handleAuthError();
+          return false;
+        }
+        console.error('BackendService: HTTP error deleting product:', response.status);
+        return false;
+      }
       
       const result = await response.json();
       
@@ -261,8 +294,23 @@ class BackendService {
   async deleteOrder(id: string): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl(`/orders/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': this.getSessionId()
+        }
       });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('BackendService: Authentication failed for delete order');
+          // Trigger re-authentication
+          this.handleAuthError();
+          return false;
+        }
+        console.error('BackendService: HTTP error deleting order:', response.status);
+        return false;
+      }
       
       const result = await response.json();
       

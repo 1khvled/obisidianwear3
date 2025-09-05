@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
 import { getProducts, addProduct } from '@/lib/supabaseDatabase';
+import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -50,8 +51,8 @@ export async function GET() {
   }
 }
 
-// POST /api/products - Create new product
-export async function POST(request: NextRequest) {
+// POST /api/products - Create new product (requires authentication)
+export const POST = createAuthenticatedHandler(async (request: AuthenticatedRequest) => {
   try {
     const productData = await request.json();
     
@@ -88,4 +89,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

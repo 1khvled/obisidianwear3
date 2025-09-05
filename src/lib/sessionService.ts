@@ -75,6 +75,12 @@ class SessionService {
         return null;
       }
 
+      // Ensure we have a valid session ID
+      if (!this.sessionId) {
+        console.error('No session ID available');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('admin_sessions')
         .select('*')

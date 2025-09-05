@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
 import { getOrder, updateOrder, deleteOrder } from '@/lib/supabaseDatabase';
+import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -100,11 +101,8 @@ export async function PUT(
   }
 }
 
-// DELETE /api/orders/[id] - Delete order
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// DELETE /api/orders/[id] - Delete order (requires authentication)
+export const DELETE = createAuthenticatedHandler(async (request: AuthenticatedRequest, { params }: { params: { id: string } }) => {
   try {
     const { id } = params;
     
@@ -149,4 +147,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

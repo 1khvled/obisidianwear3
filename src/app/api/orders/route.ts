@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
 import { getOrders, addOrder, deductStockFromOrder } from '@/lib/supabaseDatabase';
+import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMaintenanceStatus, updateMaintenanceStatus } from '@/lib/supabaseDatabase';
+import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
 
+// GET endpoint - public (for maintenance page display)
 export async function GET() {
   try {
     const status = await getMaintenanceStatus();
@@ -11,10 +13,11 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+// POST endpoint - requires authentication
+export const POST = createAuthenticatedHandler(async (request: AuthenticatedRequest) => {
   try {
     const body = await request.json();
-    console.log('Maintenance API received:', body);
+    console.log('Maintenance API received from user:', request.user?.username, body);
     
     // Handle different parameter names
     const isMaintenance = body.isMaintenance || body.is_maintenance;
@@ -31,4 +34,4 @@ export async function POST(request: NextRequest) {
     console.error('Error updating maintenance status:', error);
     return NextResponse.json({ error: 'Failed to update maintenance status' }, { status: 500 });
   }
-}
+});
