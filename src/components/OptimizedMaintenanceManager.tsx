@@ -19,7 +19,7 @@ export default function OptimizedMaintenanceManager() {
     const success = await toggleStatus();
     if (success) {
       // Show success message
-      const newStatus = status.status === 'online' ? 'offline' : 'online';
+      const newStatus = status.is_maintenance ? 'offline' : 'online';
       alert(`Maintenance status changed to ${newStatus}`);
     } else {
       alert('Failed to update maintenance status');
@@ -56,12 +56,12 @@ export default function OptimizedMaintenanceManager() {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Current Status</h2>
               <div className="flex items-center">
                 <div className={`w-4 h-4 rounded-full mr-3 ${
-                  status.status === 'online' ? 'bg-green-500' : 'bg-red-500'
+                  !status.is_maintenance ? 'bg-green-500' : 'bg-red-500'
                 }`}></div>
                 <span className={`text-2xl font-bold ${
-                  status.status === 'online' ? 'text-green-600' : 'text-red-600'
+                  !status.is_maintenance ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {status.status.toUpperCase()}
+                  {!status.is_maintenance ? 'ONLINE' : 'OFFLINE'}
                 </span>
               </div>
               <p className="text-gray-600 mt-2">
@@ -73,12 +73,12 @@ export default function OptimizedMaintenanceManager() {
               <button
                 onClick={handleToggle}
                 className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                  status.status === 'online'
+                  !status.is_maintenance
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
               >
-                Switch to {status.status === 'online' ? 'OFFLINE' : 'ONLINE'}
+                Switch to {!status.is_maintenance ? 'OFFLINE' : 'ONLINE'}
               </button>
               
               <button
@@ -97,9 +97,9 @@ export default function OptimizedMaintenanceManager() {
           <div className="flex gap-4">
             <button
               onClick={() => handleSetStatus('online')}
-              disabled={status.status === 'online'}
+              disabled={!status.is_maintenance}
               className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                status.status === 'online'
+                !status.is_maintenance
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
@@ -109,9 +109,9 @@ export default function OptimizedMaintenanceManager() {
             
             <button
               onClick={() => handleSetStatus('offline')}
-              disabled={status.status === 'offline'}
+              disabled={status.is_maintenance}
               className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                status.status === 'offline'
+                status.is_maintenance
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-red-600 hover:bg-red-700 text-white'
               }`}

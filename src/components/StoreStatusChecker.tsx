@@ -25,7 +25,7 @@ export default function StoreStatusChecker() {
     // Check if maintenance status is loaded
     if (!loading && status) {
       // If store is in maintenance mode (offline) and not on maintenance page, redirect
-      if (status.status === 'offline' && pathname !== '/maintenance') {
+      if (status.is_maintenance && pathname !== '/maintenance') {
         console.log('🔴 Store is in MAINTENANCE MODE - Redirecting to maintenance page');
         router.push('/maintenance');
       }
