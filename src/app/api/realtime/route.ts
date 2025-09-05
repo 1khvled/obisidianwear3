@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 // Store active connections
 const connections = new Set<ReadableStreamDefaultController>();
 
@@ -46,22 +49,22 @@ export async function GET(request: NextRequest) {
 }
 
 // Function to broadcast updates to all connected clients
-export function broadcastUpdate(type: string, data: any) {
+function broadcastUpdate(type: string, data: any) {
   const message = `data: ${JSON.stringify({ type, data, timestamp: Date.now() })}\n\n`;
   const encoded = new TextEncoder().encode(message);
   
   // Send to all active connections
-  for (const controller of connections) {
+  connections.forEach(controller => {
     try {
       controller.enqueue(encoded);
     } catch (error) {
       // Remove dead connections
       connections.delete(controller);
     }
-  }
+  });
 }
 
 // Function to get connection count
-export function getConnectionCount() {
+function getConnectionCount() {
   return connections.size;
 }

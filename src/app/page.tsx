@@ -17,8 +17,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
     category: 'All',
-    priceRange: [0, 1000],
-    inStock: null,
+    priceRange: [0, 1000] as [number, number],
+    inStock: null as boolean | null,
     sortBy: 'name' as 'name' | 'price' | 'created' | 'rating',
     sortOrder: 'asc' as 'asc' | 'desc'
   });
@@ -34,7 +34,7 @@ export default function Home() {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
       );
     }
 

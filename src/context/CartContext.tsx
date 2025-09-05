@@ -20,7 +20,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { showToast } = useToast();
+  
+  // Only use toast on client side
+  let showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
+  try {
+    const toastContext = useToast();
+    showToast = toastContext.showToast;
+  } catch {
+    // Fallback for SSR/build time
+    showToast = () => {};
+  }
 
   useEffect(() => {
     // Load cart from database

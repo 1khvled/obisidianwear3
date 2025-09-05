@@ -392,15 +392,31 @@ export async function addOrder(order: Order): Promise<Order> {
   try {
     const dbOrder = {
       id: order.id,
+      product_id: order.productId,
+      product_name: order.productName,
+      product_image: order.productImage,
       customer_name: order.customerName,
       customer_email: order.customerEmail,
       customer_phone: order.customerPhone,
-      shipping_address: order.shippingAddress,
-      items: order.items,
+      customer_address: order.customerAddress,
+      wilaya_id: order.wilayaId,
+      wilaya_name: order.wilayaName,
+      shipping_type: order.shippingType,
+      shipping_cost: order.shippingCost,
+      quantity: order.quantity,
+      selected_size: order.selectedSize,
+      selected_color: order.selectedColor,
+      subtotal: order.subtotal,
       total: order.total,
       status: order.status,
+      tracking_number: order.trackingNumber,
+      notes: order.notes,
       payment_method: order.paymentMethod,
-      notes: order.notes
+      payment_status: order.paymentStatus,
+      estimated_delivery: order.estimatedDelivery,
+      order_date: order.orderDate,
+      created_at: order.createdAt,
+      updated_at: order.updatedAt
     };
 
     const { data, error } = await supabase
@@ -438,8 +454,7 @@ export async function updateOrder(id: string, updates: Partial<Order>): Promise<
     if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName;
     if (updates.customerEmail !== undefined) dbUpdates.customer_email = updates.customerEmail;
     if (updates.customerPhone !== undefined) dbUpdates.customer_phone = updates.customerPhone;
-    if (updates.shippingAddress !== undefined) dbUpdates.shipping_address = updates.shippingAddress;
-    if (updates.items !== undefined) dbUpdates.items = updates.items;
+    if (updates.customerAddress !== undefined) dbUpdates.customer_address = updates.customerAddress;
     if (updates.total !== undefined) dbUpdates.total = updates.total;
     if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;

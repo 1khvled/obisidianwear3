@@ -5,7 +5,7 @@ import { Star, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
-import MobileOptimized, { useMobileOptimizations } from './MobileOptimized';
+import { useMobileOptimizations } from './MobileOptimized';
 
 interface ProductCardProps {
   product: Product;
@@ -25,14 +25,13 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <MobileOptimized>
-      <div 
-        className="group bg-gray-900/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-800/50 hover:border-gray-700/50 transition-all duration-300 hover:shadow-xl hover:shadow-white/5 active:scale-[0.98] sm:active:scale-100"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <div className="relative overflow-hidden">
+    <div 
+      className="group bg-gray-900/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-800/50 hover:border-gray-700/50 transition-all duration-300 hover:shadow-xl hover:shadow-white/5 active:scale-[0.98] sm:active:scale-100"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="relative overflow-hidden">
         <Link href={`/product/${product.id}`} className="block">
           <Image
             src={product.image}
@@ -131,6 +130,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
       </div>
-    </MobileOptimized>
+    </div>
   );
 }
