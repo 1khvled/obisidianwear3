@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Menu, 
   X, 
@@ -53,6 +53,20 @@ export default function MobileAdminLayout({
     setIsMenuOpen(false);
   };
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMenuOpen && !(event.target as Element).closest('.mobile-menu')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isMenuOpen]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col">
       {/* Mobile Header */}
@@ -100,7 +114,7 @@ export default function MobileAdminLayout({
       {/* Mobile Navigation Overlay */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}>
-          <div className="fixed left-0 top-0 h-full w-80 bg-gray-900 border-r border-gray-800 shadow-xl">
+          <div className="mobile-menu fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-gray-900 border-r border-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out">
             <div className="p-6 border-b border-gray-800">
               <div className="flex items-center justify-between">
                 <div>
@@ -109,23 +123,23 @@ export default function MobileAdminLayout({
                 </div>
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  className="p-2 text-gray-400 hover:text-white transition-colors touch-target"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <nav className="p-4">
+            <nav className="p-4 flex-1 overflow-y-auto">
               <div className="space-y-2">
                 {sidebarItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
-                    className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all ${
+                    className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all touch-target ${
                       activeTab === item.id
                         ? `${item.bgColor} ${item.color} shadow-lg border border-current/20`
-                        : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
+                        : 'text-gray-300 hover:bg-gray-800/50 hover:text-white active:scale-95'
                     }`}
                   >
                     <item.icon className={`w-5 h-5 mr-3 transition-colors ${
@@ -137,17 +151,24 @@ export default function MobileAdminLayout({
               </div>
             </nav>
 
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+            <div className="p-4 border-t border-gray-800">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
                   <span className="text-black text-sm font-bold">
                     {username.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div>
-                  <p className="text-white text-sm font-medium">Admin</p>
-                  <p className="text-gray-400 text-xs">{username}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">Admin</p>
+                  <p className="text-gray-400 text-xs truncate">{username}</p>
                 </div>
+                <button
+                  onClick={onLogout}
+                  className="p-2 text-gray-400 hover:text-white transition-colors touch-target"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>

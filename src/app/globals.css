@@ -3,6 +3,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile touch optimizations */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Smooth scrolling for mobile */
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-specific animations */
+@media (max-width: 1023px) {
+  .mobile-menu {
+    animation: slideInLeft 0.3s ease-out;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Better mobile table handling */
+@media (max-width: 640px) {
+  .mobile-table {
+    font-size: 0.75rem;
+  }
+  
+  .mobile-table th,
+  .mobile-table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Mobile button improvements */
+@media (max-width: 1023px) {
+  button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
 /* Mobile Performance Optimizations */
 @media (max-width: 768px) {
   /* Reduce animations on mobile for better performance */

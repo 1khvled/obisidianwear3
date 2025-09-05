@@ -475,7 +475,7 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
   // Render content function for mobile layout
   const renderContent = () => {
     if (loading) {
-  return (
+      return (
         <div className="p-6">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-700 rounded w-48 mb-4"></div>
@@ -507,15 +507,15 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
         )}
 
         {activeTab === 'inventory' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-white">Inventory Management</h2>
-                <p className="text-gray-400">Manage product stock and inventory levels</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-white">Inventory Management</h2>
+                <p className="text-gray-400 text-sm sm:text-base">Manage product stock and inventory levels</p>
               </div>
               <button 
                 onClick={() => window.location.reload()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center w-full sm:w-auto"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -531,17 +531,17 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
             ) : (
               <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[800px]">
                     <thead className="bg-gray-800">
                       <tr>
-                        <th className="text-left text-white font-medium py-4 px-6">Product</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Category</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Colors</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Sizes</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Stock Levels</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Total Stock</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Status</th>
-                        <th className="text-left text-white font-medium py-4 px-6">Actions</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Product</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Category</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Colors</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Sizes</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Stock</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Total</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Status</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -574,54 +574,60 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
 
                         return (
                           <tr key={product.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
-                            <td className="py-4 px-6">
-                              <div className="flex items-center space-x-3">
+                            <td className="py-3 px-3 sm:px-6">
+                              <div className="flex items-center space-x-2 sm:space-x-3">
                                 <img
                                   src={product.image}
                                   alt={product.name}
-                                  className="w-12 h-12 object-cover rounded"
+                                  className="w-8 h-8 sm:w-12 sm:h-12 object-cover rounded"
                                 />
-                                <div>
-                                  <div className="text-white font-medium">{product.name}</div>
-                                  <div className="text-gray-400 text-sm">SKU: {product.sku || 'N/A'}</div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-white font-medium text-sm sm:text-base truncate">{product.name}</div>
+                                  <div className="text-gray-400 text-xs">SKU: {product.sku || 'N/A'}</div>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-4 px-6">
-                              <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm">
+                            <td className="py-3 px-3 sm:px-6">
+                              <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">
                                 {product.category}
                               </span>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 sm:px-6">
                               <div className="flex flex-wrap gap-1">
-                                {product.colors.map((color, index) => (
+                                {product.colors.slice(0, 2).map((color, index) => (
                                   <span
                                     key={index}
-                                    className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                    className="bg-gray-700 text-gray-300 px-1 py-0.5 rounded text-xs"
                                   >
                                     {color}
                                   </span>
                                 ))}
+                                {product.colors.length > 2 && (
+                                  <span className="text-gray-400 text-xs">+{product.colors.length - 2}</span>
+                                )}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 sm:px-6">
                               <div className="flex flex-wrap gap-1">
-                                {product.sizes.map((size, index) => (
+                                {product.sizes.slice(0, 3).map((size, index) => (
                                   <span
                                     key={index}
-                                    className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs"
+                                    className="bg-gray-700 text-gray-300 px-1 py-0.5 rounded text-xs"
                                   >
                                     {size}
                                   </span>
                                 ))}
+                                {product.sizes.length > 3 && (
+                                  <span className="text-gray-400 text-xs">+{product.sizes.length - 3}</span>
+                                )}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 sm:px-6">
                               <div className="space-y-1">
-                                {product.sizes.map((size) => {
+                                {product.sizes.slice(0, 2).map((size) => {
                                   const sizeStock = getStockBySize(size);
                                   return (
-                                    <div key={size} className="flex items-center justify-between text-sm">
+                                    <div key={size} className="flex items-center justify-between text-xs">
                                       <span className="text-gray-300">{size}:</span>
                                       <span className={`font-medium ${
                                         sizeStock === 0 ? 'text-red-400' :
@@ -633,35 +639,38 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
                                     </div>
                                   );
                                 })}
+                                {product.sizes.length > 2 && (
+                                  <div className="text-gray-400 text-xs">...</div>
+                                )}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
-                              <div className="text-white font-semibold text-lg">{totalStock}</div>
+                            <td className="py-3 px-3 sm:px-6">
+                              <div className="text-white font-semibold text-sm sm:text-lg">{totalStock}</div>
                             </td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center space-x-2">
+                            <td className="py-3 px-3 sm:px-6">
+                              <div className="flex items-center space-x-1">
                                 {isOutOfStock ? (
-                                  <span className="flex items-center text-red-400 text-sm">
-                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                    Out of Stock
+                                  <span className="flex items-center text-red-400 text-xs">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Out
                                   </span>
                                 ) : isLowStock ? (
-                                  <span className="flex items-center text-yellow-400 text-sm">
-                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                    Low Stock
+                                  <span className="flex items-center text-yellow-400 text-xs">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Low
                                   </span>
                                 ) : (
-                                  <span className="flex items-center text-green-400 text-sm">
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    In Stock
+                                  <span className="flex items-center text-green-400 text-xs">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    OK
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-3 sm:px-6">
                               <button
                                 onClick={() => setEditingProduct(product)}
-                                className="text-blue-400 hover:text-blue-300 transition-colors"
+                                className="text-blue-400 hover:text-blue-300 transition-colors p-1"
                                 title="Edit Stock"
                               >
                                 <Edit className="w-4 h-4" />
@@ -678,13 +687,267 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
           </div>
         )}
 
-        {/* Add other tabs here... */}
+        {activeTab === 'orders' && (
+          <div className="p-4 sm:p-6">
+            <EnhancedOrderManager
+              orders={orders}
+              onUpdateOrder={updateOrderStatus}
+              onDeleteOrder={handleDeleteOrder}
+              onViewOrder={(order) => {
+                const details = `
+Order Details:
+ID: #${order.id}
+Customer: ${order.customerName}
+Phone: ${order.customerPhone}
+${order.customerEmail ? `Email: ${order.customerEmail}` : ''}
+Address: ${order.customerAddress || 'No address provided'}
+Wilaya: ${order.wilayaName}
+
+Product: ${order.productName}
+Size: ${order.selectedSize}
+Color: ${order.selectedColor}
+Quantity: ${order.quantity}
+
+Shipping: ${order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
+Shipping Cost: ${order.shippingCost} DA
+Subtotal: ${order.subtotal} DA
+Total: ${order.total} DA
+
+Order Date: ${new Date(order.orderDate).toLocaleString()}
+Status: ${order.status}
+Payment Status: ${order.paymentStatus}
+                `;
+                alert(details);
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="p-4 sm:p-6">
+            <Analytics products={products} orders={orders} customers={customers} />
+          </div>
+        )}
+
+        {activeTab === 'customers' && (
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white">Customers</h2>
+                <p className="text-gray-400 text-sm sm:text-base">Manage customer information and order history</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter
+                </button>
+                <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </button>
+              </div>
+            </div>
+
+            {/* Customer Statistics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="text-xl sm:text-2xl font-bold text-white">{customers.length}</div>
+                <div className="text-xs sm:text-sm text-gray-400">Total Customers</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="text-xl sm:text-2xl font-bold text-green-400">
+                  {customers.filter(c => c.status === 'active').length}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-400">Active</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="text-xl sm:text-2xl font-bold text-blue-400">
+                  {customers.reduce((sum, c) => sum + c.totalOrders, 0)}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-400">Total Orders</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="text-xl sm:text-2xl font-bold text-purple-400">
+                  {customers.length > 0 ? Math.round(customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length) : 0} DA
+                </div>
+                <div className="text-xs sm:text-sm text-gray-400">Avg. Value</div>
+              </div>
+            </div>
+
+            {customers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">No customers yet</h3>
+                <p className="text-gray-400">Customer data will appear here when orders are placed.</p>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Customer</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Contact</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Location</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Orders</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Total Spent</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Status</th>
+                        <th className="text-left text-white font-medium py-3 px-3 sm:px-6 text-sm">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customers.map((customer) => (
+                        <tr key={customer.id} className="border-t border-gray-800 hover:bg-gray-800/50 transition-colors">
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="text-white font-medium text-sm">{customer.name}</div>
+                            <div className="text-gray-400 text-xs">ID: {customer.id}</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="text-white text-xs sm:text-sm">{customer.phone}</div>
+                            {customer.email && (
+                              <div className="text-gray-400 text-xs truncate max-w-[120px]">{customer.email}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="text-white text-xs sm:text-sm">{customer.wilayaName}</div>
+                            <div className="text-gray-400 text-xs truncate max-w-[100px]">{customer.address}</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="text-white font-semibold text-sm">{customer.totalOrders}</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="text-white font-semibold text-sm">{customer.totalSpent.toLocaleString()} DA</div>
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              customer.status === 'active' 
+                                ? 'bg-green-900 text-green-300' 
+                                : 'bg-gray-900 text-gray-300'
+                            }`}>
+                              {customer.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 sm:px-6">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  alert(`Customer Details:\n\nName: ${customer.name}\nPhone: ${customer.phone}\nEmail: ${customer.email || 'N/A'}\nAddress: ${customer.address}\nWilaya: ${customer.wilayaName}\nTotal Orders: ${customer.totalOrders}\nTotal Spent: ${customer.totalSpent} DA\nStatus: ${customer.status}`);
+                                }}
+                                className="text-blue-400 hover:text-blue-300 transition-colors p-1"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const customerOrders = orders.filter(order => 
+                                    order.customerName === customer.name || 
+                                    order.customerEmail === customer.email ||
+                                    order.customerPhone === customer.phone
+                                  );
+                                  alert(`Customer Orders (${customerOrders.length}):\n\n${customerOrders.map(order => 
+                                    `Order ${order.id}: ${order.productName} - ${order.total} DA (${order.status})`
+                                  ).join('\n')}`);
+                                }}
+                                className="text-green-400 hover:text-green-300 transition-colors p-1"
+                                title="View Orders"
+                              >
+                                <ShoppingCart className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'maintenance' && (
+          <div className="p-4 sm:p-6">
+            <OptimizedMaintenanceManager />
+          </div>
+        )}
+
+        {activeTab === 'wilayas' && (
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white">Wilaya Tariffs</h2>
+                <p className="text-gray-400 text-sm sm:text-base">Manage shipping costs for each wilaya</p>
+              </div>
+              <button
+                onClick={resetWilayaTariffs}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors w-full sm:w-auto"
+              >
+                Reset to Default
+              </button>
+            </div>
+
+            <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px] text-sm">
+                  <thead className="bg-gray-800">
+                    <tr>
+                      <th className="text-left text-white font-medium py-3 px-3 sm:px-4">Wilaya</th>
+                      <th className="text-center text-white font-medium py-3 px-3 sm:px-4">Stop Desk</th>
+                      <th className="text-center text-white font-medium py-3 px-3 sm:px-4">Home Delivery</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wilayaTariffs.map((wilaya) => (
+                      <tr key={wilaya.id} className="border-t border-gray-800">
+                        <td className="py-3 px-3 sm:px-4">
+                          <div>
+                            <div className="text-white font-medium text-sm">{wilaya.name}</div>
+                            <div className="text-gray-400 text-xs">#{wilaya.id}</div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 sm:px-4 text-center">
+                          <input
+                            type="number"
+                            value={wilaya.stopDeskEcommerce}
+                            onChange={(e) => updateWilayaTariff(wilaya.id, 'stopDeskEcommerce', parseInt(e.target.value) || 0)}
+                            className="w-20 sm:w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-center focus:outline-none focus:border-white text-sm"
+                          />
+                        </td>
+                        <td className="py-3 px-3 sm:px-4 text-center">
+                          <input
+                            type="number"
+                            value={wilaya.domicileEcommerce}
+                            onChange={(e) => updateWilayaTariff(wilaya.id, 'domicileEcommerce', parseInt(e.target.value) || 0)}
+                            className="w-20 sm:w-24 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-center focus:outline-none focus:border-white text-sm"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
-  // Use mobile layout for mobile devices
-  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+  // Use mobile layout for mobile devices - improved detection
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  if (isMobile) {
     return (
       <MobileAdminLayout
         activeTab={activeTab}
