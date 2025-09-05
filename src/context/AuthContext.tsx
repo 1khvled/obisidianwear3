@@ -13,10 +13,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default admin credentials (in production, use environment variables)
+// Admin credentials from environment variables
 const ADMIN_CREDENTIALS = {
-  username: 'khvled',
-  password: 'Dzt3ch456@',
+  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin',
+  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123',
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

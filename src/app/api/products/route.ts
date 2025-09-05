@@ -21,12 +21,18 @@ export async function GET() {
     
     const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
-    return NextResponse.json({
+    
+    const response = NextResponse.json({
       success: true,
       data: products,
       count: products.length,
       timestamp: Date.now()
     });
+    
+    // Add caching headers for better performance
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    
+    return response;
   } catch (error) {
     console.error('Products API: GET error:', error);
     console.error('Products API: Error details:', {

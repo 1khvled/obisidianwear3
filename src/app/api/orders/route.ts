@@ -22,12 +22,17 @@ export async function GET() {
     const orders = await getOrders();
     console.log('Orders API: GET request - returning', orders.length, 'orders');
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: orders,
       count: orders.length,
       timestamp: Date.now()
     });
+    
+    // Add caching headers for better performance
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    
+    return response;
   } catch (error) {
     console.error('Orders API: GET error:', error);
     console.error('Orders API: Error details:', {
