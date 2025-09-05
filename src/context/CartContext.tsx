@@ -19,21 +19,14 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Custom hook to safely use toast context
 const useSafeToast = () => {
-  const [toastFunction, setToastFunction] = useState<((message: string, type?: 'success' | 'error' | 'info', duration?: number) => void)>(() => () => {});
-  
-  useEffect(() => {
-    try {
-      const toastContext = useToast();
-      if (toastContext?.showToast) {
-        setToastFunction(() => toastContext.showToast);
-      }
-    } catch (error) {
-      // Fallback for SSR/build time
-      console.log('Toast context not available during SSR');
-    }
-  }, []);
-  
-  return toastFunction;
+  try {
+    const toastContext = useToast();
+    return toastContext?.showToast || (() => {});
+  } catch (error) {
+    // Fallback for SSR/build time
+    console.log('Toast context not available during SSR');
+    return () => {};
+  }
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {

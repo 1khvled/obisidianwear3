@@ -27,8 +27,8 @@ class BackendService {
   async getProducts(): Promise<Product[]> {
     try {
       // Skip API calls during build time
-      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-        console.log('BackendService: Skipping products fetch during build');
+      if (typeof window === 'undefined') {
+        console.log('BackendService: Skipping products fetch during SSR/build');
         return [];
       }
 
@@ -149,8 +149,8 @@ class BackendService {
   async getOrders(): Promise<Order[]> {
     try {
       // Skip API calls during build time
-      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-        console.log('BackendService: Skipping orders fetch during build');
+      if (typeof window === 'undefined') {
+        console.log('BackendService: Skipping orders fetch during SSR/build');
         return [];
       }
 
