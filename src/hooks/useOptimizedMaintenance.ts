@@ -14,7 +14,9 @@ export interface UseOptimizedMaintenanceReturn {
 
 export function useOptimizedMaintenance(): UseOptimizedMaintenanceReturn {
   const [status, setStatus] = useState<MaintenanceStatus>({ 
-    status: 'online', 
+    id: 'maintenance',
+    is_maintenance: false, 
+    drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString() 
   });
   const [loading, setLoading] = useState(true);
@@ -74,9 +76,9 @@ export function useOptimizedMaintenance(): UseOptimizedMaintenanceReturn {
 
   // Toggle maintenance status
   const toggleStatus = useCallback(async (): Promise<boolean> => {
-    const newStatus = status.status === 'online' ? 'offline' : 'online';
+    const newStatus = status.is_maintenance ? 'online' : 'offline';
     return await setMaintenanceStatus(newStatus);
-  }, [status.status, setMaintenanceStatus]);
+  }, [status.is_maintenance, setMaintenanceStatus]);
 
   // Load status on mount
   useEffect(() => {

@@ -2,8 +2,9 @@
 import { supabase } from './supabaseDatabase';
 
 export interface MaintenanceStatus {
-  id?: number;
-  status: 'online' | 'offline';
+  id?: string;
+  is_maintenance: boolean;
+  drop_date?: string;
   updated_at?: string;
 }
 
@@ -25,13 +26,17 @@ class OptimizedMaintenanceService {
       const { data, error } = await supabase
         .from('maintenance_status')
         .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
+        .eq('id', 'maintenance')
         .single();
 
       if (error) throw error;
 
-      const statusData = data || { status: 'online', updated_at: new Date().toISOString() };
+      const statusData = data || { 
+        id: 'maintenance', 
+        is_maintenance: false, 
+        drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString() 
+      };
       this.cache = statusData;
       this.lastFetch = now;
       
@@ -39,16 +44,25 @@ class OptimizedMaintenanceService {
     } catch (error) {
       console.error('Failed to fetch maintenance status:', error);
       // Return cached data or default
-      return this.cache || { status: 'online', updated_at: new Date().toISOString() };
+      return this.cache || { 
+        id: 'maintenance', 
+        is_maintenance: false, 
+        drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString() 
+      };
     }
   }
 
   // Set maintenance status with optimistic updates
   async setMaintenanceStatus(status: 'online' | 'offline'): Promise<boolean> {
     try {
+      const isMaintenance = status === 'offline';
+      
       // Optimistic update - update cache immediately
       const optimisticStatus: MaintenanceStatus = {
-        status,
+        id: 'maintenance',
+        is_maintenance: isMaintenance,
+        drop_date: this.cache?.drop_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString()
       };
       
@@ -60,7 +74,11 @@ class OptimizedMaintenanceService {
         try {
           const { error } = await supabase
             .from('maintenance_status')
-            .insert([{ status }]);
+            .update({ 
+              is_maintenance: isMaintenance,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', 'maintenance');
 
           if (error) {
             console.error('Maintenance status update error:', error);
@@ -83,7 +101,7 @@ class OptimizedMaintenanceService {
   // Toggle maintenance status
   async toggleMaintenanceStatus(): Promise<boolean> {
     const currentStatus = await this.getMaintenanceStatus();
-    const newStatus = currentStatus.status === 'online' ? 'offline' : 'online';
+    const newStatus = currentStatus.is_maintenance ? 'online' : 'offline';
     return await this.setMaintenanceStatus(newStatus);
   }
 

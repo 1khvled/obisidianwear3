@@ -15,33 +15,17 @@ export default function MaintenancePage() {
   });
 
   useEffect(() => {
-    // Load drop date from API
-    const loadDropDate = async () => {
-      try {
-        const response = await fetch('/api/maintenance');
-        const data = await response.json();
-        
-        if (data?.drop_date) {
-          setDropDate(data.drop_date);
-        } else {
-          // Default to 30 days from now
-          const today = new Date();
-          const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-          const defaultDate = futureDate.toISOString();
-          setDropDate(defaultDate);
-        }
-      } catch (error) {
-        console.error('Error loading drop date:', error);
-        // Set default on error
-        const today = new Date();
-        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-        const defaultDate = futureDate.toISOString();
-        setDropDate(defaultDate);
-      }
-    };
-
-    loadDropDate();
-  }, []);
+    // Set drop date based on optimized status
+    if (!loading && status && status.drop_date) {
+      setDropDate(status.drop_date);
+    } else if (!loading) {
+      // Default to 30 days from now if no drop date
+      const today = new Date();
+      const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      const defaultDate = futureDate.toISOString();
+      setDropDate(defaultDate);
+    }
+  }, [status, loading]);
 
   useEffect(() => {
     if (!dropDate) return;
@@ -105,6 +89,25 @@ export default function MaintenancePage() {
     );
   }
 
+  // If status is online, redirect to home or show a message
+  if (status && !status.is_maintenance) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white mb-4">Store is Online</h1>
+          <p className="text-gray-400 text-xl mb-8">The store is currently open for business.</p>
+          <a 
+            href="/" 
+            className="px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Go to Store
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show maintenance page when status is offline
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center space-y-8">
@@ -150,8 +153,6 @@ export default function MaintenancePage() {
           </div>
         </div>
 
-        
-
         {/* Description */}
         <div className="space-y-4">
           <p className="text-gray-400 text-lg max-w-md mx-auto">
@@ -191,7 +192,7 @@ export default function MaintenancePage() {
             © 2025 OBSIDIAN WEAR. All rights reserved.
           </p>
         </div>
-             </div>
-     </div>
-   );
+      </div>
+    </div>
+  );
 }
