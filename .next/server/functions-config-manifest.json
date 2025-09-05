@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/fix-products":{},"/api/inventory":{},"/api/inventory/[id]":{},"/api/orders/[id]":{},"/api/orders":{},"/api/fix-ratings":{},"/api/products/[id]":{},"/api/products":{},"/api/test-supabase":{}}}
+{"version":1,"functions":{"/api/fix-products":{},"/api/fix-ratings":{},"/api/inventory/[id]":{},"/api/inventory":{},"/api/orders/[id]":{},"/api/orders":{},"/api/products/[id]":{},"/api/products":{},"/api/realtime":{},"/api/test-supabase":{}}}
