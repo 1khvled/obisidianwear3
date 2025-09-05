@@ -1,8 +1,9 @@
 // Optimized Maintenance Manager Component
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOptimizedMaintenance } from '../hooks/useOptimizedMaintenance';
+import { Calendar, Clock, Save } from 'lucide-react';
 
 export default function OptimizedMaintenanceManager() {
   const {
@@ -14,6 +15,42 @@ export default function OptimizedMaintenanceManager() {
     refreshStatus,
     analytics
   } = useOptimizedMaintenance();
+
+  // Drop date state
+  const [dropDate, setDropDate] = useState('');
+  const [dropTime, setDropTime] = useState('00:00');
+  const [dropDateLoading, setDropDateLoading] = useState(false);
+
+  // Load drop date settings
+  useEffect(() => {
+    const loadDropDate = async () => {
+      try {
+        const response = await fetch('/api/maintenance');
+        const data = await response.json();
+        
+        if (data && data.drop_date) {
+          const date = new Date(data.drop_date);
+          setDropDate(date.toISOString().split('T')[0]);
+          setDropTime(date.toTimeString().slice(0, 5));
+        } else {
+          // Default to 30 days from now
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+          setDropDate(futureDate.toISOString().split('T')[0]);
+          setDropTime('00:00');
+        }
+      } catch (error) {
+        console.error('Error loading drop date:', error);
+        // Set defaults on error
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+        setDropDate(futureDate.toISOString().split('T')[0]);
+        setDropTime('00:00');
+      }
+    };
+
+    loadDropDate();
+  }, []);
 
   const handleToggle = async () => {
     const success = await toggleStatus();
@@ -32,6 +69,38 @@ export default function OptimizedMaintenanceManager() {
       alert(`Maintenance status set to ${newStatus}`);
     } else {
       alert('Failed to update maintenance status');
+    }
+  };
+
+  const handleDropDateChange = async () => {
+    if (!dropDate || !dropTime) {
+      alert('Please select both date and time');
+      return;
+    }
+
+    setDropDateLoading(true);
+    try {
+      const dateTime = new Date(`${dropDate}T${dropTime}`);
+      const response = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          drop_date: dateTime.toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        alert('Drop date updated successfully!');
+      } else {
+        throw new Error('Failed to update drop date');
+      }
+    } catch (error) {
+      console.error('Error updating drop date:', error);
+      alert('Failed to update drop date');
+    } finally {
+      setDropDateLoading(false);
     }
   };
 
@@ -118,6 +187,82 @@ export default function OptimizedMaintenanceManager() {
             >
               Set Offline
             </button>
+          </div>
+        </div>
+
+        {/* Drop Date Configuration */}
+        <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Calendar className="w-5 h-5 text-blue-500 mr-2" />
+            Drop Date Configuration
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Drop Date
+                </label>
+                <input
+                  type="date"
+                  value={dropDate}
+                  onChange={(e) => setDropDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Drop Time
+                </label>
+                <input
+                  type="time"
+                  value={dropTime}
+                  onChange={(e) => setDropTime(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleDropDateChange}
+                disabled={dropDateLoading}
+                className="flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-semibold transition-colors"
+              >
+                {dropDateLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Drop Date
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+                  setDropDate(futureDate.toISOString().split('T')[0]);
+                  setDropTime('00:00');
+                }}
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                <Clock className="w-4 h-4 mr-2 inline" />
+                Set to 30 Days
+              </button>
+            </div>
+            
+            {dropDate && dropTime && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Selected Drop Date:</strong> {new Date(`${dropDate}T${dropTime}`).toLocaleString()}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

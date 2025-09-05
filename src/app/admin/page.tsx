@@ -69,6 +69,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { theme } = useTheme();
   
   // Check for low stock and send notifications (only once on mount)
@@ -134,33 +136,58 @@ export default function AdminPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Load data from shared data service
-      const loadData = async () => {
+      const loadData = async (retryAttempt = 0) => {
         try {
           setLoading(true);
+          setError(null);
           
-        // Load wilaya tariffs
+          // Load wilaya tariffs with retry
+          try {
         const savedWilayaTariffs = await backendService.getWilayaTariffs();
         if (savedWilayaTariffs.length > 0) {
           setWilayaTariffs(savedWilayaTariffs);
         } else {
           setWilayaTariffs(sortedWilayas);
-          backendService.updateWilayaTariffs(sortedWilayas);
-        }
+              await backendService.updateWilayaTariffs(sortedWilayas);
+            }
+          } catch (wilayaError) {
+            console.warn('Failed to load wilaya tariffs, using defaults:', wilayaError);
+            setWilayaTariffs(sortedWilayas);
+          }
 
-          // Load orders with loading state
+          // Load orders with loading state and retry
           setOrdersLoading(true);
+          try {
         const savedOrders = await backendService.getOrders();
         setOrders(savedOrders);
+          } catch (ordersError) {
+            console.warn('Failed to load orders:', ordersError);
+            setOrders([]);
+            if (retryAttempt < 2) {
+              setTimeout(() => loadData(retryAttempt + 1), 1000 * (retryAttempt + 1));
+              return;
+            }
+          }
           setOrdersLoading(false);
           
-          // Order notifications removed
-
-        // Load customers
+          // Load customers with retry
+          try {
         const savedCustomers = await backendService.getCustomers();
         setCustomers(savedCustomers);
+          } catch (customersError) {
+            console.warn('Failed to load customers:', customersError);
+            setCustomers([]);
+          }
+          
         } catch (error) {
           console.error('Error loading data:', error);
-          console.error('Failed to load data:', error);
+          setError(`Failed to load admin data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          
+          // Retry logic
+          if (retryCount < 3) {
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => loadData(retryCount + 1), 2000 * (retryCount + 1));
+          }
         } finally {
           setLoading(false);
           setOrdersLoading(false);
@@ -198,6 +225,47 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return <AdminLogin />;
   }
+
+  // Error display component
+  const ErrorDisplay = () => {
+    if (!error) return null;
+    
+    return (
+      <div className="fixed top-4 right-4 z-50 max-w-md">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+            <div className="flex items-center space-x-2 ml-4">
+              <button
+                onClick={() => {
+                  setError(null);
+                  setRetryCount(0);
+                  window.location.reload();
+                }}
+                className="text-red-600 hover:text-red-800 text-sm font-medium underline"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-600 hover:text-red-800 text-sm font-medium"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {retryCount > 0 && (
+            <div className="mt-2 text-xs text-red-600">
+              Retry attempt {retryCount}/3
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
@@ -475,12 +543,19 @@ Order Date: ${new Date(order.orderDate).toLocaleString()}
   // Render content function for mobile layout
   const renderContent = () => {
     if (loading) {
-      return (
+  return (
         <div className="p-6">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-700 rounded w-48 mb-4"></div>
             <div className="h-4 bg-gray-700 rounded w-32 mb-6"></div>
             <TableSkeleton rows={5} columns={6} />
+          </div>
+          <div className="mt-4 text-center text-gray-400">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+            <p>Loading admin data...</p>
+            {retryCount > 0 && (
+              <p className="text-sm">Retry attempt {retryCount}/3</p>
+            )}
           </div>
         </div>
       );
@@ -949,6 +1024,8 @@ Payment Status: ${order.paymentStatus}
 
   if (isMobile) {
     return (
+      <>
+        <ErrorDisplay />
       <MobileAdminLayout
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -957,10 +1034,13 @@ Payment Status: ${order.paymentStatus}
       >
         {renderContent()}
       </MobileAdminLayout>
+      </>
     );
   }
 
   return (
+    <>
+      <ErrorDisplay />
     <div className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-300 ${
       theme === 'light' 
         ? 'bg-gradient-to-br from-gray-50 via-white to-gray-100' 
@@ -2192,5 +2272,6 @@ Payment Status: ${order.paymentStatus}
         )}
       </div>
     </div>
+    </>
   );
 }
