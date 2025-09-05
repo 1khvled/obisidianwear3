@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useOptimizedMaintenance } from '../hooks/useOptimizedMaintenance';
+import { useOptimizedMaintenance } from '../../hooks/useOptimizedMaintenance';
 
 export default function MaintenancePage() {
   const { status, loading, error } = useOptimizedMaintenance();
