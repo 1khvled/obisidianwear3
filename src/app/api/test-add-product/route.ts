@@ -26,7 +26,11 @@ export async function POST() {
       },
       sku: 'TEST-001',
       weight: 0.2,
-      dimensions: '30x40',
+      dimensions: {
+        length: 30,
+        width: 40,
+        height: 1
+      },
       tags: ['test'],
       featured: false,
       sizeChartCategory: 'T-Shirts',
