@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
 import { getProduct, updateProduct, deleteProduct } from '@/lib/supabaseDatabase';
-import { withAuth } from '@/lib/authMiddleware';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -48,11 +47,11 @@ export async function GET(
   }
 }
 
-// PUT /api/products/[id] - Update product (PROTECTED)
-export const PUT = withAuth(async (
+// PUT /api/products/[id] - Update product
+export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
-) => {
+) {
   try {
     const { id } = params;
     const updateData = await request.json();
@@ -100,11 +99,11 @@ export const PUT = withAuth(async (
   }
 });
 
-// DELETE /api/products/[id] - Delete product (PROTECTED)
-export const DELETE = withAuth(async (
+// DELETE /api/products/[id] - Delete product
+export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
-) => {
+) {
   try {
     const { id } = params;
     
@@ -148,4 +147,4 @@ export const DELETE = withAuth(async (
       { status: 500 }
     );
   }
-});
+}

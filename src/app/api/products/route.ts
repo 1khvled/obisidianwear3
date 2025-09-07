@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
 import { getProducts, addProduct } from '@/lib/supabaseDatabase';
-import { withAuth } from '@/lib/authMiddleware';
 import { ValidationUtils } from '@/lib/validation';
 
 // Ensure we use Node.js runtime for Supabase compatibility
@@ -70,9 +69,19 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
+    console.log('🔧 Products API: Calling addProduct with:', newProduct);
     const addedProduct = await addProduct(newProduct);
+    console.log('🔧 Products API: addProduct result:', addedProduct);
     
-    console.log('Products API: POST request - created product:', newProduct.id, newProduct.name);
+    if (!addedProduct) {
+      console.error('❌ Products API: addProduct returned null');
+      return NextResponse.json(
+        { success: false, error: 'Failed to create product in database' },
+        { status: 500 }
+      );
+    }
+    
+    console.log('✅ Products API: POST request - created product:', newProduct.id, newProduct.name);
     
     return NextResponse.json({
       success: true,
@@ -81,9 +90,10 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now()
     }, { status: 201 });
   } catch (error) {
-    console.error('Products API: POST error:', error);
+    console.error('❌ Products API: POST error:', error);
+    console.error('❌ Products API: Error details:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { success: false, error: 'Failed to create product' },
+      { success: false, error: 'Failed to create product', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
