@@ -292,6 +292,7 @@ class PostgresService {
         customerPhone: row.customer_phone,
         customerEmail: row.customer_email,
         customerAddress: row.customer_address,
+        customerCity: row.customer_city || '',
         wilayaId: row.wilaya_id,
         wilayaName: row.wilaya_name,
         shippingType: row.shipping_type,
@@ -357,9 +358,10 @@ class PostgresService {
       
       return result.rows.map(row => ({
         id: row.id,
+        wilaya_id: row.wilaya_id,
         name: row.name,
-        homeDelivery: parseFloat(row.home_delivery),
-        stopDesk: parseFloat(row.stop_desk),
+        domicile_ecommerce: parseFloat(row.home_delivery),
+        stop_desk_ecommerce: parseFloat(row.stop_desk),
         order: row.order
       }));
     } catch (error) {
@@ -401,11 +403,11 @@ class PostgresService {
       const existingTariffs = await this.getWilayaTariffs();
       if (existingTariffs.length === 0) {
         const defaultTariffs: WilayaTariff[] = [
-          { id: '1', name: 'Alger', homeDelivery: 400, stopDesk: 200, order: 1 },
-          { id: '2', name: 'Oran', homeDelivery: 500, stopDesk: 300, order: 2 },
-          { id: '3', name: 'Constantine', homeDelivery: 600, stopDesk: 400, order: 3 },
-          { id: '4', name: 'Annaba', homeDelivery: 700, stopDesk: 500, order: 4 },
-          { id: '5', name: 'Blida', homeDelivery: 450, stopDesk: 350, order: 5 }
+          { id: '1', wilaya_id: 1, name: 'Alger', domicile_ecommerce: 400, stop_desk_ecommerce: 200, order: 1 },
+          { id: '2', wilaya_id: 2, name: 'Oran', domicile_ecommerce: 500, stop_desk_ecommerce: 300, order: 2 },
+          { id: '3', wilaya_id: 3, name: 'Constantine', domicile_ecommerce: 600, stop_desk_ecommerce: 400, order: 3 },
+          { id: '4', wilaya_id: 4, name: 'Annaba', domicile_ecommerce: 700, stop_desk_ecommerce: 500, order: 4 },
+          { id: '5', wilaya_id: 5, name: 'Blida', domicile_ecommerce: 450, stop_desk_ecommerce: 350, order: 5 }
         ];
         await this.updateWilayaTariffs(defaultTariffs);
         console.log('PostgreSQL: Initialized default wilaya tariffs');

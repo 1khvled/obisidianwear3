@@ -79,7 +79,7 @@ export default function CustomSizeChartEditor({ product, onSave, onCancel }: Cus
     // Remove the key from all measurements
     const updated = measurements.map(measurement => {
       const { [key]: removed, ...rest } = measurement;
-      return rest;
+      return rest as SizeMeasurement;
     });
     setMeasurements(updated);
   };

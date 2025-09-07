@@ -131,7 +131,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         // If stock data exists but this specific size/color combination doesn't, 
         // check if the size exists and use any available color's stock as fallback
         if (availableStock === 0 && product.stock[selectedSize]) {
-          const fallbackStock = Math.max(...Object.values(product.stock[selectedSize]));
+          const fallbackStock = Math.max(...Object.values(product.stock[selectedSize]) as number[]);
           if (fallbackStock > 0) {
             const newItem: CartItem = {
               id: cartItemId,

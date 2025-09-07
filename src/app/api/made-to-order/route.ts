@@ -111,7 +111,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
-    const { error } = await supabaseDatabase
+    const { error } = await supabase
       .from('made_to_order_products')
       .delete()
       .eq('id', id);

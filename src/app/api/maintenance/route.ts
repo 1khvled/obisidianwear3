@@ -16,7 +16,7 @@ export async function GET() {
   } catch (error) {
     console.error('API GET maintenance settings error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch maintenance settings', details: error.message },
+      { error: 'Failed to fetch maintenance settings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -41,7 +41,7 @@ export const POST = withAuth(async (request: NextRequest) => {
   } catch (error) {
     console.error('API POST maintenance settings error:', error);
     return NextResponse.json(
-      { error: 'Failed to update maintenance settings', details: error.message },
+      { error: 'Failed to update maintenance settings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

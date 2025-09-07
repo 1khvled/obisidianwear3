@@ -9,6 +9,7 @@ export interface CreateOrderData {
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
+  customerCity: string;
   wilayaId: number;
   wilayaName: string;
   productId: string;
@@ -73,6 +74,7 @@ class OrderService {
         customerEmail: orderData.customerEmail,
         customerPhone: orderData.customerPhone,
         customerAddress: orderData.customerAddress,
+        customerCity: orderData.customerCity || '',
         wilayaId: orderData.wilayaId,
         wilayaName: orderData.wilayaName,
         productId: orderData.productId,

@@ -163,6 +163,15 @@ export interface StockAlert {
   severity: 'low' | 'critical' | 'out';
 }
 
+export interface CustomSizeChart {
+  title: string;
+  instructions: string;
+  measurements: Array<{
+    size: string;
+    [key: string]: string | number;
+  }>;
+}
+
 export interface MadeToOrderProduct {
   id: string;
   name: string;
@@ -176,6 +185,8 @@ export interface MadeToOrderProduct {
   tags?: string[];
   isActive: boolean;
   displayOrder: number;
+  customSizeChart?: CustomSizeChart;
+  useCustomSizeChart?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

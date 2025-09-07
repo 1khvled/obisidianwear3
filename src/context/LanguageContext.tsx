@@ -42,7 +42,6 @@ const translations = {
     'products.outOfStock': 'Out of Stock',
     'products.selectOptions': 'Select Options',
     'products.available': 'available',
-    'products.buyNow': 'Buy Now',
     'products.viewProduct': 'View Product',
     'common.cancel': 'Cancel',
     
@@ -204,7 +203,6 @@ const translations = {
     'common.loading': 'Loading...',
     'common.error': 'Error',
     'common.success': 'Success',
-    'common.cancel': 'Cancel',
     'common.save': 'Save',
     'common.edit': 'Edit',
     'common.delete': 'Delete',
@@ -239,7 +237,6 @@ const translations = {
     'products.outOfStock': 'Rupture de Stock',
     'products.selectOptions': 'Sélectionner les Options',
     'products.available': 'disponible',
-    'products.buyNow': 'Acheter Maintenant',
     'products.viewProduct': 'Voir le Produit',
     'common.cancel': 'Annuler',
     
@@ -401,7 +398,6 @@ const translations = {
     'common.loading': 'Chargement...',
     'common.error': 'Erreur',
     'common.success': 'Succès',
-    'common.cancel': 'Annuler',
     'common.save': 'Sauvegarder',
     'common.edit': 'Modifier',
     'common.delete': 'Supprimer',

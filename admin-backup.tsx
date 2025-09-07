@@ -119,9 +119,7 @@ export default function AdminPage() {
       {/* Inventory Manager Modal */}
       {showInventoryManager && (
         <div>
-          {console.log('🎯 Rendering Inventory Manager Modal!')}
           <InventoryManager onClose={() => {
-            console.log('❌ Closing Inventory Manager Modal');
             setShowInventoryManager(false);
           }} />
         </div>

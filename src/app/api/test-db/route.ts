@@ -6,6 +6,10 @@ export async function GET() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: 'Missing Supabase environment variables' }, { status: 500 });
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     console.log('Test DB - Environment check:', {
@@ -48,7 +52,7 @@ export async function GET() {
   } catch (error) {
     console.error('Test DB error:', error);
     return NextResponse.json(
-      { error: 'Test failed', details: error.message },
+      { error: 'Test failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

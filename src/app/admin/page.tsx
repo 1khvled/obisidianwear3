@@ -324,29 +324,17 @@ export default function AdminPage() {
 
   const updateWilayaTariff = async (wilayaId: number, field: string, value: number) => {
     const updatedTariffs = wilayaTariffs.map(wilaya => {
-      if (wilaya.id === wilayaId || wilaya.wilaya_id === wilayaId) {
+      if (wilaya.id === wilayaId) {
         const updated = { ...wilaya };
         
-        // Handle both old and new field names
+        // Update the field
         switch (field) {
           case 'stopDeskEcommerce':
             updated.stopDeskEcommerce = value;
-            updated.stop_desk_ecommerce = value;
             break;
           case 'domicileEcommerce':
             updated.domicileEcommerce = value;
-            updated.domicile_ecommerce = value;
             break;
-          case 'stopDesk':
-            updated.stopDesk = value;
-            updated.stop_desk = value;
-            break;
-          case 'homeDelivery':
-            updated.homeDelivery = value;
-            updated.home_delivery = value;
-            break;
-          default:
-            updated[field] = value;
         }
         
         return updated;
@@ -755,9 +743,9 @@ Payment Status: ${order.paymentStatus}
                     </thead>
                     <tbody>
                     {wilayaTariffs.map((wilaya) => {
-                      const wilayaId = wilaya.wilaya_id || wilaya.id;
-                      const stopDeskPrice = wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stopDesk || 0;
-                      const homeDeliveryPrice = wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.homeDelivery || 0;
+                      const wilayaId = wilaya.id;
+                      const stopDeskPrice = wilaya.stopDeskEcommerce || 0;
+                      const homeDeliveryPrice = wilaya.domicileEcommerce || 0;
                       
                       return (
                         <tr key={wilayaId} className="border-t border-gray-800">

@@ -1,6 +1,16 @@
 'use client';
 
 // Performance monitoring utilities
+interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: number;
+  processingEnd: number;
+  cancelable: boolean;
+}
+
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number;
+  hadRecentInput: boolean;
+}
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: Map<string, number> = new Map();
@@ -69,7 +79,8 @@ export class PerformanceMonitor {
     new PerformanceObserver((list) => {
       const entries = list.getEntries();
       entries.forEach((entry) => {
-        console.log('📊 FID:', entry.processingStart - entry.startTime + 'ms');
+        const firstInputEntry = entry as PerformanceEventTiming;
+        console.log('📊 FID:', (firstInputEntry.processingStart - firstInputEntry.startTime) + 'ms');
       });
     }).observe({ entryTypes: ['first-input'] });
 
@@ -78,8 +89,9 @@ export class PerformanceMonitor {
     new PerformanceObserver((list) => {
       const entries = list.getEntries();
       entries.forEach((entry) => {
-        if (!entry.hadRecentInput) {
-          clsValue += entry.value;
+        const layoutShiftEntry = entry as LayoutShiftEntry;
+        if (!layoutShiftEntry.hadRecentInput) {
+          clsValue += layoutShiftEntry.value;
         }
       });
       console.log('📊 CLS:', clsValue.toFixed(4));
