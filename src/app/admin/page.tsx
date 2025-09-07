@@ -172,7 +172,7 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return <AdminLogin />;
   }
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price) {
       console.error('Product name and price are required');
       return;
@@ -208,7 +208,7 @@ export default function AdminPage() {
         updatedAt: new Date()
       };
 
-      addProductContext(product);
+      await addProductContext(product);
       console.log(`"${product.name}" has been added successfully!`);
       
       // Reset form
@@ -1242,6 +1242,131 @@ Payment Status: ${order.paymentStatus}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Product Modal */}
+      {showAddProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Add New Product</h2>
+              <button
+                onClick={() => setShowAddProduct(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleAddProduct(); }} className="space-y-6">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  value={newProduct.name || ''}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  placeholder="Enter product name"
+                />
+              </div>
+
+              {/* Price */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Price *
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.price || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
+                    required
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Original Price
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.originalPrice || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, originalPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newProduct.description || ''}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  placeholder="Enter product description"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Category
+                </label>
+                <select
+                  value={newProduct.category || 'T-Shirts'}
+                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                >
+                  <option value="T-Shirts">T-Shirts</option>
+                  <option value="Hoodies">Hoodies</option>
+                  <option value="Pants">Pants</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  value={newProduct.image || ''}
+                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProduct(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Add Product
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
