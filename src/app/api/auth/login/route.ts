@@ -10,8 +10,17 @@ export async function POST(request: NextRequest) {
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
+    // Debug logging
+    console.log('🔐 Login attempt:', { 
+      providedUsername: username, 
+      providedPassword: password ? '***' : 'undefined',
+      envUsername: adminUsername,
+      envPassword: adminPassword ? '***' : 'undefined'
+    });
+
     // Validate credentials
     if (!adminUsername || !adminPassword) {
+      console.log('❌ Admin credentials not configured');
       return NextResponse.json(
         { error: 'Admin credentials not configured' },
         { status: 500 }
@@ -19,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (username !== adminUsername || password !== adminPassword) {
+      console.log('❌ Invalid credentials');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
