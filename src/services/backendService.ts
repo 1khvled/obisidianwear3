@@ -85,6 +85,8 @@ class BackendService {
   async addProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
     try {
       console.log('🔧 BackendService: addProduct called with:', product);
+      console.log('🔧 BackendService: Product price type:', typeof product.price, 'Value:', product.price);
+      console.log('🔧 BackendService: JSON stringified product:', JSON.stringify(product, null, 2));
       console.log('🔧 BackendService: API URL:', this.getApiUrl('/products'));
       console.log('🔧 BackendService: Auth headers:', this.getAuthHeaders());
       

@@ -51,7 +51,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('🔧 Products API: Validating price:', productData.price, 'Type:', typeof productData.price);
+    console.log('🔧 Products API: Number conversion:', Number(productData.price));
+    console.log('🔧 Products API: Is NaN:', isNaN(Number(productData.price)));
+    
     if (!ValidationUtils.isValidNumber(productData.price, 0, 999999)) {
+      console.error('❌ Products API: Price validation failed for:', productData.price);
       return NextResponse.json(
         { success: false, error: 'Price must be a valid number between 0 and 999999' },
         { status: 400 }
