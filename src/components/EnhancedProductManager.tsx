@@ -282,7 +282,7 @@ export default function EnhancedProductManager({
                   </div>
                   
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-bold text-white">{product.price} DA</span>
+                    <span className="text-lg font-bold text-white">{Number(product.price).toFixed(0)} DA</span>
                     <div className="flex items-center gap-1">
                       {stockInfo.status === 'out' && <AlertTriangle className="w-4 h-4 text-red-400" />}
                       {stockInfo.status === 'low' && <AlertTriangle className="w-4 h-4 text-yellow-400" />}

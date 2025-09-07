@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
 import { getOrder, updateOrder, deleteOrder } from '@/lib/supabaseDatabase';
-import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
+import { withAuth } from '@/lib/authMiddleware';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -48,11 +48,11 @@ export async function GET(
   }
 }
 
-// PUT /api/orders/[id] - Update order
-export async function PUT(
+// PUT /api/orders/[id] - Update order (PROTECTED)
+export const PUT = withAuth(async (
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     const { id } = params;
     const updateData = await request.json();
@@ -64,15 +64,6 @@ export async function PUT(
         { success: false, error: 'Database configuration missing' },
         { status: 500 }
       );
-    }
-    
-    // Get the current order to check if status is changing to cancelled
-    const currentOrder = await getOrder(id);
-    if (currentOrder && updateData.status === 'cancelled' && currentOrder.status !== 'cancelled') {
-      // Return stock when order is cancelled
-      const { returnStockFromOrder } = await import('@/lib/optimizedDatabase');
-      await returnStockFromOrder(currentOrder);
-      console.log('Orders API: Returned stock for cancelled order:', id);
     }
     
     const updatedOrder = await updateOrder(id, updateData);
@@ -89,7 +80,7 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: updatedOrder,
-      message: updateData.status === 'cancelled' ? 'Order cancelled and stock returned to inventory' : 'Order updated successfully',
+      message: 'Order updated successfully',
       timestamp: Date.now()
     });
   } catch (error) {
@@ -99,10 +90,13 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+});
 
-// DELETE /api/orders/[id] - Delete order (requires authentication)
-export const DELETE = createAuthenticatedHandler(async (request: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+// DELETE /api/orders/[id] - Delete order (PROTECTED)
+export const DELETE = withAuth(async (
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) => {
   try {
     const { id } = params;
     
@@ -123,7 +117,6 @@ export const DELETE = createAuthenticatedHandler(async (request: AuthenticatedRe
       );
     }
 
-    // Delete the order (this will automatically return stock)
     const success = await deleteOrder(id);
     if (!success) {
       return NextResponse.json(
@@ -132,12 +125,12 @@ export const DELETE = createAuthenticatedHandler(async (request: AuthenticatedRe
       );
     }
     
-    console.log('Orders API: DELETE request - deleted order and returned stock:', id);
+    console.log('Orders API: DELETE request - deleted order:', id);
     
     return NextResponse.json({
       success: true,
       data: deletedOrder,
-      message: 'Order deleted successfully and stock returned to inventory',
+      message: 'Order deleted successfully',
       timestamp: Date.now()
     });
   } catch (error) {

@@ -1,8 +1,18 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import cartService, { CartItem } from '@/lib/cartService';
-import { useToast } from './ToastContext';
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  image: string;
+  selectedSize: string;
+  selectedColor: string;
+  quantity: number;
+  addedAt: string; // Timestamp when item was added
+}
 
 interface CartContextType {
   items: CartItem[];
@@ -12,123 +22,197 @@ interface CartContextType {
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
-  loading: boolean;
+  isCartLoaded: boolean;
+  cartError: string | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Custom hook to safely use toast context
-const useSafeToast = () => {
-  try {
-    const toastContext = useToast();
-    return toastContext?.showToast || (() => {});
-  } catch (error) {
-    // Fallback for SSR/build time
-    console.log('Toast context not available during SSR');
-    return () => {};
-  }
-};
-
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const showToast = useSafeToast();
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
 
+  // Load cart from localStorage on mount
   useEffect(() => {
-    // Load cart from database
-    const loadCart = async () => {
+    const loadCartFromStorage = () => {
+      if (typeof window === 'undefined') return;
+      
       try {
-        setLoading(true);
-        const cartItems = await cartService.getCart();
-        setItems(cartItems);
+        const savedCart = localStorage.getItem('obsidian-cart');
+        if (savedCart) {
+          const parsedCart = JSON.parse(savedCart);
+          
+          // Validate cart data structure
+          if (Array.isArray(parsedCart)) {
+            // Add addedAt timestamp to items that don't have it (for backward compatibility)
+            const validatedCart = parsedCart.map((item: any) => ({
+              ...item,
+              addedAt: item.addedAt || new Date().toISOString()
+            }));
+            
+            setItems(validatedCart);
+            console.log('Cart loaded from localStorage:', validatedCart.length, 'items');
+          } else {
+            console.warn('Invalid cart data structure, clearing cart');
+            localStorage.removeItem('obsidian-cart');
+          }
+        }
+        setCartError(null);
       } catch (error) {
-        console.error('Error loading cart:', error);
+        console.error('Error loading cart from localStorage:', error);
+        setCartError('Failed to load cart data');
+        // Clear corrupted data
+        localStorage.removeItem('obsidian-cart');
       } finally {
-        setLoading(false);
+        setIsCartLoaded(true);
       }
     };
 
-    loadCart();
+    loadCartFromStorage();
   }, []);
 
-  const addToCart = async (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (!isCartLoaded || typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem('obsidian-cart', JSON.stringify(items));
+      console.log('Cart saved to localStorage:', items.length, 'items');
+      setCartError(null);
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+      setCartError('Failed to save cart data');
+    }
+  }, [items, isCartLoaded]);
+
+  const addToCart = (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
     console.log('CartContext: addToCart called with:', { product, selectedSize, selectedColor, quantity });
+    const cartItemId = `${product.id}-${selectedSize}-${selectedColor}`;
     
-    const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
-    
-    if (quantity > availableStock) {
-      alert(`Only ${availableStock} items available in stock!`);
-      return;
-    }
-
-    const cartItem: Omit<CartItem, 'id'> = {
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      selectedSize,
-      selectedColor,
-      quantity,
-      availableStock
-    };
-
-    try {
-      const success = await cartService.addToCart(cartItem);
-      if (success) {
-        // Reload cart from database
-        const updatedCart = await cartService.getCart();
-        setItems(updatedCart);
-        // Show success toast
-        showToast(`${product.name} added to cart!`, 'success');
+    setItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === cartItemId);
+      
+      if (existingItem) {
+        // Update existing item quantity
+        const newQuantity = existingItem.quantity + quantity;
+        // Check stock availability without exposing numbers
+        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 999;
+        if (newQuantity <= availableStock) {
+          return prevItems.map(item =>
+            item.id === cartItemId
+              ? { ...item, quantity: newQuantity }
+              : item
+          );
+        } else {
+          alert('This item is not available in the selected size and color!');
+          return prevItems;
+        }
+      } else {
+        // Add new item
+        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+        
+        // If no stock data exists for this product at all, assume unlimited stock
+        if (!product.stock) {
+          const newItem: CartItem = {
+            id: cartItemId,
+            productId: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            selectedSize,
+            selectedColor,
+            quantity,
+            addedAt: new Date().toISOString()
+          };
+          return [...prevItems, newItem];
+        }
+        
+        // If stock data exists but this specific size/color combination doesn't, 
+        // check if the size exists and use any available color's stock as fallback
+        if (availableStock === 0 && product.stock[selectedSize]) {
+          const fallbackStock = Math.max(...Object.values(product.stock[selectedSize]));
+          if (fallbackStock > 0) {
+            const newItem: CartItem = {
+              id: cartItemId,
+              productId: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.image,
+              selectedSize,
+              selectedColor,
+              quantity,
+              addedAt: new Date().toISOString()
+            };
+            return [...prevItems, newItem];
+          }
+        }
+        
+        if (quantity <= availableStock) {
+          const newItem: CartItem = {
+            id: cartItemId,
+            productId: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            selectedSize,
+            selectedColor,
+            quantity,
+            addedAt: new Date().toISOString()
+          };
+          return [...prevItems, newItem];
+        } else {
+          alert('This item is not available in the selected size and color!');
+          return prevItems;
+        }
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      showToast('Failed to add item to cart', 'error');
-    }
+    });
   };
 
-  const removeFromCart = async (id: string) => {
-    try {
-      const success = await cartService.removeFromCart(id);
-      if (success) {
-        // Reload cart from database
-        const updatedCart = await cartService.getCart();
-        setItems(updatedCart);
-        showToast('Item removed from cart', 'info');
-      }
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      showToast('Failed to remove item from cart', 'error');
-    }
+  const removeFromCart = (id: string) => {
+    setItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
-  const updateQuantity = async (id: string, quantity: number) => {
+  const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(id);
       return;
     }
 
-    try {
-      const success = await cartService.updateCartItem(id, { quantity });
-      if (success) {
-        // Reload cart from database
-        const updatedCart = await cartService.getCart();
-        setItems(updatedCart);
-      }
-    } catch (error) {
-      console.error('Error updating cart quantity:', error);
+    // For quantity updates, we'll allow reasonable quantities without exposing stock
+    // Set a reasonable limit (e.g., 10 items max per product)
+    const maxQuantityPerItem = 10;
+    
+    setItems(prevItems =>
+      prevItems.map(item => {
+        if (item.id === id) {
+          if (quantity <= maxQuantityPerItem) {
+            return { ...item, quantity };
+          } else {
+            alert(`Maximum ${maxQuantityPerItem} items allowed per product!`);
+            return item;
+          }
+        }
+        return item;
+      })
+    );
+  };
+
+  const clearCart = () => {
+    setItems([]);
+    // Also clear from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('obsidian-cart');
     }
   };
 
-  const clearCart = async () => {
-    try {
-      const success = await cartService.clearCart();
-      if (success) {
-        setItems([]);
-      }
-    } catch (error) {
-      console.error('Error clearing cart:', error);
+  // Function to clear cart data (useful for debugging or reset)
+  const clearCartData = () => {
+    setItems([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('obsidian-cart');
     }
+    setCartError(null);
   };
 
   const getTotalItems = () => {
@@ -148,7 +232,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       clearCart,
       getTotalItems,
       getTotalPrice,
-      loading
+      isCartLoaded,
+      cartError
     }}>
       {children}
     </CartContext.Provider>

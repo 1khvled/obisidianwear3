@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useProducts } from '@/context/ProductContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { sortedWilayas } from '@/data/wilayas';
 import { Product } from '@/types';
 import { orderService } from '@/services/orderService';
@@ -15,6 +16,7 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { getProduct, updateProduct } = useProducts();
+  const { t } = useLanguage();
   const [product, setProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -30,23 +32,88 @@ export default function CheckoutPage() {
   const [orderMessage, setOrderMessage] = useState('');
   const [orderId, setOrderId] = useState('');
   const [selectedShipping, setSelectedShipping] = useState<'stopDeskEcommerce' | 'domicileEcommerce'>('stopDeskEcommerce');
+  const [isDataSaved, setIsDataSaved] = useState(false);
 
   useEffect(() => {
     const productId = searchParams.get('productId');
+    const productDataParam = searchParams.get('productData');
+    
     if (productId) {
-      const foundProduct = getProduct(productId);
-      setProduct(foundProduct || null);
+      // First try to use product data from URL parameters (faster)
+      if (productDataParam) {
+        try {
+          const productData = JSON.parse(decodeURIComponent(productDataParam));
+          setProduct(productData);
+        } catch (error) {
+          console.error('Error parsing product data from URL:', error);
+          // Fallback to product lookup
+          const foundProduct = getProduct(productId);
+          setProduct(foundProduct || null);
+        }
+      } else {
+        // Fallback to product lookup
+        const foundProduct = getProduct(productId);
+        setProduct(foundProduct || null);
+      }
     }
 
-    // no free-shipping settings anymore
+    // Load saved form data from localStorage
+    loadSavedFormData();
   }, [searchParams, getProduct]);
+
+  // Load saved form data from localStorage
+  const loadSavedFormData = () => {
+    try {
+      const savedData = localStorage.getItem('checkoutFormData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setFormData(prev => ({
+          ...prev,
+          ...parsedData
+        }));
+      }
+      
+      // Load saved shipping method
+      const savedShipping = localStorage.getItem('checkoutShippingMethod');
+      if (savedShipping && (savedShipping === 'stopDeskEcommerce' || savedShipping === 'domicileEcommerce')) {
+        setSelectedShipping(savedShipping);
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
+    }
+  };
+
+  // Save form data to localStorage
+  const saveFormData = (data: typeof formData) => {
+    try {
+      localStorage.setItem('checkoutFormData', JSON.stringify(data));
+      setIsDataSaved(true);
+      // Hide the indicator after 2 seconds
+      setTimeout(() => setIsDataSaved(false), 2000);
+    } catch (error) {
+      console.error('Error saving form data:', error);
+    }
+  };
+
+  // Clear saved form data
+  const clearSavedFormData = () => {
+    try {
+      localStorage.removeItem('checkoutFormData');
+      localStorage.removeItem('checkoutShippingMethod');
+    } catch (error) {
+      console.error('Error clearing saved form data:', error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: value
-    }));
+    };
+    setFormData(newFormData);
+    // Save to localStorage on every change
+    saveFormData(newFormData);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,6 +122,12 @@ export default function CheckoutPage() {
     if (!product) {
       setOrderStatus('error');
       setOrderMessage('Product information is missing');
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setOrderStatus('error');
+      setOrderMessage('Please enter your city');
       return;
     }
 
@@ -93,6 +166,7 @@ export default function CheckoutPage() {
         customerEmail: formData.email,
         customerPhone: formData.phone,
         customerAddress: formData.address,
+        customerCity: formData.city,
         wilayaId: selectedWilaya.id,
         wilayaName: selectedWilaya.name,
         productId: product.id,
@@ -134,6 +208,9 @@ export default function CheckoutPage() {
         setOrderStatus('success');
         setOrderId(result.orderId);
         setOrderMessage(`Order #${result.orderId} placed successfully! 🎉\n\nWe'll contact you within 24 hours via WhatsApp.`);
+        
+        // Clear saved form data after successful order
+        clearSavedFormData();
         
         // Redirect after showing success message
         setTimeout(() => {
@@ -192,13 +269,13 @@ export default function CheckoutPage() {
           className="flex items-center text-white hover:text-gray-300 mb-8 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Back to Product
+          {t('checkout.backToProduct')}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Order Summary */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Order Summary</h2>
+            <h2 className="text-2xl font-bold text-white">{t('checkout.orderSummary')}</h2>
             
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
               <div className="flex space-x-4">
@@ -215,9 +292,9 @@ export default function CheckoutPage() {
                   <h3 className="text-white font-semibold text-lg">{product.name}</h3>
                   <p className="text-gray-400">{product.category}</p>
                   <div className="mt-2 space-y-1">
-                    {size && <p className="text-gray-400 text-sm">Size: {size}</p>}
-                    {color && <p className="text-gray-400 text-sm">Color: {color}</p>}
-                    <p className="text-gray-400 text-sm">Quantity: {quantity}</p>
+                    {size && <p className="text-gray-400 text-sm">{t('checkout.size')}: {size}</p>}
+                    {color && <p className="text-gray-400 text-sm">{t('checkout.color')}: {color}</p>}
+                    <p className="text-gray-400 text-sm">{t('checkout.quantity')}: {quantity}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -229,51 +306,98 @@ export default function CheckoutPage() {
 
             {/* Shipping Options */}
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
+              <h3 className="text-white font-semibold text-lg mb-2 flex items-center">
                 <Truck size={20} className="mr-2" />
-                Options de Livraison
+                {t('checkout.deliveryOptions')} <span className="text-red-400 ml-2">*</span>
               </h3>
+              <p className="text-gray-400 text-sm mb-4">{t('checkout.selectDeliveryOption')}</p>
               <div className="space-y-3">
-                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-800/50 transition-colors">
-                  <input
-                    type="radio"
-                    name="shipping"
-                    value="stopDeskEcommerce"
-                    checked={selectedShipping === 'stopDeskEcommerce'}
-                    onChange={(e) => {
-                      console.log('Radio clicked:', e.target.value);
-                      setSelectedShipping(e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce');
-                    }}
-                    className="w-4 h-4 text-white accent-white"
-                  />
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Stop Desk</p>
-                    <p className="text-gray-400 text-sm">Récupérez votre commande au point relais</p>
+                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
+                  selectedShipping === 'stopDeskEcommerce' 
+                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
+                }`}>
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="stopDeskEcommerce"
+                      checked={selectedShipping === 'stopDeskEcommerce'}
+                      onChange={(e) => {
+                        console.log('Radio clicked:', e.target.value);
+                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
+                        setSelectedShipping(newShipping);
+                        // Save shipping method to localStorage
+                        localStorage.setItem('checkoutShippingMethod', newShipping);
+                      }}
+                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                    />
+                    {selectedShipping === 'stopDeskEcommerce' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-white font-semibold">
-                    {selectedWilaya ? `${selectedWilaya.stopDeskEcommerce} DZD` : '--'}
-                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-semibold text-lg">{t('checkout.stopDesk')}</p>
+                      {selectedShipping === 'stopDeskEcommerce' && (
+                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {t('checkout.selected')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{t('checkout.stopDeskDescription')}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white font-bold text-lg">
+                      {selectedWilaya ? `${selectedWilaya.stopDeskEcommerce} DZD` : '--'}
+                    </span>
+                  </div>
                 </label>
                 
-                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-800/50 transition-colors">
-                  <input
-                    type="radio"
-                    name="shipping"
-                    value="domicileEcommerce"
-                    checked={selectedShipping === 'domicileEcommerce'}
-                    onChange={(e) => {
-                      console.log('Radio clicked:', e.target.value);
-                      setSelectedShipping(e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce');
-                    }}
-                    className="w-4 h-4 text-white accent-white"
-                  />
-                  <div className="flex-1">
-                    <p className="text-white font-medium">À Domicile</p>
-                    <p className="text-gray-400 text-sm">Livraison directement chez vous</p>
+                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
+                  selectedShipping === 'domicileEcommerce' 
+                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
+                }`}>
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="domicileEcommerce"
+                      checked={selectedShipping === 'domicileEcommerce'}
+                      onChange={(e) => {
+                        console.log('Radio clicked:', e.target.value);
+                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
+                        setSelectedShipping(newShipping);
+                        // Save shipping method to localStorage
+                        localStorage.setItem('checkoutShippingMethod', newShipping);
+                      }}
+                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                    />
+                    {selectedShipping === 'domicileEcommerce' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-white font-semibold">
-                    {selectedWilaya ? `${selectedWilaya.domicileEcommerce} DZD` : '--'}
-                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-semibold text-lg">{t('checkout.homeDelivery')}</p>
+                      {selectedShipping === 'domicileEcommerce' && (
+                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {t('checkout.selected')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{t('checkout.homeDeliveryDescription')}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white font-bold text-lg">
+                      {selectedWilaya ? `${selectedWilaya.domicileEcommerce} DZD` : '--'}
+                    </span>
+                  </div>
                 </label>
               </div>
               
@@ -303,16 +427,24 @@ export default function CheckoutPage() {
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Subtotal</span>
+                  <span className="text-gray-400">{t('checkout.subtotal')}</span>
                   <span className="text-white">{subtotal.toFixed(0)} DA</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Shipping</span>
+                  <span className="text-gray-400">{t('checkout.shipping')}</span>
                   <span className="text-white">{shippingCost.toFixed(0)} DA</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">
+                    {selectedShipping === 'stopDeskEcommerce' ? t('checkout.stopDesk') : t('checkout.homeDelivery')}
+                  </span>
+                  <span className="text-gray-500">
+                    {selectedWilaya ? selectedWilaya.name : t('checkout.selectWilaya')}
+                  </span>
                 </div>
                 <div className="border-t border-gray-700 pt-3">
                   <div className="flex justify-between">
-                    <span className="text-white font-semibold text-lg">Total</span>
+                    <span className="text-white font-semibold text-lg">{t('checkout.total')}</span>
                     <span className="text-white font-bold text-xl">{total.toFixed(0)} DA</span>
                   </div>
                 </div>
@@ -322,7 +454,8 @@ export default function CheckoutPage() {
 
           {/* Checkout Form */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Delivery Information</h2>
+            <h2 className="text-2xl font-bold text-white">{t('checkout.deliveryInformation')}</h2>
+            
             
             {/* Order Status Messages */}
             {orderStatus === 'success' && (
@@ -353,12 +486,12 @@ export default function CheckoutPage() {
               <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
                 <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
                   <User size={20} className="mr-2" />
-                  Personal Information
+                  {t('checkout.personalInformation')}
                 </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-400 text-sm font-medium mb-2">
-                      Full Name *
+                      {t('checkout.fullName')} *
                     </label>
                     <input
                       type="text"
@@ -367,12 +500,12 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       required
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder="Enter your full name"
+                      placeholder={t('checkout.enterFullName')}
                     />
                   </div>
                   <div>
                     <label className="block text-gray-400 text-sm font-medium mb-2">
-                      Phone Number *
+                      {t('checkout.phoneNumber')} *
                     </label>
                     <input
                       type="tel"
@@ -381,12 +514,12 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       required
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder="Enter your phone number"
+                      placeholder={t('checkout.enterPhoneNumber')}
                     />
                   </div>
                   <div>
                     <label className="block text-gray-400 text-sm font-medium mb-2">
-                      Email Address (Optional)
+                      {t('checkout.emailAddress')} ({t('checkout.optional')})
                     </label>
                     <input
                       type="email"
@@ -394,7 +527,7 @@ export default function CheckoutPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder="Enter your email address"
+                      placeholder={t('checkout.enterEmailAddress')}
                     />
                   </div>
                 </div>
@@ -403,13 +536,13 @@ export default function CheckoutPage() {
               <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
                 <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
                   <MapPin size={20} className="mr-2" />
-                  {selectedShipping === 'domicileEcommerce' ? 'Delivery Address' : 'Pickup Location'}
+                  {selectedShipping === 'domicileEcommerce' ? t('checkout.deliveryAddress') : t('checkout.pickupLocation')}
                 </h3>
                 <div className="space-y-4">
                   {selectedShipping === 'domicileEcommerce' && (
                     <div>
                       <label className="block text-gray-400 text-sm font-medium mb-2">
-                        Street Address *
+                        {t('checkout.streetAddress')} *
                       </label>
                       <input
                         type="text"
@@ -418,14 +551,14 @@ export default function CheckoutPage() {
                         onChange={handleInputChange}
                         required
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                        placeholder="Enter your street address"
+                        placeholder={t('checkout.enterStreetAddress')}
                       />
                     </div>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-gray-400 text-sm font-medium mb-2">
-                        City *
+                        {t('checkout.city')} *
                       </label>
                       <input
                         type="text"
@@ -434,12 +567,12 @@ export default function CheckoutPage() {
                         onChange={handleInputChange}
                         required
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                        placeholder="Enter your city"
+                        placeholder={t('checkout.enterCity')}
                       />
                     </div>
                     <div>
                       <label className="block text-gray-400 text-sm font-medium mb-2">
-                        Wilaya *
+                        {t('checkout.wilaya')} *
                       </label>
                       <select
                         name="wilaya"
@@ -448,7 +581,7 @@ export default function CheckoutPage() {
                         required
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
                       >
-                        <option value="">Sélectionner une wilaya</option>
+                        <option value="">{t('checkout.selectWilaya')}</option>
                         {sortedWilayas.map((wilaya) => (
                           <option key={wilaya.id} value={wilaya.id}>
                             {wilaya.name} (#{wilaya.id})
@@ -468,7 +601,7 @@ export default function CheckoutPage() {
                   
                   <div>
                     <label className="block text-gray-400 text-sm font-medium mb-2">
-                      Delivery Notes
+                      {t('checkout.deliveryNotes')}
                     </label>
                     <textarea
                       name="notes"
@@ -476,7 +609,7 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       rows={3}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white resize-none"
-                      placeholder="Any special delivery instructions?"
+                      placeholder={t('checkout.deliveryInstructionsPlaceholder')}
                     />
                   </div>
                 </div>
@@ -487,7 +620,7 @@ export default function CheckoutPage() {
                 disabled={isSubmitting}
                 className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Placing Order...' : `Place Order - ${total.toFixed(0)} DA`}
+                {isSubmitting ? t('checkout.placingOrder') : `${t('checkout.placeOrder')} - ${total.toFixed(0)} DA`}
               </button>
             </form>
           </div>

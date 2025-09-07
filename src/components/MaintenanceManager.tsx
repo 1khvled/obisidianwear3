@@ -1,113 +1,108 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, AlertTriangle, Power, PowerOff, Eye } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, Power, PowerOff, Eye, Loader2 } from 'lucide-react';
 
 export default function MaintenanceManager() {
   const [dropDate, setDropDate] = useState('');
   const [storeStatus, setStoreStatus] = useState(true); // true = open, false = maintenance
   const [dropTime, setDropTime] = useState('00:00');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Load settings from API
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/api/maintenance');
-        const data = await response.json();
-        
-        if (data) {
-          setStoreStatus(!data.is_maintenance);
-          
-          if (data.drop_date) {
-            const date = new Date(data.drop_date);
-            setDropDate(date.toISOString().split('T')[0]);
-            setDropTime(date.toTimeString().slice(0, 5));
-          } else {
-            // Default to 30 days from now
-            const today = new Date();
-            const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-            setDropDate(futureDate.toISOString().split('T')[0]);
-            setDropTime('00:00');
-          }
-        } else {
-          // No data found, set defaults
-          const today = new Date();
-          const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-          setDropDate(futureDate.toISOString().split('T')[0]);
-          setDropTime('00:00');
-        }
-      } catch (error) {
-        console.error('Error loading maintenance settings:', error);
-        // Set defaults on error
-        const today = new Date();
-        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-        setDropDate(futureDate.toISOString().split('T')[0]);
-        setDropTime('00:00');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSettings();
+    loadMaintenanceSettings();
   }, []);
 
-  const handleDateTimeChange = async () => {
-    const combinedDateTime = `${dropDate}T${dropTime}:00`;
-    
+  const loadMaintenanceSettings = async () => {
     try {
+      setLoading(true);
+      const response = await fetch('/api/maintenance');
+      const settings = await response.json();
+      
+      if (settings.drop_date) {
+        const date = new Date(settings.drop_date);
+        setDropDate(date.toISOString().split('T')[0]);
+        setDropTime(date.toTimeString().slice(0, 5));
+      } else {
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
+        setDropDate(futureDate.toISOString().split('T')[0]);
+        setDropTime('00:00');
+      }
+      
+      setStoreStatus(settings.is_maintenance_mode === false);
+    } catch (error) {
+      console.error('Error loading maintenance settings:', error);
+      // Fallback to default values
+      const today = new Date();
+      const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      setDropDate(futureDate.toISOString().split('T')[0]);
+      setDropTime('00:00');
+      setStoreStatus(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDateTimeChange = async () => {
+    try {
+      setSaving(true);
+      const combinedDateTime = `${dropDate}T${dropTime}:00`;
+      
       const response = await fetch('/api/maintenance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isMaintenance: !storeStatus,
-          dropDate: combinedDateTime
+          drop_date: combinedDateTime
         }),
       });
-
+      
       if (response.ok) {
         alert('Drop date updated successfully!');
       } else {
-        alert('Failed to update drop date. Please try again.');
+        throw new Error('Failed to update drop date');
       }
     } catch (error) {
       console.error('Error updating drop date:', error);
       alert('Failed to update drop date. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const toggleStoreStatus = async () => {
-    const newStatus = !storeStatus;
-    const combinedDateTime = `${dropDate}T${dropTime}:00`;
-    
     try {
+      setSaving(true);
+      const newStatus = !storeStatus;
+      
       const response = await fetch('/api/maintenance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isMaintenance: !newStatus,
-          dropDate: combinedDateTime
+          is_maintenance_mode: !newStatus
         }),
       });
-
+      
       if (response.ok) {
         setStoreStatus(newStatus);
-        
         if (!newStatus) {
-          alert('Store is now in MAINTENANCE MODE. All customers will see the maintenance page.');
+          alert('Store is now in MAINTENANCE MODE. Customers will see the maintenance page.');
         } else {
           alert('Store is now OPEN. Customers can shop normally.');
         }
       } else {
-        alert('Failed to update store status. Please try again.');
+        throw new Error('Failed to update store status');
       }
     } catch (error) {
       console.error('Error updating store status:', error);
       alert('Failed to update store status. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -118,9 +113,9 @@ export default function MaintenanceManager() {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading maintenance settings...</p>
+        <div className="flex items-center space-x-3">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+          <span className="text-gray-400">Loading maintenance settings...</span>
         </div>
       </div>
     );
@@ -155,13 +150,15 @@ export default function MaintenanceManager() {
           </div>
           <button
             onClick={toggleStoreStatus}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+            disabled={saving}
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2 ${
               storeStatus 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-green-600 hover:bg-green-700 text-white'
+                ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-red-800' 
+                : 'bg-green-600 hover:bg-green-700 text-white disabled:bg-green-800'
             }`}
           >
-            {storeStatus ? 'Turn OFF Store' : 'Turn ON Store'}
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{storeStatus ? 'Turn OFF Store' : 'Turn ON Store'}</span>
           </button>
         </div>
       </div>
@@ -202,9 +199,14 @@ export default function MaintenanceManager() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleDateTimeChange}
-              className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              disabled={saving}
+              className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-800"
             >
-              <Clock className="w-5 h-5 mr-2" />
+              {saving ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Clock className="w-5 h-5 mr-2" />
+              )}
               Update Drop Date
             </button>
             

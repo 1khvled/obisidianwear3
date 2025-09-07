@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Order } from '@/types';
 import { getOrders, addOrder, deductStockFromOrder } from '@/lib/supabaseDatabase';
-import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
+import { withAuth } from '@/lib/authMiddleware';
+import { ValidationUtils } from '@/lib/validation';
+import { sendOrderConfirmationEmail } from '@/lib/emailService';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -23,17 +25,12 @@ export async function GET() {
     const orders = await getOrders();
     console.log('Orders API: GET request - returning', orders.length, 'orders');
     
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: orders,
       count: orders.length,
       timestamp: Date.now()
     });
-    
-    // Add caching headers for better performance
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    
-    return response;
   } catch (error) {
     console.error('Orders API: GET error:', error);
     console.error('Orders API: Error details:', {
@@ -52,53 +49,83 @@ export async function GET() {
   }
 }
 
-// POST /api/orders - Create new order
-export async function POST(request: NextRequest) {
+// POST /api/orders - Create new order (PROTECTED)
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const orderData = await request.json();
     
     console.log('Orders API: Received order data:', orderData);
     
-    // Validate required fields - check for Order interface format
-    if (!orderData.customerName || !orderData.productId || !orderData.total) {
-      console.error('Orders API: Missing required fields:', {
-        hasCustomerName: !!orderData.customerName,
-        hasProductId: !!orderData.productId,
-        hasTotal: !!orderData.total,
-        receivedFields: Object.keys(orderData)
-      });
+    // Validate required fields
+    const validation = ValidationUtils.validateRequired(orderData, ['customerName', 'productId', 'total']);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { success: false, error: 'Customer name, product ID, and total are required' },
+        { success: false, error: `Missing required fields: ${validation.missingFields.join(', ')}` },
         { status: 400 }
       );
     }
 
+    // Validate email if provided
+    if (orderData.customerEmail && !ValidationUtils.isValidEmail(orderData.customerEmail)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone if provided
+    if (orderData.customerPhone && !ValidationUtils.isValidPhone(orderData.customerPhone)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate numeric fields
+    if (!ValidationUtils.isValidNumber(orderData.total, 0, 999999)) {
+      return NextResponse.json(
+        { success: false, error: 'Total must be a valid number between 0 and 999999' },
+        { status: 400 }
+      );
+    }
+
+    if (!ValidationUtils.isValidNumber(orderData.quantity, 1, 100)) {
+      return NextResponse.json(
+        { success: false, error: 'Quantity must be between 1 and 100' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize order data
+    const sanitizedData = ValidationUtils.sanitizeOrderData(orderData);
+
     // Generate unique ID and create complete Order object
     const newOrder: Order = {
       id: `ORD-${Date.now()}`,
-      customerName: orderData.customerName,
-      customerEmail: orderData.customerEmail || '',
-      customerPhone: orderData.customerPhone || '',
-      customerAddress: orderData.customerAddress || '',
-      wilayaId: orderData.wilayaId || 0,
-      wilayaName: orderData.wilayaName || '',
-      productId: orderData.productId,
-      productName: orderData.productName || '',
-      productImage: orderData.productImage || '',
-      selectedSize: orderData.selectedSize || 'M',
-      selectedColor: orderData.selectedColor || 'Black',
-      quantity: orderData.quantity || 1,
-      subtotal: orderData.subtotal || 0,
-      shippingCost: orderData.shippingCost || 0,
-      total: orderData.total,
-      shippingType: orderData.shippingType || 'homeDelivery',
-      paymentMethod: orderData.paymentMethod || 'cod',
+      customerName: sanitizedData.customerName,
+      customerEmail: sanitizedData.customerEmail,
+      customerPhone: sanitizedData.customerPhone,
+      customerAddress: sanitizedData.customerAddress,
+      customerCity: sanitizedData.customerCity || '',
+      wilayaId: sanitizedData.wilayaId || 0,
+      wilayaName: sanitizedData.wilayaName || '',
+      productId: sanitizedData.productId,
+      productName: sanitizedData.productName,
+      productImage: sanitizedData.productImage || '',
+      selectedSize: sanitizedData.selectedSize,
+      selectedColor: sanitizedData.selectedColor,
+      quantity: sanitizedData.quantity,
+      subtotal: sanitizedData.subtotal || 0,
+      shippingCost: sanitizedData.shippingCost || 0,
+      total: sanitizedData.total,
+      shippingType: sanitizedData.shippingType || 'homeDelivery',
+      paymentMethod: sanitizedData.paymentMethod || 'cod',
       paymentStatus: 'pending',
       status: 'pending',
       orderDate: new Date(),
-      notes: orderData.notes || '',
+      notes: sanitizedData.notes,
       trackingNumber: '',
-      estimatedDelivery: orderData.estimatedDelivery || '',
+      estimatedDelivery: sanitizedData.estimatedDelivery || '',
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -110,6 +137,14 @@ export async function POST(request: NextRequest) {
     if (!stockDeducted) {
       console.warn('Orders API: Failed to deduct stock for order:', newOrder.id);
       // Note: We still return success for the order, but log the stock issue
+    }
+    
+    // Send order confirmation email (async, don't wait for it)
+    if (addedOrder.customerEmail) {
+      sendOrderConfirmationEmail(addedOrder).catch(error => {
+        console.error('Orders API: Failed to send confirmation email:', error);
+        // Don't fail the order creation if email fails
+      });
     }
     
     console.log('Orders API: POST request - created order:', newOrder.id);
@@ -128,4 +163,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

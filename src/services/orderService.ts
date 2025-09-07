@@ -1,7 +1,7 @@
 'use client';
 
 import { Order, Product } from '@/types';
-import { sendOrderNotification, sendCustomerConfirmation, OrderEmailData } from './emailService';
+// Email notifications are now handled in the API routes
 import { backendService } from './backendService';
 
 export interface CreateOrderData {
@@ -100,43 +100,8 @@ class OrderService {
       await backendService.addOrder(order);
       this.orders.unshift(order); // Add to beginning for newest first
 
-      // Prepare email data
-      const emailData: OrderEmailData = {
-        orderId: order.id,
-        customerName: order.customerName,
-        customerEmail: order.customerEmail,
-        customerPhone: order.customerPhone,
-        customerAddress: order.customerAddress,
-        wilayaName: order.wilayaName,
-        productName: order.productName,
-        productImage: order.productImage,
-        selectedSize: order.selectedSize,
-        selectedColor: order.selectedColor,
-        quantity: order.quantity,
-        subtotal: order.subtotal,
-        shippingCost: order.shippingCost,
-        total: order.total,
-        shippingType: order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Pickup Point',
-        orderDate: order.orderDate.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        paymentMethod: order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'
-      };
-
-      // Send email notifications (don't block order creation if emails fail)
-      try {
-        await Promise.all([
-          sendOrderNotification(emailData),
-          sendCustomerConfirmation(emailData)
-        ]);
-        console.log('✅ Order notifications sent successfully');
-      } catch (emailError) {
-        console.warn('⚠️ Order created but email notifications failed:', emailError);
-      }
+      // Email notifications are now handled automatically in the API routes
+      console.log('✅ Order created successfully, email will be sent via API');
 
       return { success: true, orderId };
     } catch (error) {
@@ -219,6 +184,11 @@ class OrderService {
     };
   }
 
+  // Set orders (for export functionality)
+  setOrders(orders: Order[]): void {
+    this.orders = orders;
+  }
+
   // Export orders to CSV
   exportOrdersCSV(): string {
     const headers = [
@@ -226,24 +196,47 @@ class OrderService {
       'Size', 'Color', 'Quantity', 'Total', 'Status', 'Wilaya', 'Shipping'
     ];
 
-    const rows = this.orders.map(order => [
-      order.id,
-      order.orderDate.toISOString().split('T')[0],
-      order.customerName,
-      order.customerEmail,
-      order.customerPhone,
-      order.productName,
-      order.selectedSize,
-      order.selectedColor,
-      order.quantity,
-      order.total,
-      order.status,
-      order.wilayaName,
-      order.shippingType
-    ]);
+    const rows = this.orders.map(order => {
+      // Handle date formatting - support both Date objects and strings
+      let formattedDate = '';
+      try {
+        if (order.orderDate instanceof Date) {
+          formattedDate = order.orderDate.toISOString().split('T')[0];
+        } else if (typeof order.orderDate === 'string') {
+          // Try to parse the string as a date
+          const date = new Date(order.orderDate);
+          if (!isNaN(date.getTime())) {
+            formattedDate = date.toISOString().split('T')[0];
+          } else {
+            formattedDate = order.orderDate; // Use as-is if can't parse
+          }
+        } else {
+          formattedDate = 'Unknown';
+        }
+      } catch (error) {
+        console.warn('Error formatting date for order:', order.id, error);
+        formattedDate = 'Unknown';
+      }
+
+      return [
+        order.id || 'N/A',
+        formattedDate,
+        order.customerName || 'N/A',
+        order.customerEmail || 'N/A',
+        order.customerPhone || 'N/A',
+        order.productName || 'N/A',
+        order.selectedSize || 'N/A',
+        order.selectedColor || 'N/A',
+        order.quantity || 0,
+        order.total || 0,
+        order.status || 'N/A',
+        order.wilayaName || 'N/A',
+        order.shippingType || 'N/A'
+      ];
+    });
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(field => `"${field}"`).join(','))
+      .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
     return csvContent;

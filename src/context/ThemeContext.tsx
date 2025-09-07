@@ -16,65 +16,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
-    // Load saved theme from database with localStorage fallback
-    const loadTheme = async () => {
-      if (typeof window !== 'undefined') {
-        try {
-          // Try to get from database first
-          const prefsService = (await import('@/lib/preferencesService')).default;
-          const dbTheme = await prefsService.getTheme();
-          
-          if (dbTheme && (dbTheme === 'light' || dbTheme === 'dark')) {
-            setThemeState(dbTheme);
-          } else {
-            // Fallback to localStorage
-            const savedTheme = localStorage.getItem('admin-theme') as Theme;
-            if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-              setThemeState(savedTheme);
-              // Sync to database
-              await prefsService.setTheme(savedTheme);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading theme:', error);
-          // Fallback to localStorage
-          const savedTheme = localStorage.getItem('admin-theme') as Theme;
-          if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-            setThemeState(savedTheme);
-          }
-        }
-      }
-    };
-
-    loadTheme();
+    // Check for saved theme preference or default to dark
+    const savedTheme = localStorage.getItem('admin-theme') as Theme;
+    if (savedTheme) {
+      setThemeState(savedTheme);
+    }
   }, []);
 
   useEffect(() => {
     // Save theme preference
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('admin-theme', theme);
-      
-      // Update database in background
-      const updateDatabase = async () => {
-        try {
-          const prefsService = (await import('@/lib/preferencesService')).default;
-          await prefsService.setTheme(theme);
-        } catch (error) {
-          console.error('Error saving theme to database:', error);
-        }
-      };
-      updateDatabase();
-    }
+    localStorage.setItem('admin-theme', theme);
     
     // Apply theme to document
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', theme);
-      
-      // Update meta theme-color for mobile
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
-      }
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Update meta theme-color for mobile
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
     }
   }, [theme]);
 

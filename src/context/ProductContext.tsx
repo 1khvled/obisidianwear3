@@ -4,13 +4,14 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Product } from '@/types';
 
 import { backendService } from '@/services/backendService';
+import { localStorageCache } from '@/lib/localStorageCache';
 
 interface ProductContextType {
   products: Product[];
   setProducts: (products: Product[]) => void;
   addProduct: (product: Product) => void;
   updateProduct: (id: string, product: Product) => void;
-  deleteProduct: (id: string) => Promise<boolean>;
+  deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
   initializeDefaultProducts: () => void;
 }
@@ -21,17 +22,32 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Load products from backend service
+    // Load products with localStorage cache
     const loadProducts = async () => {
       try {
         console.log('ProductContext: Loading products...');
-        const savedProducts = await backendService.getProducts();
-        console.log('ProductContext: Loaded products:', savedProducts.length);
-        setProducts(savedProducts);
+        
+        // Try to get from cache first
+        const cachedProducts = await localStorageCache.getProducts();
+        if (cachedProducts.length > 0) {
+          console.log('ProductContext: Using cached products:', cachedProducts.length);
+          setProducts(cachedProducts);
+        } else {
+          // Fallback to backend service
+          console.log('ProductContext: No cache, fetching from server...');
+          const savedProducts = await backendService.getProducts();
+          console.log('ProductContext: Loaded products from server:', savedProducts.length);
+          setProducts(savedProducts);
+          
+          // Cache the products
+          localStorageCache.setCache({ products: savedProducts });
+        }
       } catch (error) {
         console.error('ProductContext: Error loading products:', error);
-        // Set empty array on error
-        setProducts([]);
+        // Don't set empty array immediately, keep existing products if any
+        if (products.length === 0) {
+          setProducts([]);
+        }
       }
     };
 
@@ -97,15 +113,11 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       if (success) {
         console.log('ProductContext: Product deleted successfully:', id);
         setProducts(prev => prev.filter(product => product.id !== id));
-        return true;
       } else {
         console.error('ProductContext: Failed to delete product:', id);
-        return false;
       }
     } catch (error) {
       console.error('ProductContext: Error deleting product:', error);
-      // Don't throw the error, just return false
-      return false;
     }
   };
 

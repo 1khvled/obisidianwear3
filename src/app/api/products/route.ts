@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
 import { getProducts, addProduct } from '@/lib/supabaseDatabase';
-import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
+import { withAuth } from '@/lib/authMiddleware';
+import { ValidationUtils } from '@/lib/validation';
 
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
@@ -9,65 +10,59 @@ export const runtime = 'nodejs';
 // GET /api/products - Get all products
 export async function GET() {
   try {
-    console.log('Products API: GET request started');
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Products API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
     const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
-    
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: products,
       count: products.length,
       timestamp: Date.now()
     });
-    
-    // Add caching headers for better performance
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    
-    return response;
   } catch (error) {
     console.error('Products API: GET error:', error);
-    console.error('Products API: Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    });
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch products',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { success: false, error: 'Failed to fetch products' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/products - Create new product (requires authentication)
-export const POST = createAuthenticatedHandler(async (request: AuthenticatedRequest) => {
+// POST /api/products - Create new product (PROTECTED)
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const productData = await request.json();
     
     // Validate required fields
-    if (!productData.name || !productData.price) {
+    const validation = ValidationUtils.validateRequired(productData, ['name', 'price']);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { success: false, error: 'Name and price are required' },
+        { success: false, error: `Missing required fields: ${validation.missingFields.join(', ')}` },
         { status: 400 }
       );
     }
 
+    // Validate and sanitize data
+    if (!ValidationUtils.validateLength(productData.name, 1, 100)) {
+      return NextResponse.json(
+        { success: false, error: 'Product name must be between 1 and 100 characters' },
+        { status: 400 }
+      );
+    }
+
+    if (!ValidationUtils.isValidNumber(productData.price, 0, 999999)) {
+      return NextResponse.json(
+        { success: false, error: 'Price must be a valid number between 0 and 999999' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize product data
+    const sanitizedData = ValidationUtils.sanitizeProductData(productData);
+
     // Generate unique ID
     const newProduct: Product = {
       id: Date.now().toString(),
-      ...productData,
+      ...sanitizedData,
       createdAt: new Date(),
       updatedAt: new Date()
     };

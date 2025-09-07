@@ -2,10 +2,8 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useOptimizedMaintenance } from '../../hooks/useOptimizedMaintenance';
 
 export default function MaintenancePage() {
-  const { status, loading, error } = useOptimizedMaintenance();
   const [dropDate, setDropDate] = useState('');
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -13,19 +11,36 @@ export default function MaintenancePage() {
     minutes: 0,
     seconds: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set drop date based on optimized status
-    if (!loading && status && status.drop_date) {
-      setDropDate(status.drop_date);
-    } else if (!loading) {
-      // Default to 30 days from now if no drop date
+    loadMaintenanceSettings();
+  }, []);
+
+  const loadMaintenanceSettings = async () => {
+    try {
+      const response = await fetch('/api/maintenance');
+      const settings = await response.json();
+      
+      if (settings.drop_date) {
+        setDropDate(settings.drop_date);
+      } else {
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
+        const defaultDate = futureDate.toISOString();
+        setDropDate(defaultDate);
+      }
+    } catch (error) {
+      console.error('Error loading maintenance settings:', error);
+      // Fallback to default date
       const today = new Date();
       const futureDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
       const defaultDate = futureDate.toISOString();
       setDropDate(defaultDate);
+    } finally {
+      setLoading(false);
     }
-  }, [status, loading]);
+  };
 
   useEffect(() => {
     if (!dropDate) return;
@@ -60,54 +75,26 @@ export default function MaintenancePage() {
     });
   };
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-xl">Loading maintenance status...</p>
+        <div className="max-w-2xl mx-auto text-center space-y-8">
+          <div className="flex justify-center mb-8">
+            <Image
+              src="/Logo Obsidian Wear sur fond noir.png"
+              alt="OBSIDIAN WEAR"
+              width={200}
+              height={200}
+              priority
+              className="w-32 sm:w-48 h-auto"
+            />
+          </div>
+          <div className="text-white text-xl">Loading...</div>
         </div>
       </div>
     );
   }
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-red-400 text-xl mb-4">Error: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // If status is online, redirect to home or show a message
-  if (status && !status.is_maintenance) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Store is Online</h1>
-          <p className="text-gray-400 text-xl mb-8">The store is currently open for business.</p>
-          <a 
-            href="/" 
-            className="px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Go to Store
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // Show maintenance page when status is offline
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center space-y-8">
@@ -153,6 +140,8 @@ export default function MaintenancePage() {
           </div>
         </div>
 
+        
+
         {/* Description */}
         <div className="space-y-4">
           <p className="text-gray-400 text-lg max-w-md mx-auto">
@@ -192,7 +181,7 @@ export default function MaintenancePage() {
             © 2025 OBSIDIAN WEAR. All rights reserved.
           </p>
         </div>
-      </div>
-    </div>
-  );
+             </div>
+     </div>
+   );
 }

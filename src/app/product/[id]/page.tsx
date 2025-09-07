@@ -9,7 +9,9 @@ import Footer from '@/components/Footer';
 import { useProducts } from '@/context/ProductContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
-import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw } from 'lucide-react';
+import { recentlyViewedService } from '@/lib/recentlyViewed';
+import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler } from 'lucide-react';
+import SizeChart from '@/components/SizeChart';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -23,11 +25,17 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [showSizeChart, setShowSizeChart] = useState(false);
 
   useEffect(() => {
     if (params.id) {
       const foundProduct = getProduct(params.id as string);
       setProduct(foundProduct);
+      
+      // Add to recently viewed
+      if (foundProduct) {
+        recentlyViewedService.addProduct(foundProduct);
+      }
       
       // Set default color if not selected
       if (foundProduct && foundProduct.colors.length > 0 && !selectedColor) {
@@ -85,19 +93,19 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-black">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="flex items-center text-white hover:text-gray-300 mb-8 transition-colors"
+          className="flex items-center text-white hover:text-gray-300 mb-12 transition-colors"
         >
           <ArrowLeft size={20} className="mr-2" />
           Back to Products
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Product Images */}
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-4 sm:space-y-6">
             <div className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden">
               <Image
                 src={product.image}
@@ -110,7 +118,7 @@ export default function ProductDetailPage() {
             </div>
             
             {/* Additional Images (using same image for demo) */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-4">
+            <div className="grid grid-cols-4 gap-3 sm:gap-6">
               {[1, 2, 3, 4].map((index) => (
                 <div
                   key={index}
@@ -130,7 +138,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Details */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6 sm:space-y-8">
             <div>
               <h1 className="heading-responsive font-bold font-poppins text-white mb-2">
                 {product.name}
@@ -158,15 +166,15 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="flex items-center space-x-4">
               <span className="text-3xl font-bold text-white">
-                {product.price} DA
+{Number(product.price).toFixed(0)} DA
               </span>
               {product.originalPrice && (
                 <>
                   <span className="text-xl text-gray-500 line-through">
-                    {product.originalPrice} DA
+                    {Number(product.originalPrice).toFixed(0)} DA
                   </span>
                   <span className="bg-red-600 text-white text-sm font-semibold px-2 py-1 rounded">
-                    Save {(product.originalPrice - product.price).toFixed(0)} DA
+                    Save {(Number(product.originalPrice) - Number(product.price)).toFixed(0)} DA
                   </span>
                 </>
               )}
@@ -182,8 +190,8 @@ export default function ProductDetailPage() {
 
             {/* Size Selection */}
             <div>
-              <h3 className="text-white font-semibold text-lg mb-3">Size</h3>
-              <div className="flex flex-wrap gap-2">
+              <h3 className="text-white font-semibold text-lg mb-4">Size</h3>
+              <div className="flex flex-wrap gap-3">
                 {product.sizes.map((size) => {
                   const sizeStock = selectedColor ? (product.stock?.[size]?.[selectedColor] || 0) : 0;
                   const isOutOfStock = sizeStock === 0;
@@ -199,7 +207,7 @@ export default function ProductDetailPage() {
                         }
                       }}
                       disabled={isOutOfStock}
-                      className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                      className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
                         selectedSize === size
                           ? 'border-white bg-white text-black'
                           : isOutOfStock 
@@ -212,17 +220,28 @@ export default function ProductDetailPage() {
                   );
                 })}
               </div>
+              
+              {/* Size Chart Button */}
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowSizeChart(true)}
+                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
+                >
+                  <Ruler className="w-4 h-4" />
+                  View Size Chart
+                </button>
+              </div>
             </div>
 
             {/* Color Selection */}
             <div>
-              <h3 className="text-white font-semibold text-lg mb-3">Color</h3>
-              <div className="flex flex-wrap gap-2">
+              <h3 className="text-white font-semibold text-lg mb-4">Color</h3>
+              <div className="flex flex-wrap gap-3">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                    className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
                       selectedColor === color
                         ? 'border-white bg-white text-black'
                         : 'border-gray-600 text-white hover:border-gray-400'
@@ -236,7 +255,7 @@ export default function ProductDetailPage() {
 
             {/* Quantity */}
             <div>
-              <h3 className="text-white font-semibold text-lg mb-3">Quantity</h3>
+              <h3 className="text-white font-semibold text-lg mb-4">Quantity</h3>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -279,7 +298,7 @@ export default function ProductDetailPage() {
                   handleBuyNow();
                 }}
                 disabled={!product.inStock || !selectedSize || !selectedColor}
-                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
+                className="w-full bg-white text-black py-5 px-8 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 <ShoppingCart size={20} />
                 <span>
@@ -310,18 +329,18 @@ export default function ProductDetailPage() {
                   handleAddToCart();
                 }}
                 disabled={!product.inStock || !selectedSize || !selectedColor}
-                className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
+                className="w-full bg-gray-800 text-white py-4 px-8 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 <ShoppingCart size={20} />
                 <span>Add to Cart</span>
               </button>
               
               <div className="flex space-x-4">
-                <button className="flex-1 bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
+                <button className="flex-1 bg-gray-800 text-white py-4 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3">
                   <Heart size={20} />
                   <span>Add to Wishlist</span>
                 </button>
-                <button className="flex-1 bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
+                <button className="flex-1 bg-gray-800 text-white py-4 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3">
                   <Share2 size={20} />
                   <span>Share</span>
                 </button>
@@ -329,8 +348,8 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Features */}
-            <div className="border-t border-gray-800 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border-t border-gray-800 pt-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 <div className="flex items-center space-x-3">
                   <Shield size={20} className="text-gray-400" />
@@ -343,7 +362,7 @@ export default function ProductDetailPage() {
                   <RotateCcw size={20} className="text-gray-400" />
                   <div>
                     <p className="text-white font-medium">Easy Returns</p>
-                    <p className="text-gray-400 text-sm">30-day policy</p>
+                    <p className="text-gray-400 text-sm">3-day policy</p>
                   </div>
                 </div>
               </div>
@@ -353,6 +372,15 @@ export default function ProductDetailPage() {
       </div>
 
       <Footer />
+      
+      {/* Size Chart Modal */}
+      <SizeChart 
+        category={product.sizeChartCategory || product.category} 
+        isOpen={showSizeChart} 
+        onClose={() => setShowSizeChart(false)}
+        customSizeChart={product.customSizeChart}
+        useCustomSizeChart={product.useCustomSizeChart}
+      />
     </div>
   );
 }

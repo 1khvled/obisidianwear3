@@ -10,7 +10,6 @@ export interface Product {
   sizes: string[];
   colors: string[];
   inStock: boolean;
-  status?: 'available' | 'soon' | 'out_of_stock';
   rating: number;
   reviews: number;
   stock: {
@@ -27,6 +26,16 @@ export interface Product {
   };
   tags?: string[];
   featured?: boolean;
+  sizeChartCategory?: string;
+  customSizeChart?: {
+    title: string;
+    measurements: Array<{
+      size: string;
+      [key: string]: string | number;
+    }>;
+    instructions: string;
+  };
+  useCustomSizeChart?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +49,7 @@ export interface Order {
   customerPhone: string;
   customerEmail: string;
   customerAddress: string;
+  customerCity: string;
   wilayaId: number;
   wilayaName: string;
   shippingType: 'stopDesk' | 'homeDelivery';
@@ -77,10 +87,20 @@ export interface Wilaya {
 
 export interface WilayaTariff {
   id: string;
+  wilaya_id: number;
   name: string;
-  homeDelivery: number;
-  stopDesk: number;
+  domicile_ecommerce: number;
+  stop_desk_ecommerce: number;
   order: number;
+  created_at?: string;
+  updated_at?: string;
+  // Legacy compatibility (will be removed in future versions)
+  home_delivery?: number;
+  stop_desk?: number;
+  homeDelivery?: number;
+  stopDesk?: number;
+  domicileEcommerce?: number;
+  stopDeskEcommerce?: number;
 }
 
 export interface ShippingOption {
@@ -141,4 +161,47 @@ export interface StockAlert {
   currentStock: number;
   threshold: number;
   severity: 'low' | 'critical' | 'out';
+}
+
+export interface MadeToOrderProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  images?: string[];
+  colors: string[];
+  sizes: string[];
+  category: string;
+  tags?: string[];
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MadeToOrderOrder {
+  id: string;
+  productId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerAddress: string;
+  wilayaId: number;
+  wilayaName: string;
+  selectedSize: string;
+  selectedColor: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  depositAmount: number; // 50% of total price
+  remainingAmount: number; // 50% of total price
+  shippingTime: string; // "20-18 days"
+  status: 'pending' | 'confirmed' | 'in_production' | 'ready' | 'shipped' | 'delivered' | 'cancelled';
+  whatsappContact?: string;
+  notes?: string;
+  orderDate: Date;
+  estimatedCompletionDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }

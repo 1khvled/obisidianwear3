@@ -14,9 +14,9 @@ export default function Header() {
   const { getTotalItems } = useCart();
 
   return (
-    <header className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 fixed top-0 left-0 right-0 z-50">
+    <header className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto container-padding">
-        <div className="flex justify-between items-center h-16 sm:h-20">
+        <div className="flex justify-between items-center h-14 sm:h-16 md:h-20">
           {/* Logo */}
           <Logo />
 
@@ -32,20 +32,18 @@ export default function Header() {
             >
               {t('nav.home')}
             </Link>
-            <button
-              onClick={() => {
-                console.log('🛍️ Collection navigation clicked');
-                const productsSection = document.getElementById('products');
-                if (productsSection) {
-                  productsSection.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  window.location.href = '/#products';
-                }
-              }}
-              className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium cursor-pointer"
+            <Link 
+              href="/#products" 
+              className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium"
             >
               {t('nav.collection')}
-            </button>
+            </Link>
+            <Link 
+              href="/made-to-order" 
+              className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium"
+            >
+              {t('nav.madeToOrder')}
+            </Link>
             <Link href="/cart" className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium">
               Cart
             </Link>
@@ -56,22 +54,26 @@ export default function Header() {
             <div className="hidden sm:block">
               <LanguageSwitcher />
             </div>
-                         <Link 
-               href="/cart"
-               className="relative touch-target text-white hover:text-gray-300 transition-colors rounded-lg"
-             >
-               <ShoppingBag size={20} className="sm:w-6 sm:h-6" />
-               <span className="absolute -top-1 -right-1 bg-white text-black text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-semibold text-[10px] sm:text-xs">
-                 {getTotalItems()}
-               </span>
-             </Link>
+            <div className="flex flex-col items-end">
+              <Link 
+                href="/cart"
+                className="relative touch-target text-white hover:text-gray-300 transition-colors rounded-lg p-1"
+              >
+                <ShoppingBag size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                <span className="absolute -top-1 -right-1 bg-white text-black text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-semibold text-[10px] sm:text-xs">
+                  {getTotalItems()}
+                </span>
+              </Link>
+              <div className="hidden sm:block mt-1">
+              </div>
+            </div>
 
             {/* Mobile menu button */}
             <button
-              className="lg:hidden touch-target text-white hover:text-gray-300 transition-colors rounded-lg"
+              className="lg:hidden touch-target text-white hover:text-gray-300 transition-colors rounded-lg p-1"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X size={20} className="sm:w-6 sm:h-6" /> : <Menu size={20} className="sm:w-6 sm:h-6" />}
+              {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5" /> : <Menu size={18} className="sm:w-5 sm:h-5" />}
             </button>
           </div>
         </div>
@@ -79,9 +81,9 @@ export default function Header() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="lg:hidden border-t border-gray-800/50 py-4 animate-in slide-in-from-top-2 duration-200">
-            <nav className="flex flex-col space-y-1">
+            <nav className="flex flex-col space-y-2">
               <button 
-                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-3 rounded-lg font-medium text-left"
+                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left touch-target"
                 onClick={() => {
                   console.log('🏠 Mobile Home clicked');
                   setIsMenuOpen(false);
@@ -90,24 +92,23 @@ export default function Header() {
               >
                 {t('nav.home')}
               </button>
-              <button 
-                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-3 rounded-lg font-medium text-left"
-                onClick={() => {
-                  console.log('🛍️ Mobile Collection clicked');
-                  setIsMenuOpen(false);
-                  const productsSection = document.getElementById('products');
-                  if (productsSection) {
-                    productsSection.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    window.location.href = '/#products';
-                  }
-                }}
+              <Link 
+                href="/#products"
+                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
+                onClick={() => setIsMenuOpen(false)}
               >
                 {t('nav.collection')}
-              </button>
+              </Link>
               <Link 
-                href="/cart" 
-                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-3 rounded-lg font-medium text-left block"
+                href="/made-to-order"
+                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {t('nav.madeToOrder')}
+              </Link>
+              <Link 
+                href="/cart"
+                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Cart

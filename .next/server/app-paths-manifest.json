@@ -1,5 +1,14 @@
 {
-  "/api/products/[id]/route": "app/api/products/[id]/route.js",
-  "/api/orders/[id]/route": "app/api/orders/[id]/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js"
+  "/page": "app/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/order-success/page": "app/order-success/page.js",
+  "/api/orders/route": "app/api/orders/route.js",
+  "/api/maintenance/route": "app/api/maintenance/route.js",
+  "/admin/page": "app/admin/page.js",
+  "/api/wilaya/route": "app/api/wilaya/route.js",
+  "/api/customers/route": "app/api/customers/route.js",
+  "/api/inventory/route": "app/api/inventory/route.js",
+  "/api/wilaya/sync/route": "app/api/wilaya/sync/route.js",
+  "/product/[id]/page": "app/product/[id]/page.js",
+  "/made-to-order/page": "app/made-to-order/page.js"
 }

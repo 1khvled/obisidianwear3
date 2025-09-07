@@ -17,11 +17,13 @@ import {
   DollarSign,
   MoreVertical,
   Download,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { Order } from '@/types';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
+import { orderService } from '@/services/orderService';
 
 interface EnhancedOrderManagerProps {
   orders: Order[];
@@ -39,6 +41,8 @@ export default function EnhancedOrderManager({
   onDeleteOrder,
   onViewOrder 
 }: EnhancedOrderManagerProps) {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'All'>('All');
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | 'All'>('All');
@@ -49,6 +53,55 @@ export default function EnhancedOrderManager({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+
+  // Export orders to CSV
+  const handleExportOrders = () => {
+    try {
+      console.log('Starting export with orders:', orders.length);
+      
+      // Check if we have orders to export
+      if (!orders || orders.length === 0) {
+        alert('No orders to export.');
+        return;
+      }
+      
+      // Update orderService with current orders
+      orderService.setOrders(orders);
+      
+      // Generate CSV content
+      const csvContent = orderService.exportOrdersCSV();
+      
+      if (!csvContent || csvContent.trim() === '') {
+        throw new Error('Generated CSV content is empty');
+      }
+      
+      console.log('Generated CSV content length:', csvContent.length);
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `orders-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      console.log('Orders exported successfully');
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+      alert(`Failed to export orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Refresh orders
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   // Filter and sort orders
   const filteredOrders = orders
@@ -157,6 +210,11 @@ export default function EnhancedOrderManager({
     onUpdateOrder(orderId, { paymentStatus });
   };
 
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
   useEffect(() => {
     setShowBulkActions(selectedOrders.length > 0);
   }, [selectedOrders]);
@@ -181,11 +239,18 @@ export default function EnhancedOrderManager({
           <p className="text-gray-400">Manage customer orders and track fulfillment</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={handleExportOrders}
+          >
             <Download className="w-4 h-4" />
             Export
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={handleRefresh}
+          >
             <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
@@ -322,6 +387,7 @@ export default function EnhancedOrderManager({
                 <th className="px-4 py-3 text-left text-white font-medium">Order ID</th>
                 <th className="px-4 py-3 text-left text-white font-medium">Customer</th>
                 <th className="px-4 py-3 text-left text-white font-medium">Product</th>
+                <th className="px-4 py-3 text-left text-white font-medium">Shipping</th>
                 <th className="px-4 py-3 text-left text-white font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-white font-medium">Payment</th>
                 <th className="px-4 py-3 text-left text-white font-medium">Total</th>
@@ -341,17 +407,36 @@ export default function EnhancedOrderManager({
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-mono text-sm">{order.id}</div>
+                    <div className="text-white font-mono text-sm">#{order.id.slice(-8)}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white">{order.customerName}</div>
-                    <div className="text-gray-400 text-sm">{order.customerEmail}</div>
+                    <div className="text-white font-medium">{order.customerName}</div>
+                    <div className="text-gray-400 text-sm">{order.customerPhone}</div>
+                    <div className="text-gray-400 text-xs">{order.customerEmail}</div>
+                    {order.customerCity && (
+                      <div className="text-gray-500 text-xs mt-1">
+                        🏙️ {order.customerCity}
+                      </div>
+                    )}
+                    {order.customerAddress && (
+                      <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]" title={order.customerAddress}>
+                        📍 {order.customerAddress}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white">{order.productName}</div>
+                    <div className="text-white font-medium">{order.productName}</div>
                     <div className="text-gray-400 text-sm">
-                      {order.selectedSize} • {order.selectedColor} • Qty: {order.quantity}
+                      {order.selectedSize} • {order.selectedColor}
                     </div>
+                    <div className="text-gray-400 text-xs">Qty: {order.quantity}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-white text-sm">
+                      {order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
+                    </div>
+                    <div className="text-gray-400 text-xs">{order.wilayaName}</div>
+                    <div className="text-gray-400 text-xs">{order.shippingCost} DA</div>
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -388,7 +473,7 @@ export default function EnhancedOrderManager({
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button
-                        onClick={() => onViewOrder(order)}
+                        onClick={() => handleViewOrder(order)}
                         className="p-1 text-gray-400 hover:text-white transition-colors"
                         title="View Order"
                       >
@@ -446,6 +531,200 @@ export default function EnhancedOrderManager({
           </div>
         </div>
       </Modal>
+
+      {/* Order Details Modal */}
+      {showOrderModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <h3 className="text-xl font-bold text-white">Order Details</h3>
+              <button
+                onClick={() => setShowOrderModal(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Order Header */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    Order Information
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Order ID:</span>
+                      <span className="text-white font-mono">#{selectedOrder.id.slice(-8)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Order Date:</span>
+                      <span className="text-white">{new Date(selectedOrder.orderDate).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
+                        {selectedOrder.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Payment Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}>
+                        {selectedOrder.paymentStatus}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Payment Details
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Subtotal:</span>
+                      <span className="text-white">{selectedOrder.subtotal.toLocaleString()} DA</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Shipping Cost:</span>
+                      <span className="text-white">{selectedOrder.shippingCost.toLocaleString()} DA</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-700 pt-2">
+                      <span className="text-white font-semibold">Total:</span>
+                      <span className="text-white font-semibold text-lg">{selectedOrder.total.toLocaleString()} DA</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Customer Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-400 mb-1">Name</div>
+                    <div className="text-white font-medium">{selectedOrder.customerName}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Phone</div>
+                    <div className="text-white">{selectedOrder.customerPhone}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Email</div>
+                    <div className="text-white">{selectedOrder.customerEmail || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">City</div>
+                    <div className="text-white">{selectedOrder.customerCity || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Address</div>
+                    <div className="text-white">{selectedOrder.customerAddress || 'Not provided'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Information */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Product Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-400 mb-1">Product Name</div>
+                    <div className="text-white font-medium">{selectedOrder.productName}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Size & Color</div>
+                    <div className="text-white">{selectedOrder.selectedSize} • {selectedOrder.selectedColor}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Quantity</div>
+                    <div className="text-white">{selectedOrder.quantity}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Unit Price</div>
+                    <div className="text-white">{(selectedOrder.subtotal / selectedOrder.quantity).toLocaleString()} DA</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping Information */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Shipping Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-400 mb-1">Shipping Type</div>
+                    <div className="text-white">
+                      {selectedOrder.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Wilaya</div>
+                    <div className="text-white">{selectedOrder.wilayaName}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Shipping Cost</div>
+                    <div className="text-white">{selectedOrder.shippingCost.toLocaleString()} DA</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Payment Method</div>
+                    <div className="text-white">
+                      {selectedOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              {(selectedOrder.notes || selectedOrder.trackingNumber || selectedOrder.estimatedDelivery) && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3">Additional Information</h4>
+                  <div className="space-y-3 text-sm">
+                    {selectedOrder.trackingNumber && (
+                      <div>
+                        <div className="text-gray-400 mb-1">Tracking Number</div>
+                        <div className="text-white font-mono">{selectedOrder.trackingNumber}</div>
+                      </div>
+                    )}
+                    {selectedOrder.estimatedDelivery && (
+                      <div>
+                        <div className="text-gray-400 mb-1">Estimated Delivery</div>
+                        <div className="text-white">{selectedOrder.estimatedDelivery}</div>
+                      </div>
+                    )}
+                    {selectedOrder.notes && (
+                      <div>
+                        <div className="text-gray-400 mb-1">Notes</div>
+                        <div className="text-white">{selectedOrder.notes}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end p-6 border-t border-gray-800">
+              <button
+                onClick={() => setShowOrderModal(false)}
+                className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

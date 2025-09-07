@@ -4,60 +4,87 @@
 import { createClient } from '@supabase/supabase-js';
 import { Product, Order } from '@/types';
 
+// Customer interface
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  wilaya: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Supabase configuration - MUST use environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Only throw error during server-side rendering, not during build or client-side
 if (!supabaseUrl || !supabaseKey) {
-  // Only throw error during server-side rendering, not during build or client-side
-  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
-    const missingVars = [];
-    if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
-    if (!supabaseKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    
-    throw new Error(`Missing Supabase environment variables: ${missingVars.join(', ')}. Please set these in your Vercel environment variables or .env.local file.`);
-  }
+  throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-// Create supabase client with fallback for build time
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Export the supabase client for direct use
 export { supabase };
 
 // Helper function to convert database product to Product interface
 function convertDbProductToProduct(dbProduct: any): Product {
-  return {
+  // Debug logging
+  console.log('🔍 DEBUG: Raw price from DB:', dbProduct.price, 'Type:', typeof dbProduct.price);
+  console.log('🔍 DEBUG: Parsed price:', parseFloat(dbProduct.price), 'Type:', typeof parseFloat(dbProduct.price));
+  
+  const convertedProduct = {
     id: dbProduct.id,
-    name: dbProduct.name || '',
-    description: dbProduct.description || '',
-    price: Number(dbProduct.price) || 0,
-    originalPrice: Number(dbProduct.original_price) || 0,
-    image: dbProduct.image || '',
+    name: dbProduct.name,
+    description: dbProduct.description,
+    price: parseFloat(dbProduct.price),
+    originalPrice: dbProduct.original_price ? parseFloat(dbProduct.original_price) : undefined,
+    image: dbProduct.image,
     images: dbProduct.images || [],
     stock: dbProduct.stock || {},
-    category: dbProduct.category || '',
+    category: dbProduct.category,
     sizes: dbProduct.sizes || [],
     colors: dbProduct.colors || [],
-    inStock: dbProduct.in_stock || false,
-    status: dbProduct.status || 'available',
-    rating: Number(dbProduct.rating) || 0,
-    reviews: Number(dbProduct.reviews) || 0,
-    sku: dbProduct.sku || '',
-    weight: Number(dbProduct.weight) || 0,
-    dimensions: dbProduct.dimensions || null,
+    inStock: dbProduct.in_stock,
+    rating: parseFloat(dbProduct.rating || 0),
+    reviews: dbProduct.reviews || 0,
+    sku: dbProduct.sku,
+    weight: dbProduct.weight ? parseFloat(dbProduct.weight) : undefined,
+    dimensions: dbProduct.dimensions,
     tags: dbProduct.tags || [],
     featured: dbProduct.featured || false,
-    createdAt: dbProduct.created_at ? new Date(dbProduct.created_at) : new Date(),
-    updatedAt: dbProduct.updated_at ? new Date(dbProduct.updated_at) : new Date()
+    sizeChartCategory: dbProduct.size_chart_category || 'T-Shirts',
+    customSizeChart: dbProduct.custom_size_chart || undefined,
+    useCustomSizeChart: dbProduct.use_custom_size_chart || false,
+    createdAt: new Date(dbProduct.created_at),
+    updatedAt: new Date(dbProduct.updated_at)
   };
+  
+  console.log('🔍 DEBUG: Final converted product price:', convertedProduct.price, 'Type:', typeof convertedProduct.price);
+  return convertedProduct;
 }
 
 // Cache for products to reduce database calls
 let productsCache: Product[] | null = null;
 let productsCacheTime = 0;
 const CACHE_DURATION = 30000; // 30 seconds
+
+// Clear cache function
+export function clearProductsCache(): void {
+  productsCache = null;
+  productsCacheTime = 0;
+  console.log('Supabase: Products cache cleared');
+}
+
+// Force clear cache immediately to fix price formatting issue
+clearProductsCache();
+
+// Add timestamp to force cache invalidation
+const CACHE_BUSTER = Date.now();
+console.log('🚀 Cache buster timestamp:', CACHE_BUSTER);
 
 // Products operations
 export async function getProducts(): Promise<Product[]> {
@@ -66,11 +93,6 @@ export async function getProducts(): Promise<Product[]> {
     if (productsCache && Date.now() - productsCacheTime < CACHE_DURATION) {
       console.log('Supabase: Returning cached products');
       return productsCache;
-    }
-
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return productsCache || [];
     }
 
     const { data, error } = await supabase
@@ -98,11 +120,6 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProduct(id: string): Promise<Product | null> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return null;
-    }
-
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -123,11 +140,6 @@ export async function getProduct(id: string): Promise<Product | null> {
 
 export async function addProduct(product: Product): Promise<Product> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database not available');
-    }
-
     // Convert camelCase to snake_case for database
     const dbProduct = {
       id: product.id,
@@ -148,7 +160,10 @@ export async function addProduct(product: Product): Promise<Product> {
       weight: product.weight,
       dimensions: product.dimensions,
       tags: product.tags || [],
-      featured: product.featured || false
+      featured: product.featured || false,
+      size_chart_category: product.sizeChartCategory || 'T-Shirts',
+      custom_size_chart: product.customSizeChart || null,
+      use_custom_size_chart: product.useCustomSizeChart || false
       // created_at and updated_at are automatically set by the database
     };
 
@@ -165,6 +180,16 @@ export async function addProduct(product: Product): Promise<Product> {
     
     console.log('Supabase: Added product:', product.id);
     
+    // Initialize inventory for the new product
+    try {
+      const { initializeProductInventory } = await import('./inventoryService');
+      await initializeProductInventory(product.id);
+      console.log('Supabase: Initialized inventory for product:', product.id);
+    } catch (inventoryError) {
+      console.error('Supabase: Failed to initialize inventory for product:', product.id, inventoryError);
+      // Don't throw error here, product creation should still succeed
+    }
+    
     // Invalidate cache
     productsCache = null;
     
@@ -178,11 +203,6 @@ export async function addProduct(product: Product): Promise<Product> {
 
 export async function updateProduct(id: string, product: Partial<Product>): Promise<Product | null> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return null;
-    }
-
     // Convert camelCase to snake_case for database
     const dbProduct: any = {};
     
@@ -204,6 +224,9 @@ export async function updateProduct(id: string, product: Partial<Product>): Prom
     if (product.dimensions !== undefined) dbProduct.dimensions = product.dimensions;
     if (product.tags !== undefined) dbProduct.tags = product.tags;
     if (product.featured !== undefined) dbProduct.featured = product.featured;
+    if (product.sizeChartCategory !== undefined) dbProduct.size_chart_category = product.sizeChartCategory;
+    if (product.customSizeChart !== undefined) dbProduct.custom_size_chart = product.customSizeChart;
+    if (product.useCustomSizeChart !== undefined) dbProduct.use_custom_size_chart = product.useCustomSizeChart;
     
     const { data, error } = await supabase
       .from('products')
@@ -231,11 +254,6 @@ export async function updateProduct(id: string, product: Partial<Product>): Prom
 
 export async function deleteProduct(id: string): Promise<boolean> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return false;
-    }
-
     const { error } = await supabase
       .from('products')
       .delete()
@@ -260,72 +278,38 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 // Helper function to convert database order to Order interface
 function convertDbOrderToOrder(dbOrder: any): Order {
-  // Handle both old and new schema
-  const isOldSchema = dbOrder.items && Array.isArray(dbOrder.items);
+  // Extract customer info from items or use defaults
+  const firstItem = dbOrder.items && dbOrder.items.length > 0 ? dbOrder.items[0] : {};
   
-  if (isOldSchema) {
-    // Old schema with items array
-    const firstItem = dbOrder.items && dbOrder.items.length > 0 ? dbOrder.items[0] : {};
-    
-    return {
-      id: dbOrder.id,
-      productId: firstItem.productId || '',
-      productName: firstItem.productName || '',
-      productImage: firstItem.productImage || '',
-      customerName: firstItem.customerName || '',
-      customerPhone: firstItem.customerPhone || '',
-      customerEmail: firstItem.customerEmail || '',
-      customerAddress: firstItem.customerAddress || '',
-      wilayaId: firstItem.wilayaId || 0,
-      wilayaName: firstItem.wilayaName || '',
-      shippingType: dbOrder.shipping_type || 'homeDelivery',
-      shippingCost: Number(dbOrder.shipping_cost) || 0,
-      quantity: firstItem.quantity || 1,
-      selectedSize: firstItem.selectedSize || '',
-      selectedColor: firstItem.selectedColor || '',
-      subtotal: Number(dbOrder.total) - Number(dbOrder.shipping_cost) || 0,
-      total: Number(dbOrder.total) || 0,
-      orderDate: new Date(dbOrder.order_date),
-      status: dbOrder.status || 'pending',
-      trackingNumber: dbOrder.tracking_number || '',
-      notes: firstItem.notes || '',
-      paymentMethod: dbOrder.payment_method || 'cod',
-      paymentStatus: dbOrder.payment_status || 'pending',
-      estimatedDelivery: firstItem.estimatedDelivery || '',
-      createdAt: new Date(dbOrder.created_at),
-      updatedAt: new Date(dbOrder.updated_at)
-    };
-  } else {
-    // New schema with direct fields
-    return {
-      id: dbOrder.id,
-      productId: dbOrder.product_id || '',
-      productName: dbOrder.product_name || '',
-      productImage: dbOrder.product_image || '',
-      customerName: dbOrder.customer_name || '',
-      customerPhone: dbOrder.customer_phone || '',
-      customerEmail: dbOrder.customer_email || '',
-      customerAddress: dbOrder.customer_address || '',
-      wilayaId: dbOrder.wilaya_id || 0,
-      wilayaName: dbOrder.wilaya_name || '',
-      shippingType: dbOrder.shipping_type || 'homeDelivery',
-      shippingCost: Number(dbOrder.shipping_cost) || 0,
-      quantity: dbOrder.quantity || 1,
-      selectedSize: dbOrder.selected_size || '',
-      selectedColor: dbOrder.selected_color || '',
-      subtotal: Number(dbOrder.subtotal) || 0,
-      total: Number(dbOrder.total) || 0,
-      orderDate: new Date(dbOrder.order_date),
-      status: dbOrder.status || 'pending',
-      trackingNumber: dbOrder.tracking_number || '',
-      notes: dbOrder.notes || '',
-      paymentMethod: dbOrder.payment_method || 'cod',
-      paymentStatus: dbOrder.payment_status || 'pending',
-      estimatedDelivery: dbOrder.estimated_delivery || '',
-      createdAt: new Date(dbOrder.created_at),
-      updatedAt: new Date(dbOrder.updated_at)
-    };
-  }
+  return {
+    id: dbOrder.id,
+    productId: firstItem.productId || '',
+    productName: firstItem.productName || '',
+    productImage: firstItem.productImage || '',
+    customerName: firstItem.customerName || '',
+    customerPhone: firstItem.customerPhone || '',
+    customerEmail: firstItem.customerEmail || '',
+    customerAddress: firstItem.customerAddress || '',
+    customerCity: firstItem.customerCity || '',
+    wilayaId: firstItem.wilayaId || 0,
+    wilayaName: firstItem.wilayaName || '',
+    shippingType: dbOrder.shipping_type || 'homeDelivery',
+    shippingCost: Number(dbOrder.shipping_cost) || 0,
+    quantity: firstItem.quantity || 1,
+    selectedSize: firstItem.selectedSize || '',
+    selectedColor: firstItem.selectedColor || '',
+    subtotal: Number(dbOrder.total) - Number(dbOrder.shipping_cost) || 0,
+    total: Number(dbOrder.total) || 0,
+    orderDate: new Date(dbOrder.order_date),
+    status: dbOrder.status || 'pending',
+    trackingNumber: dbOrder.tracking_number,
+    notes: firstItem.notes,
+    paymentMethod: dbOrder.payment_method || 'cod',
+    paymentStatus: dbOrder.payment_status || 'pending',
+    estimatedDelivery: firstItem.estimatedDelivery,
+    createdAt: new Date(dbOrder.created_at),
+    updatedAt: new Date(dbOrder.updated_at)
+  };
 }
 
 // Cache for orders to reduce database calls
@@ -335,11 +319,6 @@ let ordersCacheTime = 0;
 // Orders operations
 export async function getOrders(): Promise<Order[]> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return ordersCache || [];
-    }
-
     // Return cached data if still fresh
     if (ordersCache && Date.now() - ordersCacheTime < CACHE_DURATION) {
       console.log('Supabase: Returning cached orders');
@@ -371,11 +350,6 @@ export async function getOrders(): Promise<Order[]> {
 
 export async function getOrder(id: string): Promise<Order | null> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return null;
-    }
-
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -396,37 +370,35 @@ export async function getOrder(id: string): Promise<Order | null> {
 
 export async function addOrder(order: Order): Promise<Order> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database not available');
-    }
-
-    // Convert Order interface to database format (matching the orders table schema)
+    // Convert Order interface to database format
     const dbOrder = {
       id: order.id,
-      customer_name: order.customerName,
-      customer_email: order.customerEmail,
-      customer_phone: order.customerPhone,
-      customer_address: order.customerAddress,
-      wilaya_id: order.wilayaId,
-      wilaya_name: order.wilayaName,
-      product_id: order.productId,
-      product_name: order.productName,
-      product_image: order.productImage,
-      selected_size: order.selectedSize,
-      selected_color: order.selectedColor,
-      quantity: order.quantity,
-      subtotal: order.subtotal,
-      shipping_cost: order.shippingCost,
+      customer_id: `CUST-${Date.now()}`, // Generate customer ID
+      items: [{
+        productId: order.productId,
+        productName: order.productName,
+        productImage: order.productImage,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        customerAddress: order.customerAddress,
+        customerCity: order.customerCity,
+        wilayaId: order.wilayaId,
+        wilayaName: order.wilayaName,
+        quantity: order.quantity,
+        selectedSize: order.selectedSize,
+        selectedColor: order.selectedColor,
+        notes: order.notes,
+        estimatedDelivery: order.estimatedDelivery
+      }],
       total: order.total,
+      shipping_cost: order.shippingCost,
       shipping_type: order.shippingType,
       payment_method: order.paymentMethod,
       payment_status: order.paymentStatus,
       status: order.status,
-      order_date: order.orderDate.toISOString(),
-      notes: order.notes,
       tracking_number: order.trackingNumber,
-      estimated_delivery: order.estimatedDelivery,
+      order_date: order.orderDate.toISOString(),
       created_at: order.createdAt.toISOString(),
       updated_at: order.updatedAt.toISOString()
     };
@@ -452,11 +424,6 @@ export async function addOrder(order: Order): Promise<Order> {
 
 export async function updateOrder(id: string, order: Partial<Order>): Promise<Order | null> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return null;
-    }
-
     // Convert partial Order to database format
     const updateData: any = {
       updated_at: new Date().toISOString()
@@ -492,11 +459,38 @@ export async function updateOrder(id: string, order: Partial<Order>): Promise<Or
 
 export async function deleteOrder(id: string): Promise<boolean> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
+    // First, get the order details to restore inventory
+    const order = await getOrder(id);
+    if (!order) {
+      console.error('Supabase deleteOrder: Order not found:', id);
       return false;
     }
 
+    // Restore inventory quantity
+    if (order.productId && order.selectedSize && order.selectedColor && order.quantity) {
+      try {
+        const { addInventory } = await import('./inventoryService');
+        const inventoryRestored = await addInventory(
+          order.productId,
+          order.selectedSize,
+          order.selectedColor,
+          order.quantity,
+          `Order ${id} deleted - inventory restored`,
+          'admin'
+        );
+        
+        if (inventoryRestored) {
+          console.log('Supabase deleteOrder: Inventory restored for order:', id);
+        } else {
+          console.warn('Supabase deleteOrder: Failed to restore inventory for order:', id);
+        }
+      } catch (inventoryError) {
+        console.error('Supabase deleteOrder: Inventory restoration error:', inventoryError);
+        // Continue with order deletion even if inventory restoration fails
+      }
+    }
+
+    // Delete the order
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -515,135 +509,38 @@ export async function deleteOrder(id: string): Promise<boolean> {
   }
 }
 
-// Customers operations
-export async function getCustomers(): Promise<any[]> {
-  try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Supabase getCustomers error:', error);
-      return [];
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Supabase getCustomers error:', error);
-    return [];
-  }
-}
-
-export async function addCustomer(customer: any): Promise<any> {
-  try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database not available');
-    }
-
-    const { data, error } = await supabase
-      .from('customers')
-      .insert([customer])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Supabase addCustomer error:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Supabase addCustomer error:', error);
-    throw error;
-  }
-}
-
-// Maintenance operations
-export async function getMaintenanceStatus(): Promise<any> {
-  try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return { is_maintenance: false, drop_date: null };
-    }
-
-    const { data, error } = await supabase
-      .from('maintenance_status')
-      .select('*')
-      .eq('id', 'maintenance')
-      .single();
-    
-    if (error) {
-      console.error('Supabase getMaintenanceStatus error:', error);
-      return { is_maintenance: false, drop_date: null };
-    }
-    
-    return data || { is_maintenance: false, drop_date: null };
-  } catch (error) {
-    console.error('Supabase getMaintenanceStatus error:', error);
-    return { is_maintenance: false, drop_date: null };
-  }
-}
-
-export async function updateMaintenanceStatus(isMaintenance: boolean, dropDate?: string): Promise<boolean> {
-  try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return false;
-    }
-
-    const updateData: any = {
-      is_maintenance: isMaintenance,
-      updated_at: new Date().toISOString()
-    };
-    
-    if (dropDate) {
-      updateData.drop_date = dropDate;
-    }
-    
-    const { error } = await supabase
-      .from('maintenance_status')
-      .update(updateData)
-      .eq('id', 'maintenance');
-    
-    if (error) {
-      console.error('Supabase updateMaintenanceStatus error:', error);
-      return false;
-    }
-    
-    console.log('Supabase: Updated maintenance status');
-    return true;
-  } catch (error) {
-    console.error('Supabase updateMaintenanceStatus error:', error);
-    return false;
-  }
-}
 
 // Wilaya operations
 export async function getWilayaTariffs(): Promise<any[]> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return [];
-    }
-
     const { data, error } = await supabase
       .from('wilaya_tariffs')
       .select('*')
-      .order('wilaya_code', { ascending: true });
+      .order('order', { ascending: true });
     
     if (error) {
       console.error('Supabase getWilayaTariffs error:', error);
       return [];
     }
     
-    return data || [];
+    // Transform the data to match the expected format
+    const transformedData = (data || []).map(tariff => ({
+      id: tariff.id.toString(),
+      wilaya_id: tariff.wilaya_id,
+      name: tariff.name,
+      domicile_ecommerce: tariff.domicile_ecommerce,
+      stop_desk_ecommerce: tariff.stop_desk_ecommerce,
+      order: tariff.order,
+      // Legacy compatibility for backward compatibility
+      home_delivery: tariff.domicile_ecommerce,
+      stop_desk: tariff.stop_desk_ecommerce,
+      homeDelivery: tariff.domicile_ecommerce,
+      stopDesk: tariff.stop_desk_ecommerce,
+      domicileEcommerce: tariff.domicile_ecommerce,
+      stopDeskEcommerce: tariff.stop_desk_ecommerce
+    }));
+    
+    return transformedData;
   } catch (error) {
     console.error('Supabase getWilayaTariffs error:', error);
     return [];
@@ -652,11 +549,6 @@ export async function getWilayaTariffs(): Promise<any[]> {
 
 export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database not available');
-    }
-
     // Delete all existing tariffs
     await supabase
       .from('wilaya_tariffs')
@@ -665,9 +557,18 @@ export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
     
     // Insert new tariffs
     if (tariffs.length > 0) {
+      // Transform the data to match database structure
+      const transformedTariffs = tariffs.map(tariff => ({
+        wilaya_id: tariff.wilaya_id || tariff.id,
+        name: tariff.name,
+        domicile_ecommerce: tariff.domicile_ecommerce || tariff.domicileEcommerce || tariff.home_delivery || tariff.homeDelivery || 0,
+        stop_desk_ecommerce: tariff.stop_desk_ecommerce || tariff.stopDeskEcommerce || tariff.stop_desk || tariff.stopDesk || 0,
+        order: tariff.order || 1
+      }));
+      
       const { error } = await supabase
         .from('wilaya_tariffs')
-        .insert(tariffs);
+        .insert(transformedTariffs);
       
       if (error) {
         console.error('Supabase updateWilayaTariffs error:', error);
@@ -685,11 +586,6 @@ export async function updateWilayaTariffs(tariffs: any[]): Promise<void> {
 // Inventory operations
 export async function getInventory(): Promise<any[]> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return [];
-    }
-
     const { data, error } = await supabase
       .from('products')
       .select('id, name, sku, stock, sizes, colors, in_stock, category')
@@ -721,11 +617,6 @@ export async function getInventory(): Promise<any[]> {
 
 export async function updateInventory(productId: string, stockData: any): Promise<any> {
   try {
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      throw new Error('Database not available');
-    }
-
     const updateObj: any = {
       updated_at: new Date().toISOString()
     };
@@ -817,7 +708,7 @@ export async function deductStockFromOrder(order: Order): Promise<boolean> {
       return false;
     }
     
-    // Deduct the stock
+    // Deduct the stock from product
     const newStock = {
       ...product.stock,
       [order.selectedSize]: {
@@ -832,64 +723,210 @@ export async function deductStockFromOrder(order: Order): Promise<boolean> {
       inStock: calculateTotalStock(newStock) > 0
     });
     
-    if (updatedProduct) {
-      console.log('Supabase: Successfully deducted stock for order:', order.id);
-      return true;
-    } else {
+    if (!updatedProduct) {
       console.error('Supabase: Failed to update product stock for order:', order.id);
       return false;
     }
+
+    // Also deduct from inventory system
+    try {
+      const { addInventory } = await import('./inventoryService');
+      const inventoryDeducted = await addInventory(
+        order.productId,
+        order.selectedSize,
+        order.selectedColor,
+        -order.quantity, // Negative quantity to deduct
+        `Order ${order.id} created - stock deducted`,
+        'system'
+      );
+      
+      if (inventoryDeducted) {
+        console.log('Supabase: Successfully deducted inventory for order:', order.id);
+      } else {
+        console.warn('Supabase: Failed to deduct inventory for order:', order.id);
+      }
+    } catch (inventoryError) {
+      console.error('Supabase: Inventory deduction error:', inventoryError);
+      // Continue even if inventory update fails
+    }
+    
+    console.log('Supabase: Successfully deducted stock for order:', order.id);
+    return true;
   } catch (error) {
     console.error('Supabase: Error deducting stock for order:', error);
     return false;
   }
 }
 
-// Stock return function for cancelled/deleted orders
-export async function returnStockFromOrder(order: Order): Promise<boolean> {
+// Maintenance settings operations
+export async function getMaintenanceSettings(): Promise<any> {
   try {
-    console.log('Supabase: Returning stock for order:', order.id);
+    const { data, error } = await supabase
+      .from('maintenance_settings')
+      .select('*')
+      .eq('id', 'maintenance')
+      .single();
     
-    // Get the product
-    const product = await getProduct(order.productId);
-    if (!product) {
-      console.error('Supabase: Product not found for order:', order.productId);
-      return false;
+    if (error) {
+      console.error('Supabase getMaintenanceSettings error:', error);
+      // If table doesn't exist, return default settings
+      if (error.code === 'PGRST205') {
+        console.log('Maintenance settings table not found, using default settings');
+      }
+      // Return default settings if no data exists
+      return {
+        id: 'maintenance',
+        is_maintenance_mode: false,
+        drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        maintenance_message: 'We are currently performing maintenance. Please check back later.',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     }
     
-    // Get current stock
-    const currentStock = product.stock?.[order.selectedSize]?.[order.selectedColor] || 0;
-    
-    // Return the stock
-    const newStock = {
-      ...product.stock,
-      [order.selectedSize]: {
-        ...product.stock?.[order.selectedSize],
-        [order.selectedColor]: currentStock + order.quantity
-      }
+    return data || {
+      id: 'maintenance',
+      is_maintenance_mode: false,
+      drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      maintenance_message: 'We are currently performing maintenance. Please check back later.',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Supabase getMaintenanceSettings error:', error);
+    return {
+      id: 'maintenance',
+      is_maintenance_mode: false,
+      drop_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      maintenance_message: 'We are currently performing maintenance. Please check back later.',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+}
+
+export async function updateMaintenanceSettings(settings: {
+  is_maintenance_mode?: boolean;
+  drop_date?: string;
+  maintenance_message?: string;
+}): Promise<any> {
+  try {
+    const updateData: any = {
+      updated_at: new Date().toISOString()
     };
     
-    // Update the product stock
-    const updatedProduct = await updateProduct(order.productId, {
-      stock: newStock,
-      inStock: calculateTotalStock(newStock) > 0
-    });
-    
-    if (updatedProduct) {
-      console.log('Supabase: Successfully returned stock for order:', order.id, {
-        productId: order.productId,
-        size: order.selectedSize,
-        color: order.selectedColor,
-        quantity: order.quantity,
-        newTotalStock: calculateTotalStock(newStock)
-      });
-      return true;
-    } else {
-      console.error('Supabase: Failed to return product stock for order:', order.id);
-      return false;
+    if (settings.is_maintenance_mode !== undefined) {
+      updateData.is_maintenance_mode = settings.is_maintenance_mode;
     }
+    
+    if (settings.drop_date !== undefined) {
+      updateData.drop_date = settings.drop_date;
+    }
+    
+    if (settings.maintenance_message !== undefined) {
+      updateData.maintenance_message = settings.maintenance_message;
+    }
+    
+    console.log('Updating maintenance settings with:', updateData);
+    
+    // Try update first
+    const { data: updateResult, error: updateError } = await supabase
+      .from('maintenance_settings')
+      .update(updateData)
+      .eq('id', 'maintenance')
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Update error:', updateError);
+      
+      // If update fails, try insert
+      const { data: insertResult, error: insertError } = await supabase
+        .from('maintenance_settings')
+        .insert([{
+          id: 'maintenance',
+          is_maintenance_mode: settings.is_maintenance_mode ?? false,
+          drop_date: settings.drop_date ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          maintenance_message: settings.maintenance_message ?? 'We are currently performing maintenance. Please check back later.',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
+      
+      console.log('Supabase: Created maintenance settings');
+      return insertResult;
+    }
+    
+    console.log('Supabase: Updated maintenance settings');
+    return updateResult;
   } catch (error) {
-    console.error('Supabase: Error returning stock for order:', error);
-    return false;
+    console.error('Supabase updateMaintenanceSettings error:', error);
+    throw error;
+  }
+}
+
+// Customers methods
+export async function getCustomers(): Promise<Customer[]> {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase getCustomers error:', error);
+      throw error;
+    }
+    
+    console.log('Supabase: Fetched', data?.length || 0, 'customers');
+    return data || [];
+  } catch (error) {
+    console.error('Supabase getCustomers error:', error);
+    throw error;
+  }
+}
+
+export async function addCustomer(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer | null> {
+  try {
+    const now = new Date().toISOString();
+    const customer = {
+      ...customerData,
+      id: `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      created_at: now,
+      updated_at: now
+    };
+    
+    const { data, error } = await supabase
+      .from('customers')
+      .insert([customer])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Supabase addCustomer error:', error);
+      throw error;
+    }
+    
+    console.log('Supabase: Created customer:', data.id);
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      city: data.city,
+      wilaya: data.wilaya,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    };
+  } catch (error) {
+    console.error('Supabase addCustomer error:', error);
+    throw error;
   }
 }

@@ -1,37 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMaintenanceStatus, updateMaintenanceStatus } from '@/lib/supabaseDatabase';
-import { createAuthenticatedHandler, AuthenticatedRequest } from '@/lib/authMiddleware';
+import { getMaintenanceSettings, updateMaintenanceSettings } from '@/lib/supabaseDatabase';
+import { withAuth } from '@/lib/authMiddleware';
 
-// GET endpoint - public (for maintenance page display)
 export async function GET() {
   try {
-    const status = await getMaintenanceStatus();
-    return NextResponse.json(status);
+    console.log('API GET maintenance settings - environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set'
+    });
+    
+    const settings = await getMaintenanceSettings();
+    return NextResponse.json(settings);
   } catch (error) {
-    console.error('Error fetching maintenance status:', error);
-    return NextResponse.json({ error: 'Failed to fetch maintenance status' }, { status: 500 });
+    console.error('API GET maintenance settings error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch maintenance settings', details: error.message },
+      { status: 500 }
+    );
   }
 }
 
-// POST endpoint - requires authentication
-export const POST = createAuthenticatedHandler(async (request: AuthenticatedRequest) => {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const body = await request.json();
-    console.log('Maintenance API received from user:', request.user?.username, body);
-    
-    // Handle different parameter names
-    const isMaintenance = body.isMaintenance || body.is_maintenance;
-    const dropDate = body.dropDate || body.drop_date;
-    
-    const success = await updateMaintenanceStatus(isMaintenance, dropDate);
-    
-    if (success) {
-      return NextResponse.json({ success: true });
-    } else {
-      return NextResponse.json({ error: 'Failed to update maintenance status' }, { status: 500 });
-    }
+    const { is_maintenance_mode, drop_date, maintenance_message } = body;
+
+    console.log('API POST maintenance settings request:', { is_maintenance_mode, drop_date, maintenance_message });
+
+    const settings = await updateMaintenanceSettings({
+      is_maintenance_mode,
+      drop_date,
+      maintenance_message
+    });
+
+    console.log('API POST maintenance settings result:', settings);
+
+    return NextResponse.json(settings);
   } catch (error) {
-    console.error('Error updating maintenance status:', error);
-    return NextResponse.json({ error: 'Failed to update maintenance status' }, { status: 500 });
+    console.error('API POST maintenance settings error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update maintenance settings', details: error.message },
+      { status: 500 }
+    );
   }
 });

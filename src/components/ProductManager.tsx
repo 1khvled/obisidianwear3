@@ -313,10 +313,10 @@ export default function ProductManager({ onAddProduct, onEditProduct, onDeletePr
                     </td>
                     <td className="p-4">
                       <div>
-                        <span className="text-white font-semibold">{product.price} DZD</span>
+                        <span className="text-white font-semibold">{Number(product.price).toFixed(0)} DZD</span>
                         {product.originalPrice && (
                           <div className="text-gray-500 text-sm line-through">
-                            {product.originalPrice} DZD
+                            {Number(product.originalPrice).toFixed(0)} DZD
                           </div>
                         )}
                       </div>

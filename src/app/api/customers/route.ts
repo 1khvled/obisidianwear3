@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCustomers, addCustomer } from '@/lib/supabaseDatabase';
 
-// GET /api/customers - Get all customers
 export async function GET() {
   try {
     const customers = await getCustomers();
-    console.log('Customers API: GET request - returning', customers.length, 'customers');
+    
     return NextResponse.json({
       success: true,
       data: customers,
-      count: customers.length,
-      timestamp: Date.now()
+      count: customers.length
     });
   } catch (error) {
-    console.error('Customers API: GET error:', error);
+    console.error('API Error: Failed to fetch customers:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch customers' },
       { status: 500 }
@@ -21,49 +19,33 @@ export async function GET() {
   }
 }
 
-// POST /api/customers - Create new customer
 export async function POST(request: NextRequest) {
   try {
     const customerData = await request.json();
     
     // Validate required fields
-    if (!customerData.name || !customerData.email || !customerData.phone) {
+    if (!customerData.name || !customerData.email) {
       return NextResponse.json(
-        { success: false, error: 'Name, email, and phone are required' },
+        { success: false, error: 'Name and email are required' },
         { status: 400 }
       );
     }
-
-    // Check if customer already exists
-    const existingCustomers = await getCustomers();
-    const existingCustomer = existingCustomers.find(c => c.email === customerData.email);
-    if (existingCustomer) {
+    
+    const customer = await addCustomer(customerData);
+    
+    if (customer) {
+      return NextResponse.json({
+        success: true,
+        data: customer
+      });
+    } else {
       return NextResponse.json(
-        { success: false, error: 'Customer with this email already exists' },
-        { status: 409 }
+        { success: false, error: 'Failed to create customer' },
+        { status: 500 }
       );
     }
-
-    // Generate unique ID
-    const newCustomer = {
-      id: `CUST-${Date.now()}`,
-      ...customerData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const addedCustomer = await addCustomer(newCustomer);
-    
-    console.log('Customers API: POST request - created customer:', newCustomer.id);
-    
-    return NextResponse.json({
-      success: true,
-      data: addedCustomer,
-      message: 'Customer created successfully',
-      timestamp: Date.now()
-    }, { status: 201 });
   } catch (error) {
-    console.error('Customers API: POST error:', error);
+    console.error('API Error: Failed to create customer:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create customer' },
       { status: 500 }

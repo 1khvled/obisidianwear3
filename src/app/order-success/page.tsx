@@ -13,35 +13,24 @@ export default function OrderSuccessPage() {
   const router = useRouter();
   const [orderId, setOrderId] = useState<string>('');
   const [orderData, setOrderData] = useState<any>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+    
     const id = searchParams.get('orderId');
     if (id) {
       setOrderId(id);
       
-      // Load order data from database
-      const loadOrder = async () => {
-        try {
-          const response = await fetch(`/api/orders/${id}`);
-          if (response.ok) {
-            const order = await response.json();
-            setOrderData(order);
-          } else {
-            // Fallback to localStorage if database fails
-            const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
-            const order = orders.find((o: any) => o.id === id);
-            setOrderData(order);
-          }
-        } catch (error) {
-          console.error('Error loading order:', error);
-          // Fallback to localStorage
-          const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
-          const order = orders.find((o: any) => o.id === id);
-          setOrderData(order);
-        }
-      };
-
-      loadOrder();
+      // Load order data from localStorage (optimized)
+      try {
+        const orders = JSON.parse(localStorage.getItem('obsidian-orders') || '[]');
+        const order = orders.find((o: any) => o.id === id);
+        setOrderData(order);
+      } catch (error) {
+        console.error('Error loading order data:', error);
+        setOrderData(null);
+      }
     }
   }, [searchParams]);
 
@@ -74,7 +63,7 @@ export default function OrderSuccessPage() {
             <CheckCircle size={40} className="text-white" />
           </div>
           <h1 className="heading-responsive font-bold text-white mb-4">
-            Order Placed Successfully! 🎉
+            Order Placed Successfully!
           </h1>
           <p className="text-gray-400 text-responsive max-w-2xl mx-auto">
             Thank you for choosing OBSIDIAN WEAR. Your order has been confirmed and we'll start processing it immediately.
@@ -111,7 +100,9 @@ export default function OrderSuccessPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Date:</span>
-                  <span className="text-white">{new Date().toLocaleDateString()}</span>
+                  <span className="text-white">
+                    {isClient ? new Date().toLocaleDateString() : 'Loading...'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Payment Method:</span>
@@ -163,7 +154,9 @@ export default function OrderSuccessPage() {
               <div>
                 <h3 className="text-white font-semibold">Order Confirmed</h3>
                 <p className="text-gray-400 text-sm">Your order has been received and confirmed</p>
-                <p className="text-gray-500 text-xs">{new Date().toLocaleString()}</p>
+                <p className="text-gray-500 text-xs">
+                  {isClient ? new Date().toLocaleString() : 'Loading...'}
+                </p>
               </div>
             </div>
             
@@ -235,12 +228,6 @@ export default function OrderSuccessPage() {
             <ArrowLeft size={20} className="mr-2" />
             Continue Shopping
           </button>
-          
-          <Link href="/admin">
-            <button className="w-full sm:w-auto px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-semibold">
-              View Order in Admin
-            </button>
-          </Link>
         </div>
 
         {/* Thank You Message */}

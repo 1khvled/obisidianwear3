@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+import Logo from './Logo';
 
 export default function Footer() {
   return (
@@ -8,12 +9,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-black font-bold text-xl">O</span>
-              </div>
-              <span className="text-2xl font-bold font-poppins text-white">OBSIDIAN WEAR</span>
-            </Link>
+            <div className="mb-6">
+              <Logo size="lg" showText={true} />
+            </div>
             <p className="text-gray-400 mb-6 max-w-md text-lg">
               Plus qu'un vêtement, une attitude. Découvrez notre collection exclusive 
               qui définit votre style unique avec des pièces premium.

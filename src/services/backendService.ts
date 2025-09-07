@@ -23,33 +23,18 @@ class BackendService {
     return typeof window !== 'undefined' && typeof fetch !== 'undefined';
   }
 
-  // Get session ID from session storage
-  private getSessionId(): string {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('obsidian-admin-session-id') || '';
-    }
-    return '';
-  }
-
-  // Handle authentication errors
-  private handleAuthError(): void {
-    if (typeof window !== 'undefined') {
-      // Clear session data
-      sessionStorage.removeItem('obsidian-admin-session-id');
-      // Don't redirect - let the AuthContext handle it
-      console.warn('BackendService: Authentication failed, session cleared');
-    }
+  // Get authentication headers for protected API calls
+  private getAuthHeaders(): HeadersInit {
+    const token = process.env.NEXT_PUBLIC_API_AUTH_TOKEN || 'obsidian-api-token-2025';
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
   }
 
   // Products API
   async getProducts(): Promise<Product[]> {
     try {
-      // Skip API calls during build time
-      if (typeof window === 'undefined') {
-        console.log('BackendService: Skipping products fetch during SSR/build');
-        return [];
-      }
-
       const response = await fetch(this.getApiUrl('/products'), {
         method: 'GET',
         headers: {
@@ -100,7 +85,7 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl('/products'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(product)
       });
       
@@ -123,7 +108,7 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(product)
       });
       
@@ -146,24 +131,8 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': this.getSessionId()
-        }
+        headers: this.getAuthHeaders()
       });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.error('BackendService: Authentication failed for delete product');
-          // Clear session but don't redirect
-          this.handleAuthError();
-          return false;
-        }
-        console.error('BackendService: HTTP error deleting product:', response.status);
-        const errorText = await response.text();
-        console.error('BackendService: Error details:', errorText);
-        return false;
-      }
       
       const result = await response.json();
       
@@ -183,12 +152,6 @@ class BackendService {
   // Orders API
   async getOrders(): Promise<Order[]> {
     try {
-      // Skip API calls during build time
-      if (typeof window === 'undefined') {
-        console.log('BackendService: Skipping orders fetch during SSR/build');
-        return [];
-      }
-
       const response = await fetch(this.getApiUrl('/orders'), {
         method: 'GET',
         headers: {
@@ -251,7 +214,7 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl('/orders'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(order)
       });
       
@@ -274,7 +237,7 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl(`/orders/${id}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(order)
       });
       
@@ -297,24 +260,8 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl(`/orders/${id}`), {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': this.getSessionId()
-        }
+        headers: this.getAuthHeaders()
       });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.error('BackendService: Authentication failed for delete order');
-          // Clear session but don't redirect
-          this.handleAuthError();
-          return false;
-        }
-        console.error('BackendService: HTTP error deleting order:', response.status);
-        const errorText = await response.text();
-        console.error('BackendService: Error details:', errorText);
-        return false;
-      }
       
       const result = await response.json();
       
@@ -334,12 +281,6 @@ class BackendService {
   // Customers API
   async getCustomers(): Promise<any[]> {
     try {
-      // Skip API calls during build time
-      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-        console.log('BackendService: Skipping customers fetch during build');
-        return [];
-      }
-
       const response = await fetch(this.getApiUrl('/customers'));
       const result = await response.json();
       
@@ -382,12 +323,6 @@ class BackendService {
   // Wilaya API
   async getWilayaTariffs(): Promise<any[]> {
     try {
-      // Skip API calls during build time
-      if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-        console.log('BackendService: Skipping wilaya fetch during build');
-        return [];
-      }
-
       const response = await fetch(this.getApiUrl('/wilaya'));
       const result = await response.json();
       

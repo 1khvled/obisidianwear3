@@ -1,0 +1,927 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  Palette, 
+  Ruler, 
+  Clock, 
+  CheckCircle, 
+  Star, 
+  MessageCircle,
+  ArrowRight,
+  Sparkles,
+  Crown,
+  Zap,
+  Shield,
+  Heart,
+  ShoppingBag,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  CreditCard,
+  Truck,
+  Package,
+  X,
+  AlertCircle,
+  ArrowLeft,
+  Home
+} from 'lucide-react';
+import { MadeToOrderProduct } from '@/types';
+import SizeChart from '@/components/SizeChart';
+import { sortedWilayas } from '@/data/wilayas';
+import { backendService } from '@/services/backendService';
+import Header from '@/components/Header';
+import { useLanguage } from '@/context/LanguageContext';
+import { localStorageCache } from '@/lib/localStorageCache';
+
+export default function MadeToOrderPage() {
+  const { t } = useLanguage();
+  const [products, setProducts] = useState<MadeToOrderProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showSizeChart, setShowSizeChart] = useState(false);
+  const [wilayaTariffs, setWilayaTariffs] = useState<any[]>([]);
+  const [orderForm, setOrderForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
+    wilayaId: 0,
+    wilayaName: '',
+    selectedSize: '',
+    selectedColor: '',
+    quantity: 1,
+    notes: '',
+    shippingType: 'homeDelivery' as 'homeDelivery' | 'stopDesk'
+  });
+
+  useEffect(() => {
+    loadProducts();
+    loadWilayaTariffs();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      // Try to get from cache first
+      const cachedProducts = await localStorageCache.getMadeToOrderProducts();
+      if (cachedProducts.length > 0) {
+        console.log('Made-to-order: Using cached products:', cachedProducts.length);
+        setProducts(cachedProducts);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to API
+      console.log('Made-to-order: No cache, fetching from server...');
+      const response = await fetch('/api/made-to-order');
+      const data = await response.json();
+      setProducts(data);
+      
+      // Cache the products
+      localStorageCache.setCache({ madeToOrderProducts: data });
+    } catch (error) {
+      console.error('Error loading made-to-order products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWilayaTariffs = async () => {
+    try {
+      // Try to get from cache first
+      const cachedTariffs = await localStorageCache.getWilayaTariffs();
+      if (cachedTariffs.length > 0) {
+        console.log('Made-to-order: Using cached wilaya tariffs:', cachedTariffs.length);
+        setWilayaTariffs(cachedTariffs);
+        return;
+      }
+
+      // Fallback to backend service
+      console.log('Made-to-order: No cache, fetching wilaya tariffs from server...');
+      const tariffs = await backendService.getWilayaTariffs();
+      setWilayaTariffs(tariffs);
+      
+      // Cache the tariffs
+      localStorageCache.setCache({ wilayaTariffs: tariffs });
+    } catch (error) {
+      console.error('Error loading wilaya tariffs:', error);
+      setWilayaTariffs(sortedWilayas);
+    }
+  };
+
+  const handleOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedProduct) return;
+
+    // Validate required fields
+    if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.customerAddress || !orderForm.wilayaId || !orderForm.selectedSize || !orderForm.selectedColor) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      const orderData = {
+        productId: selectedProduct.id,
+        customerName: orderForm.customerName,
+        customerPhone: orderForm.customerPhone,
+        customerEmail: orderForm.customerEmail || '',
+        customerAddress: orderForm.customerAddress,
+        wilayaId: orderForm.wilayaId,
+        wilayaName: orderForm.wilayaName,
+        selectedSize: orderForm.selectedSize,
+        selectedColor: orderForm.selectedColor,
+        quantity: orderForm.quantity,
+        unitPrice: selectedProduct.price,
+        whatsappContact: '+213123456789', // Default WhatsApp number
+        notes: orderForm.notes || ''
+      };
+
+      console.log('Submitting order with data:', orderData);
+
+      const response = await fetch('/api/made-to-order/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      if (response.ok) {
+        const orderData = await response.json();
+        alert('Your special order has been submitted successfully! We will contact you via WhatsApp to complete the order.');
+        setShowOrderForm(false);
+        setSelectedProduct(null);
+        setOrderForm({
+          customerName: '',
+          customerPhone: '',
+          customerEmail: '',
+          customerAddress: '',
+          wilayaId: 0,
+          wilayaName: '',
+          selectedSize: '',
+          selectedColor: '',
+          quantity: 1,
+          notes: '',
+          shippingType: 'homeDelivery' as const
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('Order submission error:', errorData);
+        throw new Error(errorData.error || 'Failed to submit order');
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to submit order: ${errorMessage}. Please try again or contact us directly via WhatsApp.`);
+    }
+  };
+
+  const getShippingCost = () => {
+    if (!orderForm.wilayaId) return 0;
+    const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+    if (!wilaya) return 0;
+    
+    if (orderForm.shippingType === 'homeDelivery') {
+      return wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.home_delivery || wilaya.homeDelivery || 0;
+    } else {
+      return wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stop_desk || wilaya.stopDesk || 0;
+    }
+  };
+
+  const openWhatsApp = () => {
+    const message = t('madeToOrder.whatsappMessage');
+    const phoneNumber = '+213123456789'; // Replace with your WhatsApp number
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  const openWhatsAppWithOrder = () => {
+    if (!selectedProduct) return;
+    
+    const shippingCost = getShippingCost();
+    const totalPrice = selectedProduct.price * orderForm.quantity;
+    const depositAmount = totalPrice * 0.5;
+    
+    const message = `Bonjour! Je souhaite passer une commande spéciale:
+
+Produit: ${selectedProduct.name}
+Taille: ${orderForm.selectedSize}
+Couleur: ${orderForm.selectedColor}
+Quantité: ${orderForm.quantity}
+
+Prix unitaire: ${selectedProduct.price} DZD
+Total: ${totalPrice} DZD
+Acompte (50%): ${depositAmount.toFixed(0)} DZD
+
+Livraison: ${orderForm.shippingType === 'homeDelivery' ? 'Domicile' : 'Stop Desk'}
+Coût livraison: ${shippingCost} DZD
+
+Mes informations:
+Nom: ${orderForm.customerName}
+Téléphone: ${orderForm.customerPhone}
+Adresse: ${orderForm.customerAddress}
+Wilaya: ${orderForm.wilayaName}
+
+Notes: ${orderForm.notes || 'Aucune'}
+
+Merci de me contacter pour finaliser la commande spéciale!`;
+    
+    const phoneNumber = '+213123456789'; // Replace with your WhatsApp number
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-xl">Loading made-to-order products...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <Header />
+
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 py-16 px-4 overflow-hidden">
+        <div className="absolute inset-0 opacity-40" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}></div>
+        <div className="relative max-w-6xl mx-auto text-center">
+          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
+            <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+            <span className="text-white text-sm font-medium">Special Order Service</span>
+          </div>
+          
+          <h1 className="text-3xl md:text-4xl font-black text-white mb-3 tracking-tight">
+            {t('madeToOrder.title')}
+          </h1>
+          
+          <p className="text-base text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
+            Premium items crafted to your specifications with exceptional quality and attention to detail
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
+                <Clock className="w-4 h-4 text-blue-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-1 text-xs">Fast Delivery</h3>
+              <p className="text-gray-400 text-xs">{t('madeToOrder.productionTime')}</p>
+            </div>
+            
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
+                <CreditCard className="w-4 h-4 text-green-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-1 text-xs">Easy Payment</h3>
+              <p className="text-gray-400 text-xs">{t('madeToOrder.depositRequired')}</p>
+            </div>
+            
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
+                <MessageCircle className="w-4 h-4 text-purple-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-1 text-xs">Direct Contact</h3>
+              <p className="text-gray-400 text-xs">{t('madeToOrder.whatsappOrder')}</p>
+            </div>
+          </div>
+          
+          {/* Scroll to Products Button */}
+          <div className="mt-8">
+            <button
+              onClick={() => {
+                const productsSection = document.getElementById('products');
+                if (productsSection) {
+                  // Scroll to center the products section in viewport
+                  productsSection.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                  });
+                }
+              }}
+              className="group bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-black px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center mx-auto transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <Package className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+              View Our Products
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Products Section */}
+      <div id="products" className="py-16 px-4 bg-black">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 mb-4">
+              <span className="w-2 h-2 bg-white rounded-full mr-2"></span>
+              <span className="text-white text-xs font-medium">Premium Collection</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">
+              {t('madeToOrder.ourProducts')}
+            </h2>
+            <p className="text-base text-gray-400 max-w-2xl mx-auto">
+              Discover our curated selection of premium items available for special order
+            </p>
+          </div>
+          
+          {products.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-white mb-2">{t('madeToOrder.noProducts')}</h3>
+              <p className="text-gray-400 text-sm">{t('madeToOrder.noProductsDesc')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {products.map((product) => (
+                <div key={product.id} className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101">
+                  {product.image && (
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      <div className="absolute top-4 right-4">
+                        <span className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                          {t('madeToOrder.customOrder')}
+                        </span>
+                      </div>
+                      <div className="absolute bottom-4 left-4">
+                        <div className="flex items-center bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1">
+                          <Star className="w-4 h-4 text-white mr-1" />
+                          <span className="text-white text-sm font-semibold">{t('madeToOrder.premium')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="text-base font-bold text-white mb-2 group-hover:text-white transition-colors">{product.name}</h3>
+                    <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
+                    
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-xl font-black text-white">{Number(product.price).toFixed(0)} DZD</div>
+                      <div className="text-xs text-gray-400">Starting from</div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <div className="text-gray-300 text-xs font-medium mb-1">{t('madeToOrder.colors')}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {product.colors.slice(0, 4).map((color) => (
+                          <span key={color} className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            {color}
+                          </span>
+                        ))}
+                        {product.colors.length > 4 && (
+                          <span className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            +{product.colors.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <div className="text-gray-300 text-xs font-medium mb-1">{t('madeToOrder.sizes')}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {product.sizes.map((size) => (
+                          <span key={size} className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            {size}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        setOrderForm(prev => ({
+                          ...prev,
+                          selectedSize: product.sizes[0] || '',
+                          selectedColor: product.colors[0] || ''
+                        }));
+                        setShowOrderForm(true);
+                      }}
+                      className="w-full bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
+                    >
+                      <ShoppingBag className="w-4 h-4 mr-2" />
+                      {t('madeToOrder.orderNow')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="py-16 px-4 bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 mb-4">
+              <span className="w-2 h-2 bg-white rounded-full mr-2"></span>
+              <span className="text-white text-xs font-medium">Why Choose Us</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">
+              {t('madeToOrder.whyChoose')}
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="group text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-sm border border-orange-500/30 rounded-xl flex items-center justify-center mx-auto group-hover:from-orange-500/30 group-hover:to-red-500/30 transition-all duration-300 group-hover:scale-105">
+                  <Palette className="w-8 h-8 text-orange-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">1</span>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.totalCustomization')}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
+                {t('madeToOrder.totalCustomizationDesc')}
+              </p>
+            </div>
+            
+            <div className="group text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm border border-emerald-500/30 rounded-xl flex items-center justify-center mx-auto group-hover:from-emerald-500/30 group-hover:to-teal-500/30 transition-all duration-300 group-hover:scale-105">
+                  <Shield className="w-8 h-8 text-emerald-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">2</span>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.premiumQuality')}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
+                {t('madeToOrder.premiumQualityDesc')}
+              </p>
+            </div>
+            
+            <div className="group text-center">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-rose-500/20 to-pink-500/20 backdrop-blur-sm border border-rose-500/30 rounded-xl flex items-center justify-center mx-auto group-hover:from-rose-500/30 group-hover:to-pink-500/30 transition-all duration-300 group-hover:scale-105">
+                  <Heart className="w-8 h-8 text-rose-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">3</span>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.uniquePiece')}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
+                {t('madeToOrder.uniquePieceDesc')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Process Section */}
+      <div className="py-20 px-4 bg-black">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
+              <span className="w-2 h-2 bg-white rounded-full mr-2"></span>
+              <span className="text-white text-sm font-medium">Simple Process</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">
+              {t('madeToOrder.howItWorks')}
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Get your special order in just 4 simple steps
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="group text-center relative">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm border border-blue-500/30 rounded-2xl flex items-center justify-center mx-auto group-hover:from-blue-500/30 group-hover:to-indigo-500/30 transition-all duration-300 group-hover:scale-110">
+                  <span className="text-2xl font-black text-blue-400">1</span>
+                </div>
+                <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-blue-500/30 to-transparent"></div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.step3')}</h3>
+              <p className="text-gray-400 leading-relaxed">
+                {t('madeToOrder.step3Desc')}
+              </p>
+            </div>
+            
+            <div className="group text-center relative">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm border border-green-500/30 rounded-2xl flex items-center justify-center mx-auto group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300 group-hover:scale-110">
+                  <span className="text-2xl font-black text-green-400">2</span>
+                </div>
+                <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-green-500/30 to-transparent"></div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.step1')}</h3>
+              <p className="text-gray-400 leading-relaxed">
+                {t('madeToOrder.step1Desc')}
+              </p>
+            </div>
+            
+            <div className="group text-center relative">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-sm border border-yellow-500/30 rounded-2xl flex items-center justify-center mx-auto group-hover:from-yellow-500/30 group-hover:to-orange-500/30 transition-all duration-300 group-hover:scale-110">
+                  <span className="text-2xl font-black text-yellow-400">3</span>
+                </div>
+                <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-yellow-500/30 to-transparent"></div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.step2')}</h3>
+              <p className="text-gray-400 leading-relaxed">
+                {t('madeToOrder.step2Desc')}
+              </p>
+            </div>
+            
+            <div className="group text-center relative">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-500/30 rounded-2xl flex items-center justify-center mx-auto group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300 group-hover:scale-110">
+                  <span className="text-2xl font-black text-purple-400">4</span>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">{t('madeToOrder.step4')}</h3>
+              <p className="text-gray-400 leading-relaxed">
+                {t('madeToOrder.step4Desc')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="py-20 px-4 bg-gradient-to-br from-gray-900 via-black to-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-40" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}></div>
+        <div className="relative max-w-6xl mx-auto text-center">
+          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
+            <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+            <span className="text-white text-sm font-medium">Ready to Start?</span>
+          </div>
+          
+          <h2 className="text-5xl md:text-6xl font-black text-white mb-6 tracking-tight">
+            {t('madeToOrder.readyToCreate')}
+          </h2>
+          
+          <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Contact us now to discuss your special order and get started on your unique piece
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <button
+              onClick={openWhatsApp}
+              className="group bg-white hover:bg-gray-100 text-black px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl"
+            >
+              <MessageCircle className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
+              {t('madeToOrder.orderViaWhatsApp')}
+            </button>
+            
+            <button
+              onClick={() => {
+                const productsSection = document.getElementById('products');
+                if (productsSection) {
+                  productsSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.location.href = '/#products';
+                }
+              }}
+              className="group bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all duration-300 hover:scale-105"
+            >
+              <Package className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
+              {t('madeToOrder.viewCollection')}
+            </button>
+            
+            <button
+              onClick={() => window.location.href = '/'}
+              className="group bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all duration-300 hover:scale-105"
+            >
+              <Home className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
+              {t('madeToOrder.backToHome')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Order Form Modal */}
+      {showOrderForm && selectedProduct && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-black rounded-lg border border-gray-800 w-full max-w-2xl max-h-[95vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-lg font-bold text-white truncate pr-2">Commander: {selectedProduct.name}</h3>
+              <button
+                onClick={() => setShowOrderForm(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleOrderSubmit} className="p-4 space-y-4">
+              {/* Product Info */}
+              <div className="bg-gray-800 rounded-xl p-4">
+                <div className="flex items-center space-x-4">
+                  {selectedProduct.image && (
+                    <img
+                      src={selectedProduct.image}
+                      alt={selectedProduct.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  )}
+                  <div>
+                    <h4 className="text-white font-semibold">{selectedProduct.name}</h4>
+                    <p className="text-gray-400 text-sm">{selectedProduct.price} DZD</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">Nom complet *</label>
+                  <input
+                    type="text"
+                    required
+                    value={orderForm.customerName}
+                    onChange={(e) => setOrderForm({ ...orderForm, customerName: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                    placeholder="Votre nom complet"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">Téléphone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={orderForm.customerPhone}
+                    onChange={(e) => setOrderForm({ ...orderForm, customerPhone: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                    placeholder="+213 123 456 789"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={orderForm.customerEmail}
+                  onChange={(e) => setOrderForm({ ...orderForm, customerEmail: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                  placeholder="votre@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Adresse complète *</label>
+                <textarea
+                  required
+                  value={orderForm.customerAddress}
+                  onChange={(e) => setOrderForm({ ...orderForm, customerAddress: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                  rows={3}
+                  placeholder="Votre adresse complète"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Wilaya *</label>
+                <select
+                  required
+                  value={orderForm.wilayaId}
+                  onChange={(e) => {
+                    const wilaya = wilayaTariffs.find(w => w.id === parseInt(e.target.value) || w.wilaya_id === parseInt(e.target.value));
+                    setOrderForm({ 
+                      ...orderForm, 
+                      wilayaId: parseInt(e.target.value),
+                      wilayaName: wilaya?.name || ''
+                    });
+                  }}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                >
+                  <option value="">Sélectionnez votre wilaya</option>
+                  {wilayaTariffs.map((wilaya) => (
+                    <option key={wilaya.id || wilaya.wilaya_id} value={wilaya.id || wilaya.wilaya_id}>
+                      {wilaya.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Shipping Type Selection */}
+              {orderForm.wilayaId > 0 && (
+                <div>
+                  <label className="block text-white font-medium mb-2">Type de livraison *</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setOrderForm({ ...orderForm, shippingType: 'homeDelivery' })}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        orderForm.shippingType === 'homeDelivery'
+                          ? 'border-green-500 bg-green-500/20 text-green-400'
+                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <Truck className="w-8 h-8 mx-auto mb-2" />
+                        <div className="font-semibold">Domicile</div>
+                        <div className="text-sm">
+                          {(() => {
+                            const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+                            const cost = wilaya?.domicile_ecommerce || wilaya?.domicileEcommerce || wilaya?.home_delivery || wilaya?.homeDelivery || 0;
+                            return `${cost} DZD`;
+                          })()}
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setOrderForm({ ...orderForm, shippingType: 'stopDesk' })}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        orderForm.shippingType === 'stopDesk'
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <Package className="w-8 h-8 mx-auto mb-2" />
+                        <div className="font-semibold">Stop Desk</div>
+                        <div className="text-sm">
+                          {(() => {
+                            const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+                            const cost = wilaya?.stop_desk_ecommerce || wilaya?.stopDeskEcommerce || wilaya?.stop_desk || wilaya?.stopDesk || 0;
+                            return `${cost} DZD`;
+                          })()}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Product Customization */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">Taille *</label>
+                  <select
+                    required
+                    value={orderForm.selectedSize}
+                    onChange={(e) => setOrderForm({ ...orderForm, selectedSize: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                  >
+                    <option value="">Sélectionnez une taille</option>
+                    {selectedProduct.sizes.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Size Chart Button */}
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeChart(true)}
+                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      <Ruler className="w-4 h-4" />
+                      Voir le guide des tailles
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">Couleur *</label>
+                  <select
+                    required
+                    value={orderForm.selectedColor}
+                    onChange={(e) => setOrderForm({ ...orderForm, selectedColor: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                  >
+                    <option value="">Sélectionnez une couleur</option>
+                    {selectedProduct.colors.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Quantité</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={orderForm.quantity}
+                  onChange={(e) => setOrderForm({ ...orderForm, quantity: parseInt(e.target.value) || 1 })}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Notes spéciales</label>
+                <textarea
+                  value={orderForm.notes}
+                  onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
+                  rows={3}
+                  placeholder="Des instructions spéciales ou des détails sur votre commande..."
+                />
+              </div>
+
+              {/* Order Summary */}
+              <div className="bg-gray-800 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-3">Résumé de la commande</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Produit:</span>
+                    <span className="text-white">{selectedProduct.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Prix unitaire:</span>
+                    <span className="text-white">{selectedProduct.price} DZD</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Quantité:</span>
+                    <span className="text-white">{orderForm.quantity}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Sous-total:</span>
+                    <span className="text-white">{selectedProduct.price * orderForm.quantity} DZD</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Livraison ({orderForm.shippingType === 'homeDelivery' ? 'Domicile' : 'Stop Desk'}):</span>
+                    <span className="text-white">{getShippingCost()} DZD</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-700 pt-2">
+                    <span className="text-white font-semibold">Total:</span>
+                    <span className="text-white font-bold">{(selectedProduct.price * orderForm.quantity) + getShippingCost()} DZD</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-700 pt-2">
+                    <span className="text-white">Acompte (35%):</span>
+                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost()) * 0.35).toFixed(0)} DZD</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Important Notes */}
+              <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-2 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  Informations importantes
+                </h4>
+                <ul className="text-gray-300 text-sm space-y-1">
+                  <li>• Vous devez payer 50% du prix total comme acompte</li>
+                  <li>• Le délai de production est de 20-18 jours</li>
+                  <li>• Nous vous contacterons via WhatsApp pour finaliser la commande</li>
+                  <li>• Le solde restant sera payé à la livraison</li>
+                </ul>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowOrderForm(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                >
+                  {t('madeToOrder.cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={openWhatsAppWithOrder}
+                  className="bg-white hover:bg-gray-200 text-black px-4 py-2 rounded-lg font-medium flex items-center justify-center text-sm"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  {t('madeToOrder.orderViaWhatsApp')}
+                </button>
+                <button
+                  type="submit"
+                  className="bg-white hover:bg-gray-200 text-black px-4 py-2 rounded-lg font-medium flex items-center justify-center text-sm"
+                >
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  {t('madeToOrder.submitOrder')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Size Chart Modal */}
+      <SizeChart 
+        category={selectedProduct?.category || 'T-Shirts'} 
+        isOpen={showSizeChart} 
+        onClose={() => setShowSizeChart(false)}
+        customSizeChart={selectedProduct?.customSizeChart}
+        useCustomSizeChart={selectedProduct?.useCustomSizeChart}
+      />
+    </div>
+  );
+}
