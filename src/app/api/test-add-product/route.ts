@@ -34,7 +34,7 @@ export async function POST() {
       tags: ['test'],
       featured: false,
       sizeChartCategory: 'T-Shirts',
-      customSizeChart: null,
+      customSizeChart: undefined,
       useCustomSizeChart: false,
       createdAt: new Date(),
       updatedAt: new Date()
