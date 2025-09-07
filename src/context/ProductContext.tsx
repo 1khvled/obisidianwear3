@@ -5,6 +5,7 @@ import { Product } from '@/types';
 
 import { backendService } from '@/services/backendService';
 import { localStorageCache } from '@/lib/localStorageCache';
+import { clearProductsCache } from '@/lib/supabaseDatabase';
 
 interface ProductContextType {
   products: Product[];
@@ -83,6 +84,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     const newProduct = await backendService.addProduct(product);
     if (newProduct) {
       setProducts(prev => [...prev, newProduct]);
+      // Clear cache to ensure fresh data
+      clearProductsCache();
     }
   };
 
@@ -103,6 +106,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     const result = await backendService.updateProduct(id, syncedProduct);
     if (result) {
       setProducts(prev => prev.map(p => p.id === id ? result : p));
+      // Clear cache to ensure fresh data
+      clearProductsCache();
     }
   };
 
@@ -113,6 +118,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       if (success) {
         console.log('ProductContext: Product deleted successfully:', id);
         setProducts(prev => prev.filter(product => product.id !== id));
+        // Clear cache to ensure fresh data
+        clearProductsCache();
       } else {
         console.error('ProductContext: Failed to delete product:', id);
       }
