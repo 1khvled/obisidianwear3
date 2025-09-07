@@ -140,6 +140,14 @@ export async function getProduct(id: string): Promise<Product | null> {
 
 export async function addProduct(product: Product): Promise<Product> {
   try {
+    console.log('🔧 Supabase addProduct: Starting to add product:', product.id, product.name);
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.error('❌ Supabase: Client not initialized');
+      throw new Error('Supabase client not initialized');
+    }
+    
     // Convert camelCase to snake_case for database
     const dbProduct = {
       id: product.id,
@@ -167,14 +175,21 @@ export async function addProduct(product: Product): Promise<Product> {
       // created_at and updated_at are automatically set by the database
     };
 
+    console.log('🔧 Supabase addProduct: Database product object:', JSON.stringify(dbProduct, null, 2));
+    console.log('🔧 Supabase addProduct: Attempting to insert into products table...');
+
     const { data, error } = await supabase
       .from('products')
       .insert([dbProduct])
       .select()
       .single();
     
+    console.log('🔧 Supabase addProduct: Insert result - data:', data);
+    console.log('🔧 Supabase addProduct: Insert result - error:', error);
+    
     if (error) {
-      console.error('Supabase addProduct error:', error);
+      console.error('❌ Supabase addProduct error:', error);
+      console.error('❌ Supabase addProduct error details:', JSON.stringify(error, null, 2));
       throw error;
     }
     
