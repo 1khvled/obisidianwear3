@@ -4,8 +4,10 @@ import { getWilayaTariffs, updateWilayaTariffs } from '@/lib/supabaseDatabase';
 // GET /api/wilaya - Get all wilaya tariffs
 export async function GET() {
   try {
+    console.log('🔧 Wilaya API: GET request received');
     const wilayaTariffs = await getWilayaTariffs();
-    console.log('Wilaya API: GET request - returning', wilayaTariffs.length, 'wilaya tariffs');
+    console.log('🔧 Wilaya API: Retrieved', wilayaTariffs.length, 'wilaya tariffs from database');
+    console.log('🔧 Wilaya API: Sample tariff:', wilayaTariffs[0]);
     return NextResponse.json({
       success: true,
       data: wilayaTariffs,
@@ -13,7 +15,7 @@ export async function GET() {
       timestamp: Date.now()
     });
   } catch (error) {
-    console.error('Wilaya API: GET error:', error);
+    console.error('❌ Wilaya API: GET error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch wilaya tariffs' },
       { status: 500 }

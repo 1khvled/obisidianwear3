@@ -136,12 +136,16 @@ export default function AdminPage() {
           setLoading(true);
           
         // Load wilaya tariffs
+        console.log('🔧 Loading wilaya tariffs...');
         const savedWilayaTariffs = await backendService.getWilayaTariffs();
+        console.log('🔧 Loaded wilaya tariffs:', savedWilayaTariffs.length);
         if (savedWilayaTariffs.length > 0) {
           setWilayaTariffs(savedWilayaTariffs);
+          console.log('✅ Using saved wilaya tariffs');
         } else {
+          console.log('⚠️ No saved wilaya tariffs, using defaults');
           setWilayaTariffs(sortedWilayas);
-          backendService.updateWilayaTariffs(sortedWilayas);
+          await backendService.updateWilayaTariffs(sortedWilayas);
         }
 
           // Load orders
