@@ -82,10 +82,23 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addProduct = async (product: Product) => {
-    const newProduct = await backendService.addProduct(product);
-    if (newProduct) {
-      // Refresh products to get the latest data from server
-      await refreshProducts();
+    console.log('🔧 ProductContext: addProduct called with:', product);
+    
+    try {
+      console.log('🔧 ProductContext: Calling backendService.addProduct...');
+      const newProduct = await backendService.addProduct(product);
+      console.log('🔧 ProductContext: backendService.addProduct result:', newProduct);
+      
+      if (newProduct) {
+        console.log('🔧 ProductContext: Product added successfully, refreshing...');
+        // Refresh products to get the latest data from server
+        await refreshProducts();
+        console.log('✅ ProductContext: Product added and refreshed successfully');
+      } else {
+        console.error('❌ ProductContext: backendService.addProduct returned null');
+      }
+    } catch (error) {
+      console.error('❌ ProductContext: Error in addProduct:', error);
     }
   };
 

@@ -26,6 +26,7 @@ class BackendService {
   // Get authentication headers for protected API calls
   private getAuthHeaders(): HeadersInit {
     const token = process.env.NEXT_PUBLIC_API_AUTH_TOKEN || 'obsidian-api-token-2025';
+    console.log('🔧 BackendService: Using auth token:', token);
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -83,23 +84,31 @@ class BackendService {
 
   async addProduct(product: Omit<Product, 'id'>): Promise<Product | null> {
     try {
+      console.log('🔧 BackendService: addProduct called with:', product);
+      console.log('🔧 BackendService: API URL:', this.getApiUrl('/products'));
+      console.log('🔧 BackendService: Auth headers:', this.getAuthHeaders());
+      
       const response = await fetch(this.getApiUrl('/products'), {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify(product)
       });
       
+      console.log('🔧 BackendService: Response status:', response.status);
+      console.log('🔧 BackendService: Response ok:', response.ok);
+      
       const result = await response.json();
+      console.log('🔧 BackendService: Response data:', result);
       
       if (result.success) {
-        console.log('BackendService: Created product:', result.data.id);
+        console.log('✅ BackendService: Created product:', result.data.id);
         return result.data;
       } else {
-        console.error('BackendService: Failed to create product:', result.error);
+        console.error('❌ BackendService: Failed to create product:', result.error);
         return null;
       }
     } catch (error) {
-      console.error('BackendService: Error creating product:', error);
+      console.error('❌ BackendService: Error creating product:', error);
       return null;
     }
   }

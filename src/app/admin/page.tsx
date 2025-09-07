@@ -173,12 +173,16 @@ export default function AdminPage() {
     return <AdminLogin />;
   }
   const handleAddProduct = async () => {
+    console.log('🔧 handleAddProduct called with:', newProduct);
+    
     if (!newProduct.name || !newProduct.price) {
-      console.error('Product name and price are required');
+      console.error('❌ Product name and price are required');
+      alert('Product name and price are required');
       return;
     }
 
     try {
+      console.log('🔧 Creating product object...');
       const product: Product = {
         id: Date.now().toString(),
         name: newProduct.name!,
@@ -208,8 +212,11 @@ export default function AdminPage() {
         updatedAt: new Date()
       };
 
+      console.log('🔧 Product object created:', product);
+      console.log('🔧 Calling addProductContext...');
+      
       await addProductContext(product);
-      console.log(`"${product.name}" has been added successfully!`);
+      console.log(`✅ "${product.name}" has been added successfully!`);
       
       // Reset form
       setNewProduct({
