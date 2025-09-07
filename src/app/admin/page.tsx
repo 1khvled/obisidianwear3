@@ -58,7 +58,7 @@ import DataSyncIndicator from '@/components/DataSyncIndicator';
 export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
-  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
+  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts, refreshProducts } = useProducts();
   
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -469,6 +469,24 @@ export default function AdminPage() {
         
         {activeTab === 'products' && (
           <div className="p-4 sm:p-6">
+            {/* Refresh Button */}
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Products Management</h2>
+              <button
+                onClick={async () => {
+                  setProductsLoading(true);
+                  await refreshProducts();
+                  setProductsLoading(false);
+                }}
+                className="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Products
+              </button>
+            </div>
+            
             {productsLoading ? (
               <ProductListSkeleton count={8} />
             ) : (

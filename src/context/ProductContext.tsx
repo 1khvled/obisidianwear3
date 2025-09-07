@@ -15,6 +15,7 @@ interface ProductContextType {
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
   initializeDefaultProducts: () => void;
+  refreshProducts: () => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -83,9 +84,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const addProduct = async (product: Product) => {
     const newProduct = await backendService.addProduct(product);
     if (newProduct) {
-      setProducts(prev => [...prev, newProduct]);
-      // Clear cache to ensure fresh data
-      clearProductsCache();
+      // Refresh products to get the latest data from server
+      await refreshProducts();
     }
   };
 
@@ -105,9 +105,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     
     const result = await backendService.updateProduct(id, syncedProduct);
     if (result) {
-      setProducts(prev => prev.map(p => p.id === id ? result : p));
-      // Clear cache to ensure fresh data
-      clearProductsCache();
+      // Refresh products to get the latest data from server
+      await refreshProducts();
     }
   };
 
@@ -117,9 +116,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       const success = await backendService.deleteProduct(id);
       if (success) {
         console.log('ProductContext: Product deleted successfully:', id);
-        setProducts(prev => prev.filter(product => product.id !== id));
-        // Clear cache to ensure fresh data
-        clearProductsCache();
+        // Refresh products to get the latest data from server
+        await refreshProducts();
       } else {
         console.error('ProductContext: Failed to delete product:', id);
       }
@@ -130,6 +128,35 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
   const getProduct = (id: string) => {
     return products.find(product => product.id === id);
+  };
+
+  const refreshProducts = async () => {
+    try {
+      console.log('ProductContext: Refreshing products from server...');
+      
+      // Clear all caches
+      clearProductsCache();
+      localStorageCache.clearCache();
+      
+      // Fetch fresh data from server
+      const freshProducts = await backendService.getProducts();
+      console.log('ProductContext: Refreshed products from server:', freshProducts.length);
+      
+      // Update state
+      setProducts(freshProducts);
+      
+      // Cache the fresh data
+      localStorageCache.setCache({ products: freshProducts });
+      
+      // Dispatch event to notify other components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('data-sync', { 
+          detail: { products: freshProducts } 
+        }));
+      }
+    } catch (error) {
+      console.error('ProductContext: Error refreshing products:', error);
+    }
   };
 
   const initializeDefaultProducts = async () => {
@@ -200,14 +227,15 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ProductContext.Provider value={{
-      products,
-      setProducts,
-      addProduct,
-      updateProduct,
-      deleteProduct,
+    <ProductContext.Provider value={{ 
+      products, 
+      setProducts, 
+      addProduct, 
+      updateProduct, 
+      deleteProduct, 
       getProduct,
-      initializeDefaultProducts
+      initializeDefaultProducts,
+      refreshProducts
     }}>
       {children}
     </ProductContext.Provider>
