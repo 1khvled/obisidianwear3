@@ -57,6 +57,9 @@ export const PUT = withAuth(async (
     const { id } = params;
     const updateData = await request.json();
     
+    console.log('🔧 Products API: PUT request received for product:', id);
+    console.log('🔧 Update data:', JSON.stringify(updateData, null, 2));
+    
     // Check if Supabase is available
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       console.error('Products API: Missing Supabase environment variables');
@@ -72,13 +75,15 @@ export const PUT = withAuth(async (
     });
     
     if (!updatedProduct) {
+      console.error('Products API: Product not found or update failed:', id);
       return NextResponse.json(
         { success: false, error: 'Product not found' },
         { status: 404 }
       );
     }
     
-    console.log('Products API: PUT request - updated product:', id);
+    console.log('✅ Products API: PUT request - updated product successfully:', id);
+    console.log('✅ Updated product data:', JSON.stringify(updatedProduct, null, 2));
     
     return NextResponse.json({
       success: true,
@@ -87,7 +92,7 @@ export const PUT = withAuth(async (
       timestamp: Date.now()
     });
   } catch (error) {
-    console.error('Products API: PUT error:', error);
+    console.error('❌ Products API: PUT error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update product' },
       { status: 500 }

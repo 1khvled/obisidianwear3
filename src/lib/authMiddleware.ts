@@ -14,7 +14,7 @@ export function authenticateRequest(request: NextRequest): boolean {
   const token = authHeader.substring(7);
   
   // Simple token validation (in production, use JWT or proper session validation)
-  const expectedToken = process.env.API_AUTH_TOKEN || 'obsidian-api-token-2025';
+  const expectedToken = process.env.NEXT_PUBLIC_API_AUTH_TOKEN || 'obsidian-api-token-2025';
   
   return token === expectedToken;
 }
@@ -70,5 +70,5 @@ export function withAuth(handler: Function) {
 
 // Generate API token for admin
 export function generateApiToken(): string {
-  return process.env.API_AUTH_TOKEN || 'obsidian-api-token-2025';
+  return process.env.NEXT_PUBLIC_API_AUTH_TOKEN || 'obsidian-api-token-2025';
 }
