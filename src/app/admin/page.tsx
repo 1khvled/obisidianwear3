@@ -1343,18 +1343,51 @@ Payment Status: ${order.paymentStatus}
                 </select>
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Image URL
+                  Product Image
                 </label>
-                <input
-                  type="url"
-                  value={newProduct.image || ''}
-                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setNewProduct({ ...newProduct, image: event.target?.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 cursor-pointer transition-colors"
+                  >
+                    Choose Image
+                  </label>
+                  {newProduct.image && (
+                    <div className="flex items-center space-x-2">
+                      <img
+                        src={newProduct.image}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({ ...newProduct, image: '' })}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}

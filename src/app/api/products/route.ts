@@ -28,13 +28,16 @@ export async function GET() {
 }
 
 // POST /api/products - Create new product (PROTECTED)
-export const POST = withAuth(async (request: NextRequest) => {
+export async function POST(request: NextRequest) {
   try {
+    console.log('🔧 Products API: POST request received');
     const productData = await request.json();
+    console.log('🔧 Products API: Product data:', JSON.stringify(productData, null, 2));
     
     // Validate required fields
     const validation = ValidationUtils.validateRequired(productData, ['name', 'price']);
     if (!validation.isValid) {
+      console.error('❌ Products API: Validation failed:', validation.missingFields);
       return NextResponse.json(
         { success: false, error: `Missing required fields: ${validation.missingFields.join(', ')}` },
         { status: 400 }
@@ -84,4 +87,4 @@ export const POST = withAuth(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-});
+}
