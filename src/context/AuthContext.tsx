@@ -11,11 +11,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Admin credentials from environment variables
-const ADMIN_CREDENTIALS = {
-  username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin',
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123',
-};
+// Admin credentials are now handled server-side via API
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,22 +31,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (username: string, password: string): boolean => {
-    // Simple authentication check
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-      setIsAuthenticated(true);
-      setUsername(username);
-      
-      if (typeof window !== 'undefined') {
-        // Store minimal data in localStorage (no sensitive info)
-        localStorage.setItem('obsidian-admin-auth', 'true');
-        localStorage.setItem('obsidian-admin-username', username);
-        // Don't store password or tokens in localStorage
-      }
-      
-      return true;
+    // This function is now called after successful API authentication
+    // The actual authentication happens in the AdminLogin component via API call
+    setIsAuthenticated(true);
+    setUsername(username);
+    
+    if (typeof window !== 'undefined') {
+      // Store minimal data in localStorage (no sensitive info)
+      localStorage.setItem('obsidian-admin-auth', 'true');
+      localStorage.setItem('obsidian-admin-username', username);
+      // Don't store password or tokens in localStorage
     }
     
-    return false;
+    return true;
   };
 
   const logout = () => {
