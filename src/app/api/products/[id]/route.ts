@@ -97,7 +97,7 @@ export async function PUT(
       { status: 500 }
     );
   }
-});
+}
 
 // DELETE /api/products/[id] - Delete product
 export async function DELETE(
