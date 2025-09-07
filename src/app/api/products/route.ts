@@ -95,8 +95,17 @@ export async function POST(request: NextRequest) {
       });
     } catch (addProductError) {
       console.error('❌ Products API: addProduct threw error:', addProductError);
+      console.error('❌ Products API: Error type:', typeof addProductError);
+      console.error('❌ Products API: Error stack:', addProductError instanceof Error ? addProductError.stack : 'No stack');
+      
       return NextResponse.json(
-        { success: false, error: 'Failed to create product', details: addProductError instanceof Error ? addProductError.message : 'Unknown error' },
+        { 
+          success: false, 
+          error: 'Failed to create product', 
+          details: addProductError instanceof Error ? addProductError.message : 'Unknown error',
+          errorType: typeof addProductError,
+          fullError: JSON.stringify(addProductError, null, 2)
+        },
         { status: 500 }
       );
     }

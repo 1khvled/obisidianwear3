@@ -190,7 +190,10 @@ export async function addProduct(product: Product): Promise<Product> {
     if (error) {
       console.error('❌ Supabase addProduct error:', error);
       console.error('❌ Supabase addProduct error details:', JSON.stringify(error, null, 2));
-      throw error;
+      console.error('❌ Supabase addProduct error code:', error.code);
+      console.error('❌ Supabase addProduct error message:', error.message);
+      console.error('❌ Supabase addProduct error hint:', error.hint);
+      throw new Error(`Supabase insert failed: ${error.message} (Code: ${error.code})`);
     }
     
     console.log('Supabase: Added product:', product.id);
