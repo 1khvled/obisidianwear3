@@ -57,8 +57,8 @@ export default function AdminPage() {
     category: '',
     image: '',
     images: [],
-    availableSizes: [],
-    availableColors: [],
+    sizes: [],
+    colors: [],
     allowCustomText: false,
     allowCustomDesign: false,
     sizeChart: null,
@@ -75,8 +75,8 @@ export default function AdminPage() {
     image: '',
     stock: {},
     images: [],
-    availableSizes: [],
-    availableColors: [],
+    sizes: [],
+    colors: [],
     sizeChart: null,
     isActive: true
   });
@@ -156,8 +156,8 @@ export default function AdminPage() {
         image: editingProduct.image || '',
         stock: editingProduct.stock || {},
         images: editingProduct.images || [],
-        availableSizes: editingProduct.availableSizes || [],
-        availableColors: editingProduct.availableColors || [],
+        sizes: editingProduct.sizes || [],
+        colors: editingProduct.colors || [],
         sizeChart: editingProduct.sizeChart || null,
         isActive: editingProduct.isActive !== undefined ? editingProduct.isActive : true
       });
@@ -251,8 +251,8 @@ export default function AdminPage() {
         category: newMadeToOrderProduct.category,
         image: newMadeToOrderProduct.image || '',
         images: newMadeToOrderProduct.images || [],
-        colors: newMadeToOrderProduct.availableColors || ['Noir'],
-        sizes: newMadeToOrderProduct.availableSizes || ['S', 'M', 'L', 'XL'],
+        colors: newMadeToOrderProduct.colors || ['Noir'],
+        sizes: newMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'],
         tags: [],
         displayOrder: 0,
         isActive: newMadeToOrderProduct.isActive
@@ -284,8 +284,8 @@ export default function AdminPage() {
           category: '',
           image: '',
           images: [],
-          availableSizes: [],
-          availableColors: [],
+          sizes: [],
+          colors: [],
           allowCustomText: false,
           allowCustomDesign: false,
           sizeChart: null,
@@ -894,19 +894,19 @@ export default function AdminPage() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">Available Sizes</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          {(editingMadeToOrderProduct?.availableSizes || newMadeToOrderProduct.availableSizes || []).map((size, index) => (
+                          {(editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || []).map((size, index) => (
                             <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                               <span className="text-sm text-gray-300 mr-2">{size}</span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const currentSizes = editingMadeToOrderProduct?.availableSizes || newMadeToOrderProduct.availableSizes || [];
+                                  const currentSizes = editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || [];
                                   const newSizes = currentSizes.filter((_, i) => i !== index);
                                   
                                   if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableSizes: newSizes});
+                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizes: newSizes});
                                   } else {
-                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, availableSizes: newSizes});
+                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, sizes: newSizes});
                                   }
                                 }}
                                 className="text-red-400 hover:text-red-300 text-xs"
@@ -927,14 +927,14 @@ export default function AdminPage() {
                                 const input = e.target as HTMLInputElement;
                                 const newSize = input.value.trim();
                                 if (newSize) {
-                                  const currentSizes = editingMadeToOrderProduct?.availableSizes || newMadeToOrderProduct.availableSizes || [];
+                                  const currentSizes = editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || [];
                                   if (!currentSizes.includes(newSize)) {
                                     const newSizes = [...currentSizes, newSize];
                                     
                                     if (editingMadeToOrderProduct) {
-                                      setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableSizes: newSizes});
+                                      setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizes: newSizes});
                                     } else {
-                                      setNewMadeToOrderProduct({...newMadeToOrderProduct, availableSizes: newSizes});
+                                      setNewMadeToOrderProduct({...newMadeToOrderProduct, sizes: newSizes});
                                     }
                                   }
                                   input.value = '';
@@ -948,14 +948,14 @@ export default function AdminPage() {
                               const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement;
                               const newSize = input.value.trim();
                               if (newSize) {
-                                const currentSizes = editingMadeToOrderProduct?.availableSizes || newMadeToOrderProduct.availableSizes || [];
+                                const currentSizes = editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || [];
                                 if (!currentSizes.includes(newSize)) {
                                   const newSizes = [...currentSizes, newSize];
                                   
                                   if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableSizes: newSizes});
+                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizes: newSizes});
                                   } else {
-                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, availableSizes: newSizes});
+                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, sizes: newSizes});
                                   }
                                 }
                                 input.value = '';
@@ -974,19 +974,19 @@ export default function AdminPage() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">Available Colors</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          {(editingMadeToOrderProduct?.availableColors || newMadeToOrderProduct.availableColors || []).map((color, index) => (
+                          {(editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || []).map((color, index) => (
                             <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                               <span className="text-sm text-gray-300 mr-2">{color}</span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const currentColors = editingMadeToOrderProduct?.availableColors || newMadeToOrderProduct.availableColors || [];
+                                  const currentColors = editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || [];
                                   const newColors = currentColors.filter((_, i) => i !== index);
                                   
                                   if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableColors: newColors});
+                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, colors: newColors});
                                   } else {
-                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, availableColors: newColors});
+                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, colors: newColors});
                                   }
                                 }}
                                 className="text-red-400 hover:text-red-300 text-xs"
@@ -1007,14 +1007,14 @@ export default function AdminPage() {
                                 const input = e.target as HTMLInputElement;
                                 const newColor = input.value.trim();
                                 if (newColor) {
-                                  const currentColors = editingMadeToOrderProduct?.availableColors || newMadeToOrderProduct.availableColors || [];
+                                  const currentColors = editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || [];
                                   if (!currentColors.includes(newColor)) {
                                     const newColors = [...currentColors, newColor];
                                     
                                     if (editingMadeToOrderProduct) {
-                                      setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableColors: newColors});
+                                      setEditingMadeToOrderProduct({...editingMadeToOrderProduct, colors: newColors});
                                     } else {
-                                      setNewMadeToOrderProduct({...newMadeToOrderProduct, availableColors: newColors});
+                                      setNewMadeToOrderProduct({...newMadeToOrderProduct, colors: newColors});
                                     }
                                   }
                                   input.value = '';
@@ -1028,14 +1028,14 @@ export default function AdminPage() {
                               const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement;
                               const newColor = input.value.trim();
                               if (newColor) {
-                                const currentColors = editingMadeToOrderProduct?.availableColors || newMadeToOrderProduct.availableColors || [];
+                                const currentColors = editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || [];
                                 if (!currentColors.includes(newColor)) {
                                   const newColors = [...currentColors, newColor];
                                   
                                   if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, availableColors: newColors});
+                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, colors: newColors});
                                   } else {
-                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, availableColors: newColors});
+                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, colors: newColors});
                                   }
                                 }
                                 input.value = '';
@@ -1103,8 +1103,8 @@ export default function AdminPage() {
                             category: '',
                             image: '',
                             images: [],
-                            availableSizes: [],
-                            availableColors: [],
+                            sizes: [],
+                            colors: [],
                             allowCustomText: false,
                             allowCustomDesign: false,
                             sizeChart: null,
@@ -1585,15 +1585,15 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Available Sizes</label>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {(newProduct.availableSizes || []).map((size, index) => (
+                    {(newProduct.sizes || []).map((size, index) => (
                       <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                         <span className="text-sm text-gray-300 mr-2">{size}</span>
                         <button
                           type="button"
                           onClick={() => {
-                            const currentSizes = newProduct.availableSizes || [];
+                            const currentSizes = newProduct.sizes || [];
                             const newSizes = currentSizes.filter((_, i) => i !== index);
-                            setNewProduct(prev => ({ ...prev, availableSizes: newSizes }));
+                            setNewProduct(prev => ({ ...prev, sizes: newSizes }));
                           }}
                           className="text-red-400 hover:text-red-300 text-xs"
                         >
@@ -1613,9 +1613,9 @@ export default function AdminPage() {
                           const input = e.target as HTMLInputElement;
                           const newSize = input.value.trim();
                           if (newSize) {
-                            const currentSizes = newProduct.availableSizes || [];
+                            const currentSizes = newProduct.sizes || [];
                             if (!currentSizes.includes(newSize)) {
-                              setNewProduct(prev => ({ ...prev, availableSizes: [...currentSizes, newSize] }));
+                              setNewProduct(prev => ({ ...prev, sizes: [...currentSizes, newSize] }));
                             }
                             input.value = '';
                           }
@@ -1628,9 +1628,9 @@ export default function AdminPage() {
                         const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement;
                         const newSize = input.value.trim();
                         if (newSize) {
-                          const currentSizes = newProduct.availableSizes || [];
+                          const currentSizes = newProduct.sizes || [];
                           if (!currentSizes.includes(newSize)) {
-                            setNewProduct(prev => ({ ...prev, availableSizes: [...currentSizes, newSize] }));
+                            setNewProduct(prev => ({ ...prev, sizes: [...currentSizes, newSize] }));
                           }
                           input.value = '';
                         }
@@ -1648,15 +1648,15 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Available Colors</label>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {(newProduct.availableColors || []).map((color, index) => (
+                    {(newProduct.colors || []).map((color, index) => (
                       <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                         <span className="text-sm text-gray-300 mr-2">{color}</span>
                         <button
                           type="button"
                           onClick={() => {
-                            const currentColors = newProduct.availableColors || [];
+                            const currentColors = newProduct.colors || [];
                             const newColors = currentColors.filter((_, i) => i !== index);
-                            setNewProduct(prev => ({ ...prev, availableColors: newColors }));
+                            setNewProduct(prev => ({ ...prev, colors: newColors }));
                           }}
                           className="text-red-400 hover:text-red-300 text-xs"
                         >
@@ -1676,9 +1676,9 @@ export default function AdminPage() {
                           const input = e.target as HTMLInputElement;
                           const newColor = input.value.trim();
                           if (newColor) {
-                            const currentColors = newProduct.availableColors || [];
+                            const currentColors = newProduct.colors || [];
                             if (!currentColors.includes(newColor)) {
-                              setNewProduct(prev => ({ ...prev, availableColors: [...currentColors, newColor] }));
+                              setNewProduct(prev => ({ ...prev, colors: [...currentColors, newColor] }));
                             }
                             input.value = '';
                           }
@@ -1691,9 +1691,9 @@ export default function AdminPage() {
                         const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement;
                         const newColor = input.value.trim();
                         if (newColor) {
-                          const currentColors = newProduct.availableColors || [];
+                          const currentColors = newProduct.colors || [];
                           if (!currentColors.includes(newColor)) {
-                            setNewProduct(prev => ({ ...prev, availableColors: [...currentColors, newColor] }));
+                            setNewProduct(prev => ({ ...prev, colors: [...currentColors, newColor] }));
                           }
                           input.value = '';
                         }
@@ -1721,8 +1721,8 @@ export default function AdminPage() {
                       image: '',
                       stock: {},
                       images: [],
-                      availableSizes: [],
-                      availableColors: [],
+                      sizes: [],
+                      colors: [],
                       sizeChart: null,
                       isActive: true
                     });
