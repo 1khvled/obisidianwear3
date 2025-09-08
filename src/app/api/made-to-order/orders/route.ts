@@ -10,8 +10,12 @@ export async function GET() {
       .select(`
         *,
         made_to_order_products (
+          id,
           name,
-          image
+          image,
+          images,
+          description,
+          price
         )
       `)
       .order('order_date', { ascending: false });
@@ -67,8 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     const totalPrice = unitPrice * quantity;
-    const depositAmount = totalPrice * 0.35; // 35% deposit
-    const remainingAmount = totalPrice * 0.65; // 65% remaining
+    const depositAmount = totalPrice * 0.50; // 50% deposit
+    const remainingAmount = totalPrice * 0.50; // 50% remaining
 
     const orderData = {
       product_id: productId,
@@ -188,6 +192,32 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in made-to-order orders PUT:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('made_to_order_orders')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting made-to-order order:', error);
+      return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Error in made-to-order orders DELETE:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

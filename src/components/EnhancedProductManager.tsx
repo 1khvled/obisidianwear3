@@ -24,19 +24,19 @@ import Button from './ui/Button';
 import Modal from './ui/Modal';
 
 interface EnhancedProductManagerProps {
-  products: Product[];
-  onAddProduct: () => void;
-  onEditProduct: (product: Product) => void;
-  onDeleteProduct: (id: string) => void;
-  onViewProduct: (product: Product) => void;
+  products?: Product[];
+  onAddProduct?: () => void;
+  onEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (id: string) => void;
+  onViewProduct?: (product: Product) => void;
 }
 
 export default function EnhancedProductManager({ 
-  products, 
-  onAddProduct, 
-  onEditProduct, 
-  onDeleteProduct,
-  onViewProduct 
+  products = [], 
+  onAddProduct = () => {}, 
+  onEditProduct = () => {}, 
+  onDeleteProduct = () => {},
+  onViewProduct = () => {}
 }: EnhancedProductManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -49,13 +49,13 @@ export default function EnhancedProductManager({
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   // Get unique categories
-  const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
+  const categories = ['All', ...Array.from(new Set((products || []).map(p => p.category)))];
   
   // Filter and sort products
-  const filteredProducts = products
+  const filteredProducts = (products || [])
     .filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
@@ -234,8 +234,8 @@ export default function EnhancedProductManager({
               <div key={product.id} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-all duration-200 group">
                 <div className="relative">
                   <img
-                    src={product.image}
-                    alt={product.name}
+                    src={product.image || '/placeholder-product.jpg'}
+                    alt={product.name || 'Product'}
                     className="w-full h-48 object-cover"
                   />
                   <div className="absolute top-2 left-2">
@@ -269,7 +269,7 @@ export default function EnhancedProductManager({
                 </div>
                 
                 <div className="p-4">
-                  <h3 className="font-semibold text-white mb-2 line-clamp-2">{product.name}</h3>
+                  <h3 className="font-semibold text-white mb-2 line-clamp-2">{product.name || 'Unnamed Product'}</h3>
                   
                   <div className="flex items-center gap-1 mb-2">
                     {[...Array(5)].map((_, i) => (
@@ -291,7 +291,7 @@ export default function EnhancedProductManager({
                   </div>
                   
                   <div className="text-sm text-gray-400">
-                    <div>Category: {product.category}</div>
+                    <div>Category: {product.category || 'Uncategorized'}</div>
                     <div>Stock: {stockInfo.total} units</div>
                   </div>
                 </div>
@@ -308,16 +308,16 @@ export default function EnhancedProductManager({
                   />
                   
                   <img
-                    src={product.image}
-                    alt={product.name}
+                    src={product.image || '/placeholder-product.jpg'}
+                    alt={product.name || 'Product'}
                     className="w-16 h-16 object-cover rounded"
                   />
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{product.name}</h3>
-                    <p className="text-gray-400 text-sm truncate">{product.description}</p>
+                    <h3 className="font-semibold text-white truncate">{product.name || 'Unnamed Product'}</h3>
+                    <p className="text-gray-400 text-sm truncate">{product.description || 'No description'}</p>
                     <div className="flex items-center gap-4 mt-1">
-                      <span className="text-sm text-gray-400">{product.category}</span>
+                      <span className="text-sm text-gray-400">{product.category || 'Uncategorized'}</span>
                       <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (
                           <Star

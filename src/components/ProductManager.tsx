@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { useProducts } from '@/context/ProductContext';
+import { useProducts } from '@/context/SmartProductProvider';
 import { Product } from '@/types';
 import ImageUpload from './ImageUpload';
 

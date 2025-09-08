@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS made_to_order_products (
   name VARCHAR(255) NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
-  image VARCHAR(500),
+  image TEXT,
   images TEXT[], -- Array of image URLs
   colors TEXT[] NOT NULL, -- Available colors
   sizes TEXT[] NOT NULL, -- Available sizes

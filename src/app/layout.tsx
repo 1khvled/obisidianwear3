@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
-import { ProductProvider } from '@/context/ProductContext'
+import { SmartProductProvider } from '@/context/SmartProductProvider'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
@@ -95,12 +95,12 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <LanguageProvider>
-              <ProductProvider>
+              <SmartProductProvider>
                 <CartProvider>
                   <StoreStatusChecker />
                   {children}
                 </CartProvider>
-              </ProductProvider>
+              </SmartProductProvider>
             </LanguageProvider>
           </AuthProvider>
         </ThemeProvider>

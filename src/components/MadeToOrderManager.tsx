@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   Plus, 
   Edit, 
@@ -49,6 +50,44 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
   const [newSize, setNewSize] = useState('');
   const [newTag, setNewTag] = useState('');
 
+  // Helper function to get the best image source
+  const getImageSrc = (product: MadeToOrderProduct) => {
+    if (product.image && product.image.length > 100) {
+      return product.image;
+    }
+    if (product.images && product.images.length > 0 && product.images[0].length > 100) {
+      return product.images[0];
+    }
+    return null;
+  };
+
+  // Helper function to get product info for orders
+  const getProductForOrder = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    console.log('🔍 Looking up product for order:', { productId, found: !!product, productsCount: products.length });
+    if (!product) {
+      console.warn('⚠️ Product not found for order:', productId, 'Available products:', products.map(p => p.id));
+    }
+    return product;
+  };
+
+  // Helper function to get product info from order data (if available)
+  const getProductFromOrder = (order: any) => {
+    // Check if order has embedded product data
+    if (order.made_to_order_products) {
+      return {
+        id: order.made_to_order_products.id,
+        name: order.made_to_order_products.name,
+        image: order.made_to_order_products.image,
+        images: order.made_to_order_products.images,
+        description: order.made_to_order_products.description,
+        price: order.made_to_order_products.price
+      };
+    }
+    // Fallback to lookup
+    return getProductForOrder(order.productId);
+  };
+
   // Load data
   useEffect(() => {
     loadData();
@@ -61,11 +100,28 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
       // Load products
       const productsResponse = await fetch('/api/made-to-order');
       const productsData = await productsResponse.json();
+      console.log('✅ Loaded made-to-order products in manager:', productsData.length);
+      console.log('🖼️ Product images in manager:', productsData.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        hasImage: !!p.image, 
+        imageLength: p.image?.length,
+        hasImages: !!(p.images && p.images.length > 0),
+        imagesLength: p.images?.length,
+        firstImageLength: p.images?.[0]?.length
+      })));
       setProducts(productsData);
 
       // Load orders
       const ordersResponse = await fetch('/api/made-to-order/orders');
       const ordersData = await ordersResponse.json();
+      console.log('✅ Loaded made-to-order orders in manager:', ordersData.length);
+      console.log('📦 Order product IDs:', ordersData.map(o => ({ orderId: o.id, productId: o.productId })));
+      console.log('🔍 Order data structure:', ordersData[0] ? {
+        hasProductData: !!ordersData[0].made_to_order_products,
+        productData: ordersData[0].made_to_order_products,
+        orderKeys: Object.keys(ordersData[0])
+      } : 'No orders');
       setOrders(ordersData);
     } catch (error) {
       console.error('Error loading made-to-order data:', error);
@@ -76,6 +132,7 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
 
   const handleAddProduct = async () => {
     try {
+      console.log('💾 Saving new product with image length:', newProduct.image?.length);
       const response = await fetch('/api/made-to-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,11 +141,13 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
 
       if (response.ok) {
         const createdProduct = await response.json();
+        console.log('✅ Product saved successfully:', createdProduct.id);
         setProducts([...products, createdProduct]);
         setShowAddProduct(false);
         resetForm();
         alert('Product added successfully!');
       } else {
+        console.error('❌ Failed to save product:', response.status);
         throw new Error('Failed to add product');
       }
     } catch (error) {
@@ -101,6 +160,7 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
     if (!editingProduct) return;
 
     try {
+      console.log('💾 Updating product with image length:', editingProduct.image?.length);
       const response = await fetch('/api/made-to-order', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -109,10 +169,12 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
 
       if (response.ok) {
         const updatedProduct = await response.json();
+        console.log('✅ Product updated successfully:', updatedProduct.id);
         setProducts(products.map(p => p.id === editingProduct.id ? updatedProduct : p));
         setEditingProduct(null);
         alert('Product updated successfully!');
       } else {
+        console.error('❌ Failed to update product:', response.status);
         throw new Error('Failed to update product');
       }
     } catch (error) {
@@ -338,13 +400,27 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
                       </div>
                     </div>
 
-                    {product.image && (
+                    {getImageSrc(product) && (
                       <div className="mb-4">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
+                        {getImageSrc(product)?.startsWith('data:') ? (
+                          <img
+                            src={getImageSrc(product)!}
+                            alt={product.name}
+                            className="w-full h-32 object-cover rounded-lg"
+                            onLoad={() => console.log('✅ Image loaded in manager for product:', product.name)}
+                            onError={(e) => console.error('❌ Image failed to load in manager for product:', product.name, e)}
+                          />
+                        ) : (
+                          <Image
+                            src={getImageSrc(product)!}
+                            alt={product.name}
+                            width={400}
+                            height={300}
+                            className="w-full h-32 object-cover rounded-lg"
+                            onLoad={() => console.log('✅ Image loaded in manager for product:', product.name)}
+                            onError={(e) => console.error('❌ Image failed to load in manager for product:', product.name, e)}
+                          />
+                        )}
                       </div>
                     )}
 
@@ -414,7 +490,66 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
                             <div className="text-gray-400 text-xs">{order.customerPhone}</div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-white">{order.productId}</td>
+                        <td className="py-3 px-4">
+                          {(() => {
+                            // Show loading state if products are still loading
+                            if (loading) {
+                              return (
+                                <div className="text-gray-400">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                                    <span>Loading...</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            
+                            const product = getProductFromOrder(order);
+                            if (product) {
+                              return (
+                                <div className="flex items-center space-x-3">
+                                  {getImageSrc(product) && (
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                      {getImageSrc(product)?.startsWith('data:') ? (
+                                        <img
+                                          src={getImageSrc(product)!}
+                                          alt={product.name}
+                                          className="w-full h-full object-cover"
+                                          onLoad={() => console.log('✅ Order product image loaded:', product.name)}
+                                          onError={(e) => console.error('❌ Order product image failed to load:', product.name, e)}
+                                        />
+                                      ) : (
+                                        <Image
+                                          src={getImageSrc(product)!}
+                                          alt={product.name}
+                                          width={48}
+                                          height={48}
+                                          className="w-full h-full object-cover"
+                                          onLoad={() => console.log('✅ Order product image loaded:', product.name)}
+                                          onError={(e) => console.error('❌ Order product image failed to load:', product.name, e)}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="text-white font-medium">{product.name}</div>
+                                    <div className="text-gray-400 text-xs">ID: {order.productId}</div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="text-gray-400">
+                                <div className="flex items-center space-x-2">
+                                  <Package className="w-4 h-4" />
+                                  <span>Product not found</span>
+                                </div>
+                                <div className="text-xs mt-1">ID: {order.productId}</div>
+                                <div className="text-xs text-gray-500">Loading products...</div>
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="text-white">{order.selectedSize}</div>
                           <div className="text-gray-400 text-xs">{order.selectedColor}</div>
@@ -535,14 +670,74 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
               </div>
 
               <div>
-                <label className="block text-white font-medium mb-2">Image URL</label>
+                <label className="block text-white font-medium mb-2">Main Image</label>
                 <input
-                  type="url"
-                  value={newProduct.image || ''}
-                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
-                  placeholder="https://example.com/image.jpg"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const result = event.target?.result as string;
+                        console.log('📸 New product image uploaded, length:', result?.length);
+                        setNewProduct({ ...newProduct, image: result });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
                 />
+                {newProduct.image && (
+                  <div className="mt-2">
+                    <img src={newProduct.image} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                  </div>
+                )}
+              </div>
+
+              {/* Multiple Images */}
+              <div>
+                <label className="block text-white font-medium mb-2">Additional Images</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      const newImages: string[] = [];
+                      files.forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          newImages.push(event.target?.result as string);
+                          if (newImages.length === files.length) {
+                            setNewProduct({ ...newProduct, images: [...(newProduct.images || []), ...newImages] });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                />
+                {newProduct.images && newProduct.images.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {newProduct.images.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img src={img} alt={`Preview ${index + 1}`} className="w-16 h-16 object-cover rounded-lg" />
+                        <button
+                          onClick={() => {
+                            const updatedImages = newProduct.images?.filter((_, i) => i !== index) || [];
+                            setNewProduct({ ...newProduct, images: updatedImages });
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-700"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Colors */}
@@ -758,14 +953,74 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
               </div>
 
               <div>
-                <label className="block text-white font-medium mb-2">Image URL</label>
+                <label className="block text-white font-medium mb-2">Main Image</label>
                 <input
-                  type="url"
-                  value={editingProduct.image}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
-                  placeholder="https://example.com/image.jpg"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const result = event.target?.result as string;
+                          console.log('📸 Edit product image uploaded, length:', result?.length);
+                          setEditingProduct({ ...editingProduct, image: result });
+                        };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
                 />
+                {editingProduct.image && (
+                  <div className="mt-2">
+                    <img src={editingProduct.image} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                  </div>
+                )}
+              </div>
+
+              {/* Multiple Images */}
+              <div>
+                <label className="block text-white font-medium mb-2">Additional Images</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      const newImages: string[] = [];
+                      files.forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          newImages.push(event.target?.result as string);
+                          if (newImages.length === files.length) {
+                            setEditingProduct({ ...editingProduct, images: [...(editingProduct.images || []), ...newImages] });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                />
+                {editingProduct.images && editingProduct.images.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {editingProduct.images.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img src={img} alt={`Preview ${index + 1}`} className="w-16 h-16 object-cover rounded-lg" />
+                        <button
+                          onClick={() => {
+                            const updatedImages = editingProduct.images?.filter((_, i) => i !== index) || [];
+                            setEditingProduct({ ...editingProduct, images: updatedImages });
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-700"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Colors */}

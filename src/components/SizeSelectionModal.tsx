@@ -11,7 +11,7 @@ interface SizeSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBuy: (size: string, color: string, quantity: number) => void;
-  actionType?: 'addToCart' | 'buyNow';
+  actionType?: 'addToCart';
 }
 
 export default function SizeSelectionModal({ product, isOpen, onClose, onBuy, actionType = 'addToCart' }: SizeSelectionModalProps) {
@@ -57,28 +57,12 @@ export default function SizeSelectionModal({ product, isOpen, onClose, onBuy, ac
 
   const handleAction = () => {
     if (selectedSize && selectedColor && hasStockForSelection()) {
-      if (actionType === 'addToCart') {
-        // Add to cart ONLY - no redirect
-        addToCart(product, selectedSize, selectedColor, 1);
-        // Close modal
-        onClose();
-        // Show success message (optional)
-        console.log('Product added to cart successfully!');
-      } else if (actionType === 'buyNow') {
-        // Add to cart AND redirect to checkout
-        addToCart(product, selectedSize, selectedColor, 1);
-        // Close modal
-        onClose();
-        // Redirect to checkout with product data to avoid lookup delay
-        const productData = encodeURIComponent(JSON.stringify({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          category: product.category
-        }));
-        window.location.href = `/checkout?productId=${product.id}&size=${selectedSize}&color=${selectedColor}&quantity=1&productData=${productData}`;
-      }
+      // Add to cart ONLY - no redirect
+      addToCart(product, selectedSize, selectedColor, 1);
+      // Close modal
+      onClose();
+      // Show success message (optional)
+      console.log('Product added to cart successfully!');
     }
   };
 
@@ -196,7 +180,7 @@ export default function SizeSelectionModal({ product, isOpen, onClose, onBuy, ac
               className="flex-1 bg-white text-black py-3 px-4 rounded-lg font-bold hover:bg-gray-100 transition-all duration-200 disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg"
             >
               <ShoppingCart size={16} />
-              <span>{actionType === 'addToCart' ? 'Add to Cart' : 'Buy Now'}</span>
+              <span>Add to Cart</span>
             </button>
           </div>
         </div>

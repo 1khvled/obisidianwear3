@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -27,7 +27,9 @@ import {
   Home,
   Archive,
   RefreshCw,
-  CheckCircle
+  CheckCircle,
+  Clock,
+  Ruler
 } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminDashboard from '@/components/AdminDashboard';
@@ -40,12 +42,13 @@ import Analytics from '@/components/Analytics';
 import MaintenanceManager from '@/components/MaintenanceManager';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useProducts } from '@/context/ProductContext';
+import { useAdminProducts } from '@/context/ProductContext';
 import { useTheme } from '@/context/ThemeContext';
 import MobileAdminLayout from '@/components/MobileAdminLayout';
 import ProductSkeleton, { ProductListSkeleton, TableSkeleton } from '@/components/ProductSkeleton';
 import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
+import CustomSizeChartEditor from '@/components/CustomSizeChartEditor';
 import { sortedWilayas, Wilaya } from '@/data/wilayas';
 import { Product, Order, Customer } from '@/types';
 import { backendService } from '@/services/backendService';
@@ -54,7 +57,7 @@ import DataSyncIndicator from '@/components/DataSyncIndicator';
 export default function AdminPage() {
   const { isAuthenticated, logout, username } = useAuth();
   const { t } = useLanguage();
-  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts } = useProducts();
+  const { products, addProduct: addProductContext, updateProduct: updateProductContext, deleteProduct: deleteProductContext, initializeDefaultProducts, refreshProducts } = useAdminProducts();
   
   // State management
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -62,12 +65,31 @@ export default function AdminPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showCustomSizeChartEditor, setShowCustomSizeChartEditor] = useState(false);
   const [wilayaTariffs, setWilayaTariffs] = useState<Wilaya[]>(sortedWilayas);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [madeToOrderOrders, setMadeToOrderOrders] = useState<any[]>([]);
+  const [madeToOrderProducts, setMadeToOrderProducts] = useState<any[]>([]);
+  const [showAddMadeToOrderProduct, setShowAddMadeToOrderProduct] = useState(false);
+  const [editingMadeToOrderProduct, setEditingMadeToOrderProduct] = useState<any>(null);
+  const [newMadeToOrderProduct, setNewMadeToOrderProduct] = useState<any>({
+    name: '',
+    description: '',
+    price: 0,
+    image: '',
+    images: [],
+    colors: ['Noir'],
+    sizes: ['S', 'M', 'L', 'XL'],
+    category: 'Custom',
+    tags: [],
+    isActive: true,
+    displayOrder: 0
+  });
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [madeToOrderLoading, setMadeToOrderLoading] = useState(false);
   const [showInventoryManager, setShowInventoryManager] = useState(false);
   const [inventory, setInventory] = useState<any[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
@@ -130,12 +152,16 @@ export default function AdminPage() {
           setLoading(true);
           
         // Load wilaya tariffs
+        console.log('🔧 Loading wilaya tariffs...');
         const savedWilayaTariffs = await backendService.getWilayaTariffs();
+        console.log('🔧 Loaded wilaya tariffs:', savedWilayaTariffs.length);
         if (savedWilayaTariffs.length > 0) {
           setWilayaTariffs(savedWilayaTariffs);
+          console.log('✅ Using saved wilaya tariffs');
         } else {
+          console.log('⚠️ No saved wilaya tariffs, using defaults');
           setWilayaTariffs(sortedWilayas);
-          backendService.updateWilayaTariffs(sortedWilayas);
+          await backendService.updateWilayaTariffs(sortedWilayas);
         }
 
           // Load orders
@@ -150,6 +176,26 @@ export default function AdminPage() {
 
           // Load inventory
           await loadInventory();
+
+          // Load made-to-order data
+          setMadeToOrderLoading(true);
+          try {
+            // Load made-to-order products
+            const madeToOrderProductsResponse = await fetch('/api/made-to-order');
+            const madeToOrderProductsData = await madeToOrderProductsResponse.json();
+            console.log('🔧 Made-to-order products response:', madeToOrderProductsData);
+            console.log('🔧 Made-to-order products count:', Array.isArray(madeToOrderProductsData) ? madeToOrderProductsData.length : 'Not an array');
+            setMadeToOrderProducts(madeToOrderProductsData);
+
+            // Load made-to-order orders
+            const madeToOrderOrdersResponse = await fetch('/api/made-to-order/orders');
+            const madeToOrderOrdersData = await madeToOrderOrdersResponse.json();
+            setMadeToOrderOrders(madeToOrderOrdersData);
+          } catch (error) {
+            console.error('Error loading made-to-order data:', error);
+          } finally {
+            setMadeToOrderLoading(false);
+          }
         } catch (error) {
           console.error('Error loading data:', error);
         } finally {
@@ -166,13 +212,17 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return <AdminLogin />;
   }
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
+    console.log('🔧 handleAddProduct called with:', newProduct);
+    
     if (!newProduct.name || !newProduct.price) {
-      console.error('Product name and price are required');
+      console.error('❌ Product name and price are required');
+      alert('Product name and price are required');
       return;
     }
 
     try {
+      console.log('🔧 Creating product object...');
       const product: Product = {
         id: Date.now().toString(),
         name: newProduct.name!,
@@ -202,8 +252,11 @@ export default function AdminPage() {
         updatedAt: new Date()
       };
 
-      addProductContext(product);
-      console.log(`"${product.name}" has been added successfully!`);
+      console.log('🔧 Product object created:', product);
+      console.log('🔧 Calling addProductContext...');
+      
+      await addProductContext(product);
+      console.log(`✅ "${product.name}" has been added successfully!`);
       
       // Reset form
       setNewProduct({
@@ -258,6 +311,18 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveCustomSizeChart = (customSizeChart: any) => {
+    if (!editingProduct) return;
+    
+    console.log('Saving custom size chart:', customSizeChart);
+    setEditingProduct({
+      ...editingProduct,
+      customSizeChart,
+      useCustomSizeChart: true
+    });
+    setShowCustomSizeChartEditor(false);
+  };
+
   const handleDeleteProduct = (id: string) => {
     const product = products.find(p => p.id === id);
     const productName = product?.name || 'Unknown Product';
@@ -270,6 +335,202 @@ export default function AdminPage() {
         console.error('Failed to delete product. Please try again.');
         console.error('Error deleting product:', error);
       }
+    }
+  };
+
+  // Made-to-Order Product Management Functions
+  const handleAddMadeToOrderProduct = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    try {
+      console.log('🔧 Adding made-to-order product:', newMadeToOrderProduct);
+      
+      // Validate required fields
+      if (!newMadeToOrderProduct.name || !newMadeToOrderProduct.price) {
+        alert('Product name and price are required');
+        return;
+      }
+
+      // Ensure colors and sizes are arrays
+      const productData = {
+        ...newMadeToOrderProduct,
+        colors: Array.isArray(newMadeToOrderProduct.colors) ? newMadeToOrderProduct.colors : ['Noir'],
+        sizes: Array.isArray(newMadeToOrderProduct.sizes) ? newMadeToOrderProduct.sizes : ['S', 'M', 'L', 'XL']
+      };
+
+      console.log('🔧 Sending product data:', productData);
+
+      const response = await fetch('/api/made-to-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      });
+
+      console.log('🔧 API Response status:', response.status);
+
+      if (response.ok) {
+        const newProduct = await response.json();
+        console.log('🔧 New product created:', newProduct);
+        setMadeToOrderProducts(prev => [...prev, newProduct]);
+        setNewMadeToOrderProduct({
+          name: '',
+          description: '',
+          price: 0,
+          image: '',
+          images: [],
+          colors: ['Noir'],
+          sizes: ['S', 'M', 'L', 'XL'],
+          category: 'Custom',
+          tags: [],
+          isActive: true,
+          displayOrder: 0
+        });
+        setShowAddMadeToOrderProduct(false);
+        console.log('✅ Made-to-order product added successfully');
+        alert('Product added successfully!');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ API Error:', errorData);
+        alert(`Error: ${errorData.error || 'Failed to add product'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error adding made-to-order product:', error);
+      alert('Error adding product. Please try again.');
+    }
+  };
+
+  const handleUpdateMadeToOrderProduct = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!editingMadeToOrderProduct) return;
+    
+    try {
+      console.log('🔧 Updating made-to-order product:', editingMadeToOrderProduct);
+      
+      // Validate required fields
+      if (!editingMadeToOrderProduct.name || !editingMadeToOrderProduct.price) {
+        alert('Product name and price are required');
+        return;
+      }
+
+      // Ensure colors and sizes are arrays
+      const productData = {
+        ...editingMadeToOrderProduct,
+        colors: Array.isArray(editingMadeToOrderProduct.colors) ? editingMadeToOrderProduct.colors : ['Noir'],
+        sizes: Array.isArray(editingMadeToOrderProduct.sizes) ? editingMadeToOrderProduct.sizes : ['S', 'M', 'L', 'XL']
+      };
+
+      console.log('🔧 Sending update data:', productData);
+
+      const response = await fetch('/api/made-to-order', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData)
+      });
+
+      console.log('🔧 Update API Response status:', response.status);
+
+      if (response.ok) {
+        const updatedProduct = await response.json();
+        console.log('🔧 Updated product:', updatedProduct);
+        setMadeToOrderProducts(prev => 
+          prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
+        );
+        setEditingMadeToOrderProduct(null);
+        console.log('✅ Made-to-order product updated successfully');
+        alert('Product updated successfully!');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Update API Error:', errorData);
+        alert(`Error: ${errorData.error || 'Failed to update product'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating made-to-order product:', error);
+      alert('Error updating product. Please try again.');
+    }
+  };
+
+  const handleDeleteMadeToOrderProduct = async (id: string) => {
+    const product = madeToOrderProducts.find(p => p.id === id);
+    const productName = product?.name || 'Unknown Product';
+    
+    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`/api/made-to-order?id=${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          setMadeToOrderProducts(prev => prev.filter(p => p.id !== id));
+          console.log(`"${productName}" has been deleted successfully.`);
+          alert('Product deleted successfully!');
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Delete API Error:', errorData);
+          alert(`Error: ${errorData.error || 'Failed to delete product'}`);
+        }
+      } catch (error) {
+        console.error('Error deleting made-to-order product:', error);
+        alert('Error deleting product. Please try again.');
+      }
+    }
+  };
+
+  const handleDeleteMadeToOrderOrder = async (id: string) => {
+    const order = madeToOrderOrders.find(o => o.id === id);
+    const orderId = order?.id || 'Unknown Order';
+    
+    if (confirm(`Are you sure you want to delete order "${orderId}"? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`/api/made-to-order/orders?id=${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          setMadeToOrderOrders(prev => prev.filter(o => o.id !== id));
+          console.log(`Order "${orderId}" has been deleted successfully.`);
+          alert('Order deleted successfully!');
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Delete Order API Error:', errorData);
+          alert(`Error: ${errorData.error || 'Failed to delete order'}`);
+        }
+      } catch (error) {
+        console.error('Error deleting made-to-order order:', error);
+        alert('Error deleting order. Please try again.');
+      }
+    }
+  };
+
+  const handleUpdateMadeToOrderOrder = async (id: string, status: string, notes?: string) => {
+    try {
+      const response = await fetch('/api/made-to-order/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, notes })
+      });
+
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        setMadeToOrderOrders(prev => 
+          prev.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+        );
+        console.log('✅ Made-to-order order updated successfully');
+        alert('Order updated successfully!');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Update Order API Error:', errorData);
+        alert(`Error: ${errorData.error || 'Failed to update order'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating made-to-order order:', error);
+      alert('Error updating order. Please try again.');
     }
   };
 
@@ -306,29 +567,17 @@ export default function AdminPage() {
 
   const updateWilayaTariff = async (wilayaId: number, field: string, value: number) => {
     const updatedTariffs = wilayaTariffs.map(wilaya => {
-      if (wilaya.id === wilayaId || wilaya.wilaya_id === wilayaId) {
+      if (wilaya.id === wilayaId) {
         const updated = { ...wilaya };
         
-        // Handle both old and new field names
+        // Update the field
         switch (field) {
           case 'stopDeskEcommerce':
             updated.stopDeskEcommerce = value;
-            updated.stop_desk_ecommerce = value;
             break;
           case 'domicileEcommerce':
             updated.domicileEcommerce = value;
-            updated.domicile_ecommerce = value;
             break;
-          case 'stopDesk':
-            updated.stopDesk = value;
-            updated.stop_desk = value;
-            break;
-          case 'homeDelivery':
-            updated.homeDelivery = value;
-            updated.home_delivery = value;
-            break;
-          default:
-            updated[field] = value;
         }
         
         return updated;
@@ -381,10 +630,10 @@ export default function AdminPage() {
         throw new Error('Failed to sync wilaya tariffs to static file');
       }
       
-      alert('Tarifs des wilayas r�initialis�s et synchronis�s !');
+      alert('Tarifs des wilayas r�initialis�s et synchronis�s !');
     } catch (error) {
       console.error('Error resetting wilaya tariffs:', error);
-      alert('Erreur lors de la r�initialisation des tarifs');
+      alert('Erreur lors de la r�initialisation des tarifs');
     }
   };
 
@@ -429,6 +678,7 @@ export default function AdminPage() {
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
     { id: 'products', icon: Package, label: 'Products', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
     { id: 'inventory', icon: Archive, label: 'Inventory', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    { id: 'made-to-order', icon: Settings, label: 'Made to Order', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20' },
     { id: 'orders', icon: ShoppingCart, label: 'Orders', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     { id: 'analytics', icon: TrendingUp, label: 'Analytics', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
     { id: 'customers', icon: Users, label: 'Customers', color: 'text-pink-400', bgColor: 'bg-pink-500/20' },
@@ -461,17 +711,284 @@ export default function AdminPage() {
         {activeTab === 'dashboard' && <EnhancedDashboard products={products} orders={orders} customers={customers} />}
         
         {activeTab === 'products' && (
-          <div className="p-4 sm:p-6">
+          <div className="p-4 sm:p-6 space-y-8">
+            {/* Regular Products */}
+            <div>
+            <div className="mb-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Regular Products</h2>
+              <button
+                onClick={async () => {
+                  setProductsLoading(true);
+                  await refreshProducts();
+                  setProductsLoading(false);
+                }}
+                className="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Products
+              </button>
+            </div>
+            
             {productsLoading ? (
               <ProductListSkeleton count={8} />
             ) : (
               <EnhancedProductManager
                 products={products}
                 onAddProduct={() => setShowAddProduct(true)}
-                onEditProduct={(product) => setEditingProduct(product)}
+                onEditProduct={(product) => {
+                  console.log('Editing product:', product);
+                  setEditingProduct({
+                    ...product,
+                    useCustomSizeChart: product.useCustomSizeChart || false,
+                    customSizeChart: product.customSizeChart || undefined
+                  });
+                }}
                 onDeleteProduct={handleDeleteProduct}
                 onViewProduct={(product) => window.open(`/product/${product.id}`, '_blank')}
               />
+              )}
+            </div>
+
+
+            {/* Add Made-to-Order Product Form */}
+            {showAddMadeToOrderProduct && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-white">Add Made-to-Order Product</h3>
+                    <button
+                      onClick={() => setShowAddMadeToOrderProduct(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Product Name</label>
+                      <input
+                        type="text"
+                        value={newMadeToOrderProduct.name}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, name: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Enter product name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Description</label>
+                      <textarea
+                        value={newMadeToOrderProduct.description}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, description: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        rows={3}
+                        placeholder="Enter product description"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Price (DZD)</label>
+                      <input
+                        type="number"
+                        value={newMadeToOrderProduct.price}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, price: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Enter price"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Main Image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setNewMadeToOrderProduct({...newMadeToOrderProduct, image: event.target?.result as string});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Colors (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={newMadeToOrderProduct.colors.join(', ')}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, colors: e.target.value.split(',').map(c => c.trim()).filter(c => c)})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Black, White, Red"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Sizes (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={newMadeToOrderProduct.sizes.join(', ')}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, sizes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="S, M, L, XL"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Category</label>
+                      <input
+                        type="text"
+                        value={newMadeToOrderProduct.category}
+                        onChange={(e) => setNewMadeToOrderProduct({...newMadeToOrderProduct, category: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Custom"
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-4">
+                      <button
+                        onClick={handleAddMadeToOrderProduct}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Add Product
+                      </button>
+                      <button
+                        onClick={() => setShowAddMadeToOrderProduct(false)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Made-to-Order Product Form */}
+            {editingMadeToOrderProduct && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-white">Edit Made-to-Order Product</h3>
+                    <button
+                      onClick={() => setEditingMadeToOrderProduct(null)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Product Name</label>
+                      <input
+                        type="text"
+                        value={editingMadeToOrderProduct.name}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, name: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Description</label>
+                      <textarea
+                        value={editingMadeToOrderProduct.description}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, description: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Price (DZD)</label>
+                      <input
+                        type="number"
+                        value={editingMadeToOrderProduct.price}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, price: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Main Image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setEditingMadeToOrderProduct({...editingMadeToOrderProduct, image: event.target?.result as string});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Colors (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={Array.isArray(editingMadeToOrderProduct.colors) ? editingMadeToOrderProduct.colors.join(', ') : ''}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, colors: e.target.value.split(',').map(c => c.trim()).filter(c => c)})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Black, White, Red"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Sizes (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={Array.isArray(editingMadeToOrderProduct.sizes) ? editingMadeToOrderProduct.sizes.join(', ') : ''}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="S, M, L, XL"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Category</label>
+                      <input
+                        type="text"
+                        value={editingMadeToOrderProduct.category || ''}
+                        onChange={(e) => setEditingMadeToOrderProduct({...editingMadeToOrderProduct, category: e.target.value})}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+                        placeholder="Custom"
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-4">
+                      <button
+                        onClick={handleUpdateMadeToOrderProduct}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Update Product
+                      </button>
+                      <button
+                        onClick={() => setEditingMadeToOrderProduct(null)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -554,7 +1071,10 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'orders' && (
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 space-y-8">
+              {/* Regular Orders */}
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-4">Regular Orders</h2>
               <EnhancedOrderManager
                 orders={orders}
                 onUpdateOrder={updateOrderStatus}
@@ -585,7 +1105,123 @@ Payment Status: ${order.paymentStatus}
                   `;
                   alert(details);
                 }}
-              />
+                />
+              </div>
+
+              {/* Made-to-Order Orders */}
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-4">Made-to-Order Orders</h2>
+                {madeToOrderLoading ? (
+                  <div className="bg-gray-800 rounded-lg p-8 text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading made-to-order orders...</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-700">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-white font-medium">Order ID</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Customer</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Product</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Size/Color</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Total</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Status</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Date</th>
+                            <th className="px-4 py-3 text-left text-white font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {madeToOrderOrders.length > 0 ? (
+                            madeToOrderOrders.map((order) => {
+                              const product = order.made_to_order_products;
+                              return (
+                                <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700/50 transition-colors">
+                                  <td className="px-4 py-3 text-white font-mono">#{order.id.slice(-8)}</td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-white font-medium">{order.customer_name}</div>
+                                    <div className="text-gray-400 text-xs">{order.customer_phone}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {product ? (
+                                      <div className="flex items-center space-x-3">
+                                        {product.image && (
+                                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                            <img
+                                              src={product.image}
+                                              alt={product.name}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          </div>
+                                        )}
+                                        <div>
+                                          <div className="text-white font-medium">{product.name}</div>
+                                          <div className="text-gray-400 text-xs">ID: {order.product_id}</div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="text-gray-400">
+                                        <div>Product not found</div>
+                                        <div className="text-xs">ID: {order.product_id}</div>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-white">{order.selected_size}</div>
+                                    <div className="text-gray-400 text-xs">{order.selected_color}</div>
+                                  </td>
+                                  <td className="px-4 py-3 text-white">{order.total_price} DZD</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      order.status === 'pending' ? 'bg-yellow-400/20 text-yellow-400' :
+                                      order.status === 'confirmed' ? 'bg-blue-400/20 text-blue-400' :
+                                      order.status === 'in_production' ? 'bg-purple-400/20 text-purple-400' :
+                                      order.status === 'ready' ? 'bg-green-400/20 text-green-400' :
+                                      order.status === 'shipped' ? 'bg-indigo-400/20 text-indigo-400' :
+                                      order.status === 'delivered' ? 'bg-green-500/20 text-green-500' :
+                                      'bg-red-400/20 text-red-400'
+                                    }`}>
+                                      {order.status.replace('_', ' ')}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-400">
+                                    {new Date(order.order_date).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <select
+                                      value={order.status}
+                                      onChange={(e) => {
+                                        // Update made-to-order status
+                                        console.log('Updating made-to-order status:', order.id, e.target.value);
+                                      }}
+                                      className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs"
+                                    >
+                                      <option value="pending">Pending</option>
+                                      <option value="confirmed">Confirmed</option>
+                                      <option value="in_production">In Production</option>
+                                      <option value="ready">Ready</option>
+                                      <option value="shipped">Shipped</option>
+                                      <option value="delivered">Delivered</option>
+                                      <option value="cancelled">Cancelled</option>
+                                    </select>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                                No made-to-order orders found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -646,6 +1282,313 @@ Payment Status: ${order.paymentStatus}
 
         {activeTab === 'maintenance' && <MaintenanceManager />}
 
+        {activeTab === 'made-to-order' && (
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Made to Order</h2>
+                <p className="text-gray-400">Manage custom products and orders</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Custom Products</p>
+                    <p className="text-2xl font-bold text-white">∞</p>
+                  </div>
+                  <Package className="w-8 h-8 text-blue-400" />
+                </div>
+              </div>
+              
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Production Time</p>
+                    <p className="text-2xl font-bold text-yellow-400">20-18 days</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-yellow-400" />
+                </div>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Deposit Required</p>
+                    <p className="text-2xl font-bold text-green-400">50%</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Made-to-Order Products Management */}
+            <div className="mb-8">
+              <div className="mb-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white">Made-to-Order Products ({madeToOrderProducts.length})</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const testProduct = {
+                        id: 'test-' + Date.now(),
+                        name: 'Test Product',
+                        description: 'Test Description',
+                        price: 1000,
+                        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=600&fit=crop',
+                        colors: ['Black'],
+                        sizes: ['M', 'L'],
+                        category: 'Test',
+                        is_active: true
+                      };
+                      setMadeToOrderProducts(prev => [...prev, testProduct]);
+                      console.log('🔧 Test product added locally:', testProduct);
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Test
+                  </button>
+                  <button
+                    onClick={() => setShowAddMadeToOrderProduct(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Product
+                  </button>
+            </div>
+              </div>
+              
+              {madeToOrderLoading ? (
+                <div className="bg-gray-800 rounded-lg p-8 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading made-to-order products...</p>
+                </div>
+              ) : (
+                <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-white font-medium">Product</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Price</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Colors</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Sizes</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Category</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Status</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {madeToOrderProducts.length > 0 ? (
+                          madeToOrderProducts.map((product) => (
+                            <tr key={product.id} className="border-t border-gray-700 hover:bg-gray-700/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center space-x-3">
+                                  {product.image && (
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                      <img
+                                        src={product.image}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="text-white font-medium">{product.name}</div>
+                                    <div className="text-gray-400 text-xs line-clamp-1">{product.description}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-white">{product.price} DZD</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {product.colors?.slice(0, 3).map((color, index) => (
+                                    <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded">
+                                      {color}
+                                    </span>
+                                  ))}
+                                  {product.colors?.length > 3 && (
+                                    <span className="px-2 py-1 bg-gray-600 text-gray-400 text-xs rounded">
+                                      +{product.colors.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {product.sizes?.slice(0, 3).map((size, index) => (
+                                    <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded">
+                                      {size}
+                                    </span>
+                                  ))}
+                                  {product.sizes?.length > 3 && (
+                                    <span className="px-2 py-1 bg-gray-600 text-gray-400 text-xs rounded">
+                                      +{product.sizes.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded">
+                                  {product.category}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  product.is_active ? 'bg-green-400/20 text-green-400' : 'bg-red-400/20 text-red-400'
+                                }`}>
+                                  {product.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => setEditingMadeToOrderProduct(product)}
+                                    className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMadeToOrderProduct(product.id)}
+                                    className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                              No made-to-order products found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Made-to-Order Orders Management */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-4">Made-to-Order Orders ({madeToOrderOrders.length})</h2>
+              {madeToOrderLoading ? (
+                <div className="bg-gray-800 rounded-lg p-8 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading made-to-order orders...</p>
+                </div>
+              ) : (
+                <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-white font-medium">Order ID</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Product</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Customer</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Size/Color</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Total</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Status</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Date</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {madeToOrderOrders.length > 0 ? (
+                          madeToOrderOrders.map((order) => (
+                            <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700/50 transition-colors">
+                              <td className="px-4 py-3 text-white font-mono text-xs">#{order.id.slice(-8)}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center space-x-3">
+                                  {order.made_to_order_products?.image && (
+                                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                                      <img
+                                        src={order.made_to_order_products.image}
+                                        alt={order.made_to_order_products.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="text-white font-medium text-sm">{order.made_to_order_products?.name || 'Product not found'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div>
+                                  <div className="text-white font-medium">{order.customerName}</div>
+                                  <div className="text-gray-400 text-xs">{order.customerPhone}</div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="text-gray-300 text-sm">
+                                  {order.selectedSize} / {order.selectedColor}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-white font-medium">{order.totalPrice} DZD</td>
+                              <td className="px-4 py-3">
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => {
+                                    handleUpdateMadeToOrderOrder(order.id, e.target.value);
+                                  }}
+                                  className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs focus:outline-none focus:border-white"
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="confirmed">Confirmed</option>
+                                  <option value="in_production">In Production</option>
+                                  <option value="completed">Completed</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered">Delivered</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">
+                                {new Date(order.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleDeleteMadeToOrderOrder(order.id)}
+                                    className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                    title="Delete Order"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                              No made-to-order orders found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
           {activeTab === 'wilayas' && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -673,9 +1616,9 @@ Payment Status: ${order.paymentStatus}
                     </thead>
                     <tbody>
                     {wilayaTariffs.map((wilaya) => {
-                      const wilayaId = wilaya.wilaya_id || wilaya.id;
-                      const stopDeskPrice = wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stopDesk || 0;
-                      const homeDeliveryPrice = wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.homeDelivery || 0;
+                      const wilayaId = wilaya.id;
+                      const stopDeskPrice = wilaya.stopDeskEcommerce || 0;
+                      const homeDeliveryPrice = wilaya.domicileEcommerce || 0;
                       
                       return (
                         <tr key={wilayaId} className="border-t border-gray-800">
@@ -879,13 +1822,13 @@ Payment Status: ${order.paymentStatus}
         
         {products.length === 0 && (
           <button
-            onClick={() => {
-              initializeDefaultProducts();
-              console.log('Default products have been added to your store');
+            onClick={async () => {
+              await refreshProducts();
+              console.log('Products refreshed from database');
             }}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
           >
-            📦 Add Sample Products
+            🔄 Refresh Products
           </button>
         )}
       </div>
@@ -893,13 +1836,433 @@ Payment Status: ${order.paymentStatus}
       {/* Inventory Manager Modal */}
       {showInventoryManager && (
         <div>
-
           <InventoryManager onClose={() => {
-
             setShowInventoryManager(false);
           }} />
         </div>
       )}
+
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <h3 className="text-xl font-bold text-white">Edit Product</h3>
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">Product Name</label>
+                  <input
+                    type="text"
+                    value={editingProduct.name}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">Price (DZD)</label>
+                  <input
+                    type="number"
+                    value={editingProduct.price}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white font-medium mb-2">Description</label>
+                <textarea
+                  value={editingProduct.description}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">Category</label>
+                  <select
+                    value={editingProduct.category}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  >
+                    <option value="T-Shirts">T-Shirts</option>
+                    <option value="Hoodies">Hoodies</option>
+                    <option value="Pants">Pants</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">SKU</label>
+                  <input
+                    type="text"
+                    value={editingProduct.sku}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  />
+                </div>
+              </div>
+
+              {/* Colors Management */}
+              <div>
+                <label className="block text-white font-medium mb-2">Colors</label>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {editingProduct.colors?.map((color, index) => (
+                      <div key={index} className="flex items-center bg-gray-800 rounded-lg px-3 py-1">
+                        <span className="text-white text-sm">{color}</span>
+                        <button
+                          onClick={() => {
+                            const newColors = editingProduct.colors?.filter((_, i) => i !== index) || [];
+                            setEditingProduct({ ...editingProduct, colors: newColors });
+                          }}
+                          className="ml-2 text-red-400 hover:text-red-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newColor}
+                      onChange={(e) => setNewColor(e.target.value)}
+                      placeholder="Add new color"
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    />
+                    <button
+                      onClick={() => {
+                        if (newColor.trim() && !editingProduct.colors?.includes(newColor.trim())) {
+                          setEditingProduct({
+                            ...editingProduct,
+                            colors: [...(editingProduct.colors || []), newColor.trim()]
+                          });
+                          setNewColor('');
+                        }
+                      }}
+                      className="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sizes Management */}
+              <div>
+                <label className="block text-white font-medium mb-2">Sizes</label>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {editingProduct.sizes?.map((size, index) => (
+                      <div key={index} className="flex items-center bg-gray-800 rounded-lg px-3 py-1">
+                        <span className="text-white text-sm">{size}</span>
+                        <button
+                          onClick={() => {
+                            const newSizes = editingProduct.sizes?.filter((_, i) => i !== index) || [];
+                            setEditingProduct({ ...editingProduct, sizes: newSizes });
+                          }}
+                          className="ml-2 text-red-400 hover:text-red-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      onChange={(e) => {
+                        const newSize = e.target.value;
+                        if (newSize && !editingProduct.sizes?.includes(newSize)) {
+                          setEditingProduct({
+                            ...editingProduct,
+                            sizes: [...(editingProduct.sizes || []), newSize]
+                          });
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    >
+                      <option value="">Select size to add</option>
+                      <option value="XS">XS</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                      <option value="XXXL">XXXL</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Size Chart Management */}
+              <div>
+                <label className="block text-white font-medium mb-2">Size Chart Settings</label>
+                
+                {/* Use Custom Size Chart Toggle */}
+                <div className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    id="useCustomSizeChart"
+                    checked={editingProduct.useCustomSizeChart === true}
+                    onChange={(e) => {
+                      console.log('Checkbox changed:', e.target.checked);
+                      setEditingProduct({ 
+                        ...editingProduct, 
+                        useCustomSizeChart: e.target.checked 
+                      });
+                    }}
+                    className="w-4 h-4 text-white bg-gray-800 border-gray-700 rounded focus:ring-white focus:ring-2"
+                  />
+                  <label htmlFor="useCustomSizeChart" className="text-white text-sm cursor-pointer">
+                    Use custom size chart for this product
+                  </label>
+                </div>
+
+                {editingProduct.useCustomSizeChart ? (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        console.log('Opening custom size chart editor');
+                        setShowCustomSizeChartEditor(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      <Ruler className="w-4 h-4" />
+                      {editingProduct.customSizeChart ? 'Edit Custom Size Chart' : 'Create Custom Size Chart'}
+                    </button>
+                    {editingProduct.customSizeChart && (
+                      <div className="bg-gray-800 rounded-lg p-3">
+                        <p className="text-white text-sm font-medium">{editingProduct.customSizeChart.title}</p>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {editingProduct.customSizeChart.measurements?.length || 0} sizes configured
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <select
+                      value={editingProduct.sizeChartCategory || 'T-Shirts'}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, sizeChartCategory: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    >
+                      <option value="T-Shirts">T-Shirts</option>
+                      <option value="Hoodies">Hoodies</option>
+                      <option value="Pants">Pants</option>
+                      <option value="Shoes">Shoes</option>
+                      <option value="Watches">Watches</option>
+                    </select>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Select the default size chart category for this product
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-800">
+                <button
+                  onClick={() => setEditingProduct(null)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateProduct}
+                  className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Update Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Product Modal */}
+      {showAddProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Add New Product</h2>
+              <button
+                onClick={() => setShowAddProduct(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleAddProduct(); }} className="space-y-6">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  value={newProduct.name || ''}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  placeholder="Enter product name"
+                />
+              </div>
+
+              {/* Price */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Price *
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.price || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
+                    required
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Original Price
+                  </label>
+                  <input
+                    type="number"
+                    value={newProduct.originalPrice || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, originalPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newProduct.description || ''}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                  placeholder="Enter product description"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Category
+                </label>
+                <select
+                  value={newProduct.category || 'T-Shirts'}
+                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
+                >
+                  <option value="T-Shirts">T-Shirts</option>
+                  <option value="Hoodies">Hoodies</option>
+                  <option value="Pants">Pants</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Product Image
+                </label>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setNewProduct({ ...newProduct, image: event.target?.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 cursor-pointer transition-colors"
+                  >
+                    Choose Image
+                  </label>
+                  {newProduct.image && (
+                    <div className="flex items-center space-x-2">
+                      <img
+                        src={newProduct.image}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({ ...newProduct, image: '' })}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProduct(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Add Product
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Size Chart Editor Modal */}
+      {showCustomSizeChartEditor && editingProduct && (
+        <CustomSizeChartEditor
+          product={editingProduct}
+          onSave={handleSaveCustomSizeChart}
+          onCancel={() => {
+            console.log('Closing custom size chart editor');
+            setShowCustomSizeChartEditor(false);
+          }}
+        />
+      )}
     </div>
   );
 }
+

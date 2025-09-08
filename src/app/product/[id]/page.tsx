@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useProducts } from '@/context/ProductContext';
+import { useProducts } from '@/context/SmartProductProvider';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import { recentlyViewedService } from '@/lib/recentlyViewed';
@@ -304,7 +304,7 @@ export default function ProductDetailPage() {
                 <span>
                   {!product.inStock ? 'Out of Stock' : 
                    !selectedSize || !selectedColor ? 'Select Size & Color' :
-                   `Buy Now - ${(product.price * quantity).toFixed(0)} DA`}
+                   `Add to Cart - ${(product.price * quantity).toFixed(0)} DA`}
                 </span>
               </button>
               

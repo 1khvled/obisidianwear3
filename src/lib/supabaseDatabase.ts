@@ -149,6 +149,7 @@ export async function addProduct(product: Product): Promise<Product> {
     }
     
     // Convert camelCase to snake_case for database
+    // Only include columns that exist in the current database schema
     const dbProduct = {
       id: product.id,
       name: product.name,
@@ -168,10 +169,8 @@ export async function addProduct(product: Product): Promise<Product> {
       weight: product.weight,
       dimensions: product.dimensions,
       tags: product.tags || [],
-      featured: product.featured || false,
-      size_chart_category: product.sizeChartCategory || 'T-Shirts',
-      custom_size_chart: product.customSizeChart || null,
-      use_custom_size_chart: product.useCustomSizeChart || false
+      featured: product.featured || false
+      // Note: size_chart_category, custom_size_chart, and use_custom_size_chart columns may not exist in the database yet
       // created_at and updated_at are automatically set by the database
     };
 

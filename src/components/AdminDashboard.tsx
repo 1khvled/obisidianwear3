@@ -9,7 +9,7 @@ import {
   Archive,
   Settings
 } from 'lucide-react';
-import { useProducts } from '@/context/ProductContext';
+import { useProducts } from '@/context/SmartProductProvider';
 
 export default function AdminDashboard() {
   const { products } = useProducts();

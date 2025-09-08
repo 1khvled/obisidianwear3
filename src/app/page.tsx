@@ -7,42 +7,39 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/data/products';
 import { Product } from '@/types';
-import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag } from 'lucide-react';
+import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag, Package } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import RecentlyViewed from '@/components/RecentlyViewed';
-import { MobileProductGridSkeleton, FeatureGridSkeleton } from '@/components/LoadingSkeleton';
-import { useProducts } from '@/context/ProductContext';
+import { MobileProductGridSkeleton, FeatureGridSkeleton, DataLoadingAnimation, CacheLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
+import { useProducts } from '@/context/SmartProductProvider';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isLoading, setIsLoading] = useState(true);
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const { t } = useLanguage();
 
   useEffect(() => {
-    if (selectedCategory === 'All') {
-      setFilteredProducts(products);
-    } else {
-      setFilteredProducts(products.filter(product => product.category === selectedCategory));
-    }
+    console.log('🛒 Products state:', { products, loading, isArray: Array.isArray(products), length: products?.length });
     
-    // Set loading to false after products are loaded
-    if (products.length > 0) {
-      setIsLoading(false);
+    // Ensure products is an array before filtering
+    if (Array.isArray(products)) {
+      if (selectedCategory === 'All') {
+        setFilteredProducts(products);
+      } else {
+        setFilteredProducts(products.filter(product => product.category === selectedCategory));
+      }
+      
+      // Products are loaded and filtered
     }
   }, [products, selectedCategory]);
 
-  // Show loading state only if no products are available yet
-  if (products.length === 0) {
+  // Show loading state only if still loading or no products are available yet
+  if (loading || !Array.isArray(products) || products.length === 0) {
     return (
       <div className="min-h-screen bg-black">
         <Header />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading products...</p>
-          </div>
+          <DataLoadingAnimation message="Loading your collection..." />
         </div>
         <Footer />
       </div>
@@ -179,7 +176,7 @@ export default function Home() {
           </div>
 
           {/* Products Grid */}
-          {isLoading ? (
+          {loading ? (
             <MobileProductGridSkeleton count={6} />
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
@@ -206,8 +203,32 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Recently Viewed Section */}
-      <RecentlyViewed />
+      {/* Made-to-Order CTA Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
+            <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+            <span className="text-white text-sm font-medium">Special Orders</span>
+          </div>
+          
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">
+            Need Something Custom?
+          </h2>
+          
+          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Create your perfect piece with our made-to-order service. Custom designs, premium quality, and personal attention to detail.
+          </p>
+          
+          <a
+            href="/made-to-order-collection"
+            className="inline-flex items-center bg-white hover:bg-gray-100 text-black px-8 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:scale-105 shadow-2xl"
+          >
+            <Package className="w-6 h-6 mr-3" />
+            View Made-to-Order Collection
+            <ChevronRight className="w-6 h-6 ml-3" />
+          </a>
+        </div>
+      </section>
 
       <Footer />
     </div>

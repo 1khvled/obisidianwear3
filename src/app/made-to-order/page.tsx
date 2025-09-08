@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   Palette, 
   Ruler, 
@@ -57,32 +58,77 @@ export default function MadeToOrderPage() {
     shippingType: 'homeDelivery' as 'homeDelivery' | 'stopDesk'
   });
 
+  // Helper function to get the best image source
+  const getImageSrc = (product: MadeToOrderProduct) => {
+    if (product.image && product.image.length > 100) {
+      return product.image;
+    }
+    if (product.images && product.images.length > 0 && product.images[0].length > 100) {
+      return product.images[0];
+    }
+    return null;
+  };
+
   useEffect(() => {
     loadProducts();
     loadWilayaTariffs();
   }, []);
 
+  // Debug products state
+  useEffect(() => {
+    console.log('🔍 Products state changed:', {
+      length: products.length,
+      products: products.map(p => ({ id: p.id, name: p.name, hasImage: !!p.image }))
+    });
+  }, [products]);
+
   const loadProducts = async () => {
     try {
-      // Try to get from cache first
-      const cachedProducts = await localStorageCache.getMadeToOrderProducts();
-      if (cachedProducts.length > 0) {
-        console.log('Made-to-order: Using cached products:', cachedProducts.length);
-        setProducts(cachedProducts);
-        setLoading(false);
-        return;
-      }
-
-      // Fallback to API
-      console.log('Made-to-order: No cache, fetching from server...');
+      // Always fetch from API first to ensure fresh data
+      console.log('Made-to-order: Fetching from server...');
       const response = await fetch('/api/made-to-order');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('✅ Loaded made-to-order products:', data.length);
+      console.log('🖼️ Product images:', data.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        hasImage: !!p.image, 
+        imageLength: p.image?.length,
+        hasImages: !!(p.images && p.images.length > 0),
+        imagesLength: p.images?.length,
+        firstImageLength: p.images?.[0]?.length
+      })));
+      console.log('🎨 Product colors and sizes:', data.map(p => ({
+        id: p.id,
+        name: p.name,
+        colors: p.colors,
+        sizes: p.sizes,
+        hasColors: !!(p.colors && p.colors.length > 0),
+        hasSizes: !!(p.sizes && p.sizes.length > 0)
+      })));
+      
       setProducts(data);
       
       // Cache the products
       localStorageCache.setCache({ madeToOrderProducts: data });
     } catch (error) {
       console.error('Error loading made-to-order products:', error);
+      
+      // Try to get from cache as fallback
+      try {
+        const cachedProducts = await localStorageCache.getMadeToOrderProducts();
+        if (cachedProducts.length > 0) {
+          console.log('Made-to-order: Using cached products as fallback:', cachedProducts.length);
+          setProducts(cachedProducts);
+        }
+      } catch (cacheError) {
+        console.error('Error loading from cache:', cacheError);
+      }
     } finally {
       setLoading(false);
     }
@@ -332,23 +378,43 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {products.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
+              <p className="text-gray-400 text-sm">Loading products...</p>
+            </div>
+          ) : products.length === 0 ? (
             <div className="text-center py-8">
               <Package className="w-12 h-12 text-gray-600 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-2">{t('madeToOrder.noProducts')}</h3>
               <p className="text-gray-400 text-sm">{t('madeToOrder.noProductsDesc')}</p>
+              <p className="text-gray-500 text-xs mt-2">Debug: products.length = {products.length}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map((product) => (
                 <div key={product.id} className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101">
-                  {product.image && (
+                  {getImageSrc(product) && (
                     <div className="relative overflow-hidden">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                      />
+                      {getImageSrc(product)?.startsWith('data:') ? (
+                        <img
+                          src={getImageSrc(product)!}
+                          alt={product.name}
+                          className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                          onLoad={() => console.log('✅ Image loaded for product:', product.name)}
+                          onError={(e) => console.error('❌ Image failed to load for product:', product.name, e)}
+                        />
+                      ) : (
+                        <Image
+                          src={getImageSrc(product)!}
+                          alt={product.name}
+                          width={400}
+                          height={500}
+                          className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                          onLoad={() => console.log('✅ Image loaded for product:', product.name)}
+                          onError={(e) => console.error('❌ Image failed to load for product:', product.name, e)}
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4">
                         <span className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-3 py-1 rounded-full text-xs font-semibold">
@@ -375,14 +441,19 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     <div className="mb-3">
                       <div className="text-gray-300 text-xs font-medium mb-1">{t('madeToOrder.colors')}</div>
                       <div className="flex flex-wrap gap-1">
-                        {product.colors.slice(0, 4).map((color) => (
+                        {(product.colors || []).slice(0, 4).map((color) => (
                           <span key={color} className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
                             {color}
                           </span>
                         ))}
-                        {product.colors.length > 4 && (
+                        {(product.colors || []).length > 4 && (
                           <span className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            +{product.colors.length - 4}
+                            +{(product.colors || []).length - 4}
+                          </span>
+                        )}
+                        {(product.colors || []).length === 0 && (
+                          <span className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            Multiple colors available
                           </span>
                         )}
                       </div>
@@ -391,11 +462,16 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     <div className="mb-3">
                       <div className="text-gray-300 text-xs font-medium mb-1">{t('madeToOrder.sizes')}</div>
                       <div className="flex flex-wrap gap-1">
-                        {product.sizes.map((size) => (
+                        {(product.sizes || []).map((size) => (
                           <span key={size} className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
                             {size}
                           </span>
                         ))}
+                        {(product.sizes || []).length === 0 && (
+                          <span className="bg-white/10 border border-white/20 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            Multiple sizes available
+                          </span>
+                        )}
                       </div>
                     </div>
                     
@@ -404,8 +480,8 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         setSelectedProduct(product);
                         setOrderForm(prev => ({
                           ...prev,
-                          selectedSize: product.sizes[0] || '',
-                          selectedColor: product.colors[0] || ''
+                          selectedSize: (product.sizes || [])[0] || '',
+                          selectedColor: (product.colors || [])[0] || ''
                         }));
                         setShowOrderForm(true);
                       }}
@@ -777,7 +853,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
                   >
                     <option value="">Sélectionnez une taille</option>
-                    {selectedProduct.sizes.map((size) => (
+                    {(selectedProduct.sizes || []).map((size) => (
                       <option key={size} value={size}>
                         {size}
                       </option>
@@ -805,7 +881,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
                   >
                     <option value="">Sélectionnez une couleur</option>
-                    {selectedProduct.colors.map((color) => (
+                    {(selectedProduct.colors || []).map((color) => (
                       <option key={color} value={color}>
                         {color}
                       </option>
@@ -865,8 +941,8 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     <span className="text-white font-bold">{(selectedProduct.price * orderForm.quantity) + getShippingCost()} DZD</span>
                   </div>
                   <div className="flex justify-between border-t border-gray-700 pt-2">
-                    <span className="text-white">Acompte (35%):</span>
-                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost()) * 0.35).toFixed(0)} DZD</span>
+                    <span className="text-white">Acompte (50%):</span>
+                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost()) * 0.50).toFixed(0)} DZD</span>
                   </div>
                 </div>
               </div>

@@ -5,17 +5,18 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useProducts } from '@/context/ProductContext';
+import { useProducts } from '@/context/SmartProductProvider';
 import { useLanguage } from '@/context/LanguageContext';
 import { sortedWilayas } from '@/data/wilayas';
 import { Product } from '@/types';
 import { orderService } from '@/services/orderService';
 import { ArrowLeft, CreditCard, MapPin, Phone, User, Mail, Truck, CheckCircle, AlertCircle } from 'lucide-react';
+import { DataLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { getProduct, updateProduct } = useProducts();
+  const { getProduct } = useProducts();
   const { t } = useLanguage();
   const [product, setProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -185,26 +186,8 @@ export default function CheckoutPage() {
       const result = await orderService.createOrder(orderData, product);
 
       if (result.success && result.orderId) {
-        // Reduce stock locally after successful order
-        const newStock = { ...product.stock };
-        if (newStock[selectedSize] && newStock[selectedSize][selectedColor]) {
-          newStock[selectedSize][selectedColor] = availableStock - quantity;
-        }
-        
-        // Calculate total stock to update inStock status
-        const totalStock = Object.values(newStock).reduce((total, colorStock) => {
-          return total + Object.values(colorStock).reduce((sum, qty) => sum + qty, 0);
-        }, 0);
-        
-        const updatedProduct = {
-          ...product,
-          stock: newStock,
-          inStock: totalStock > 0,
-          updatedAt: new Date()
-        };
-        
-        updateProduct(product.id, updatedProduct);
-        console.log('🔄 Stock reduced:', selectedSize, selectedColor, 'from', availableStock, 'to', availableStock - quantity);
+        // Stock is automatically deducted by the API
+        console.log('✅ Order created successfully, stock will be deducted automatically');
         setOrderStatus('success');
         setOrderId(result.orderId);
         setOrderMessage(`Order #${result.orderId} placed successfully! 🎉\n\nWe'll contact you within 24 hours via WhatsApp.`);
@@ -234,12 +217,13 @@ export default function CheckoutPage() {
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Product Not Found</h1>
+            <DataLoadingAnimation message="Loading product details..." />
             <button
               onClick={() => router.push('/')}
-              className="text-white hover:text-gray-300"
+              className="mt-8 text-white hover:text-gray-300 flex items-center justify-center mx-auto"
             >
-              ← Back to Home
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
             </button>
           </div>
         </div>
@@ -618,9 +602,16 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                {isSubmitting ? t('checkout.placingOrder') : `${t('checkout.placeOrder')} - ${total.toFixed(0)} DA`}
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
+                    <span>{t('checkout.placingOrder')}</span>
+                  </>
+                ) : (
+                  <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
+                )}
               </button>
             </form>
           </div>

@@ -17,7 +17,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { t } = useLanguage();
   const [showSizeModal, setShowSizeModal] = useState(false);
-  const [modalActionType, setModalActionType] = useState<'addToCart' | 'buyNow'>('addToCart');
+  const [modalActionType, setModalActionType] = useState<'addToCart'>('addToCart');
   
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -30,12 +30,6 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const handleBuyNowClick = () => {
-    if (product.inStock) {
-      setModalActionType('buyNow');
-      setShowSizeModal(true);
-    }
-  };
 
   const handleModalAction = (size: string, color: string, quantity: number) => {
     // This will be handled by the modal itself
@@ -128,15 +122,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               {t('products.viewProduct')}
             </button>
           </Link>
-          {product.inStock && (
-            <button 
-              onClick={handleBuyNowClick}
-              className="w-full bg-white text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
-            >
-              <ShoppingCart size={14} />
-              <span className="ml-2">{t('products.buyNow')}</span>
-            </button>
-          )}
         </div>
       </div>
 

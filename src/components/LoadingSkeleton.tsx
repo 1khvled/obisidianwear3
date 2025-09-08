@@ -6,7 +6,7 @@ interface LoadingSkeletonProps {
 }
 
 export default function LoadingSkeleton({ type = 'text', className = '' }: LoadingSkeletonProps) {
-  const baseClasses = 'animate-pulse bg-gray-700 rounded';
+  const baseClasses = 'animate-pulse bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 bg-[length:200%_100%] rounded';
   
   switch (type) {
     case 'product':
@@ -121,6 +121,84 @@ export function TextSkeleton({ lines = 3 }: { lines?: number }) {
           className={index === lines - 1 ? 'w-2/3' : 'w-full'} 
         />
       ))}
+    </div>
+  );
+}
+
+// Advanced Loading Spinner
+export function LoadingSpinner({ size = 'md', text = 'Loading...' }: { size?: 'sm' | 'md' | 'lg', text?: string }) {
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8', 
+    lg: 'w-12 h-12'
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-3">
+      <div className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-gray-600 border-t-white`}></div>
+      {text && <p className="text-gray-400 text-sm animate-pulse">{text}</p>}
+    </div>
+  );
+}
+
+// Data Loading Animation
+export function DataLoadingAnimation({ message = 'Loading data...' }: { message?: string }) {
+  return (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="text-center space-y-4">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-gray-700 border-t-white rounded-full animate-spin mx-auto"></div>
+          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-blue-500 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-white font-medium">{message}</p>
+          <div className="flex space-x-1 justify-center">
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Cache Loading Animation
+export function CacheLoadingAnimation({ cacheType = 'products' }: { cacheType?: string }) {
+  return (
+    <div className="flex items-center justify-center min-h-[100px]">
+      <div className="text-center space-y-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-green-400 text-sm font-medium">Cache Active</span>
+        </div>
+        <p className="text-gray-400 text-xs">Loading {cacheType} from cache...</p>
+        <div className="w-32 h-1 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-green-500 to-blue-500 rounded-full animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Network Loading Animation
+export function NetworkLoadingAnimation({ operation = 'fetching' }: { operation?: string }) {
+  return (
+    <div className="flex items-center justify-center min-h-[100px]">
+      <div className="text-center space-y-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+          <span className="text-blue-400 text-sm font-medium">Network</span>
+        </div>
+        <p className="text-gray-400 text-xs">{operation} data from server...</p>
+        <div className="flex space-x-1 justify-center">
+          <div className="w-1 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-1 h-6 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '100ms' }}></div>
+          <div className="w-1 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+          <div className="w-1 h-6 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+          <div className="w-1 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+        </div>
+      </div>
     </div>
   );
 }

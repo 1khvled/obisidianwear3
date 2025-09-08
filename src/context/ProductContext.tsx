@@ -4,10 +4,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Product } from '@/types';
 
 import { backendService } from '@/services/backendService';
-import { localStorageCache } from '@/lib/localStorageCache';
 import { clearProductsCache } from '@/lib/supabaseDatabase';
 
-interface ProductContextType {
+interface AdminProductContextType {
   products: Product[];
   setProducts: (products: Product[]) => void;
   addProduct: (product: Product) => void;
@@ -18,38 +17,24 @@ interface ProductContextType {
   refreshProducts: () => Promise<void>;
 }
 
-const ProductContext = createContext<ProductContextType | undefined>(undefined);
+const AdminProductContext = createContext<AdminProductContextType | undefined>(undefined);
 
-export const ProductProvider = ({ children }: { children: ReactNode }) => {
+export const AdminProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Load products with localStorage cache
+    // Load products directly from server - NO localStorage for admin
     const loadProducts = async () => {
       try {
-        console.log('ProductContext: Loading products...');
+        console.log('ProductContext: Loading products directly from server...');
         
-        // Try to get from cache first
-        const cachedProducts = await localStorageCache.getProducts();
-        if (cachedProducts.length > 0) {
-          console.log('ProductContext: Using cached products:', cachedProducts.length);
-          setProducts(cachedProducts);
-        } else {
-          // Fallback to backend service
-          console.log('ProductContext: No cache, fetching from server...');
-          const savedProducts = await backendService.getProducts();
-          console.log('ProductContext: Loaded products from server:', savedProducts.length);
-          setProducts(savedProducts);
-          
-          // Cache the products
-          localStorageCache.setCache({ products: savedProducts });
-        }
+        // Always fetch fresh data from server - no cache
+        const savedProducts = await backendService.getProducts();
+        console.log('ProductContext: Loaded products from server:', savedProducts.length);
+        setProducts(savedProducts);
       } catch (error) {
         console.error('ProductContext: Error loading products:', error);
-        // Don't set empty array immediately, keep existing products if any
-        if (products.length === 0) {
-          setProducts([]);
-        }
+        setProducts([]);
       }
     };
 
@@ -103,23 +88,36 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    // Auto-sync inStock status based on actual stock levels
-    const totalStock = updatedProduct.stock ? 
-      Object.values(updatedProduct.stock).reduce((total, colorStock) => {
-        return total + Object.values(colorStock).reduce((sum, qty) => sum + qty, 0);
-      }, 0) : 0;
-    
-    const syncedProduct = {
-      ...updatedProduct,
-      inStock: totalStock > 0
-    };
-    
-    console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
-    
-    const result = await backendService.updateProduct(id, syncedProduct);
-    if (result) {
-      // Refresh products to get the latest data from server
-      await refreshProducts();
+    try {
+      // Auto-sync inStock status based on actual stock levels
+      const totalStock = (updatedProduct.stock && typeof updatedProduct.stock === 'object') ? 
+        Object.values(updatedProduct.stock).reduce((total, colorStock) => {
+          if (colorStock && typeof colorStock === 'object') {
+            return total + Object.values(colorStock).reduce((sum, qty) => sum + (typeof qty === 'number' ? qty : 0), 0);
+          }
+          return total;
+        }, 0) : 0;
+      
+      const syncedProduct = {
+        ...updatedProduct,
+        inStock: totalStock > 0
+      };
+      
+      console.log('ProductContext: Updating product', id, syncedProduct.name, 'Stock:', totalStock, 'InStock:', syncedProduct.inStock);
+      
+      const result = await backendService.updateProduct(id, syncedProduct);
+      if (result) {
+        console.log('✅ ProductContext: Product updated successfully, refreshing...');
+        // Refresh products to get the latest data from server
+        await refreshProducts();
+        console.log('✅ ProductContext: Products refreshed successfully');
+      } else {
+        console.error('❌ ProductContext: Failed to update product - backendService returned null');
+        throw new Error('Failed to update product');
+      }
+    } catch (error) {
+      console.error('❌ ProductContext: Error updating product:', error);
+      throw error;
     }
   };
 
@@ -147,19 +145,15 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('ProductContext: Refreshing products from server...');
       
-      // Clear all caches
+      // Clear any server-side caches only
       clearProductsCache();
-      localStorageCache.clearCache();
       
-      // Fetch fresh data from server
+      // Fetch fresh data from server - NO localStorage
       const freshProducts = await backendService.getProducts();
       console.log('ProductContext: Refreshed products from server:', freshProducts.length);
       
       // Update state
       setProducts(freshProducts);
-      
-      // Cache the fresh data
-      localStorageCache.setCache({ products: freshProducts });
       
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
@@ -240,7 +234,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ProductContext.Provider value={{ 
+    <AdminProductContext.Provider value={{ 
       products, 
       setProducts, 
       addProduct, 
@@ -251,14 +245,14 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       refreshProducts
     }}>
       {children}
-    </ProductContext.Provider>
+    </AdminProductContext.Provider>
   );
 };
 
-export const useProducts = () => {
-  const context = useContext(ProductContext);
+export const useAdminProducts = () => {
+  const context = useContext(AdminProductContext);
   if (context === undefined) {
-    throw new Error('useProducts must be used within a ProductProvider');
+    throw new Error('useAdminProducts must be used within an AdminProductProvider');
   }
   return context;
 };

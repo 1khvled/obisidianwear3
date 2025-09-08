@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   Search, 
   Filter, 
@@ -26,20 +27,20 @@ import Modal from './ui/Modal';
 import { orderService } from '@/services/orderService';
 
 interface EnhancedOrderManagerProps {
-  orders: Order[];
-  onUpdateOrder: (id: string, updates: Partial<Order>) => void;
-  onDeleteOrder: (id: string) => void;
-  onViewOrder: (order: Order) => void;
+  orders?: Order[];
+  onUpdateOrder?: (id: string, updates: Partial<Order>) => void;
+  onDeleteOrder?: (id: string) => void;
+  onViewOrder?: (order: Order) => void;
 }
 
 type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 type PaymentStatus = 'pending' | 'paid' | 'failed';
 
 export default function EnhancedOrderManager({ 
-  orders, 
-  onUpdateOrder, 
-  onDeleteOrder,
-  onViewOrder 
+  orders = [], 
+  onUpdateOrder = () => {}, 
+  onDeleteOrder = () => {},
+  onViewOrder = () => {}
 }: EnhancedOrderManagerProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -48,6 +49,14 @@ export default function EnhancedOrderManager({
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | 'All'>('All');
   const [sortBy, setSortBy] = useState('orderDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Helper function to get the best image source for orders
+  const getOrderImageSrc = (order: Order) => {
+    if (order.productImage && order.productImage.length > 100) {
+      return order.productImage;
+    }
+    return null;
+  };
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -104,12 +113,12 @@ export default function EnhancedOrderManager({
   };
 
   // Filter and sort orders
-  const filteredOrders = orders
+  const filteredOrders = (orders || [])
     .filter(order => {
       const matchesSearch = 
-        order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchQuery.toLowerCase());
+        (order.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.id || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
       const matchesPayment = paymentFilter === 'All' || order.paymentStatus === paymentFilter;
@@ -220,14 +229,15 @@ export default function EnhancedOrderManager({
   }, [selectedOrders]);
 
   // Calculate statistics
+  const ordersArray = orders || [];
   const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    processing: orders.filter(o => o.status === 'processing').length,
-    shipped: orders.filter(o => o.status === 'shipped').length,
-    delivered: orders.filter(o => o.status === 'delivered').length,
-    totalRevenue: orders.reduce((sum, order) => sum + order.total, 0),
-    averageOrderValue: orders.length > 0 ? orders.reduce((sum, order) => sum + order.total, 0) / orders.length : 0
+    total: ordersArray.length,
+    pending: ordersArray.filter(o => o.status === 'pending').length,
+    processing: ordersArray.filter(o => o.status === 'processing').length,
+    shipped: ordersArray.filter(o => o.status === 'shipped').length,
+    delivered: ordersArray.filter(o => o.status === 'delivered').length,
+    totalRevenue: ordersArray.reduce((sum, order) => sum + (order.total || 0), 0),
+    averageOrderValue: ordersArray.length > 0 ? ordersArray.reduce((sum, order) => sum + (order.total || 0), 0) / ordersArray.length : 0
   };
 
   return (
@@ -410,9 +420,9 @@ export default function EnhancedOrderManager({
                     <div className="text-white font-mono text-sm">#{order.id.slice(-8)}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{order.customerName}</div>
-                    <div className="text-gray-400 text-sm">{order.customerPhone}</div>
-                    <div className="text-gray-400 text-xs">{order.customerEmail}</div>
+                    <div className="text-white font-medium">{order.customerName || 'Unknown Customer'}</div>
+                    <div className="text-gray-400 text-sm">{order.customerPhone || 'No phone'}</div>
+                    <div className="text-gray-400 text-xs">{order.customerEmail || 'No email'}</div>
                     {order.customerCity && (
                       <div className="text-gray-500 text-xs mt-1">
                         🏙️ {order.customerCity}
@@ -425,18 +435,45 @@ export default function EnhancedOrderManager({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{order.productName}</div>
-                    <div className="text-gray-400 text-sm">
-                      {order.selectedSize} • {order.selectedColor}
+                    <div className="flex items-center space-x-3">
+                      {getOrderImageSrc(order) && (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                          {getOrderImageSrc(order)?.startsWith('data:') ? (
+                            <img
+                              src={getOrderImageSrc(order)!}
+                              alt={order.productName}
+                              className="w-full h-full object-cover"
+                              onLoad={() => console.log('✅ Order product image loaded:', order.productName)}
+                              onError={(e) => console.error('❌ Order product image failed to load:', order.productName, e)}
+                            />
+                          ) : (
+                            <Image
+                              src={getOrderImageSrc(order)!}
+                              alt={order.productName}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                              onLoad={() => console.log('✅ Order product image loaded:', order.productName)}
+                              onError={(e) => console.error('❌ Order product image failed to load:', order.productName, e)}
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-white font-medium">{order.productName || 'Unknown Product'}</div>
+                        <div className="text-gray-400 text-sm">
+                          {order.selectedSize || 'N/A'} • {order.selectedColor || 'N/A'}
+                        </div>
+                        <div className="text-gray-400 text-xs">Qty: {order.quantity || 0}</div>
+                      </div>
                     </div>
-                    <div className="text-gray-400 text-xs">Qty: {order.quantity}</div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-white text-sm">
                       {order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
                     </div>
-                    <div className="text-gray-400 text-xs">{order.wilayaName}</div>
-                    <div className="text-gray-400 text-xs">{order.shippingCost} DA</div>
+                    <div className="text-gray-400 text-xs">{order.wilayaName || 'Unknown Wilaya'}</div>
+                    <div className="text-gray-400 text-xs">{order.shippingCost || 0} DA</div>
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -463,11 +500,11 @@ export default function EnhancedOrderManager({
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-semibold">{order.total.toLocaleString()} DA</div>
+                    <div className="text-white font-semibold">{(order.total || 0).toLocaleString()} DA</div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-gray-300 text-sm">
-                      {new Date(order.orderDate).toLocaleDateString()}
+                      {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Unknown Date'}
                     </div>
                   </td>
                   <td className="px-4 py-3">
