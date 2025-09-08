@@ -11,7 +11,8 @@ import { DataLoadingAnimation, NetworkLoadingAnimation } from '@/components/Load
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MadeToOrderCollectionPage() {
-  const { loading } = useProducts();
+  const productsData = useProducts();
+  const productsLoading = 'loading' in productsData ? productsData.loading : false;
   const [madeToOrderProducts, setMadeToOrderProducts] = useState<MadeToOrderProduct[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const { t } = useLanguage();
@@ -44,7 +45,7 @@ export default function MadeToOrderCollectionPage() {
         
         const data = await response.json();
         console.log('✅ Loaded made-to-order products:', data.length);
-        console.log('🖼️ Product images:', data.map(p => ({ 
+        console.log('🖼️ Product images:', data.map((p: any) => ({ 
           id: p.id, 
           name: p.name, 
           hasImage: !!p.image, 
@@ -82,7 +83,7 @@ export default function MadeToOrderCollectionPage() {
     setSelectedCategory(category);
   };
 
-  if (loading || dataLoading) {
+  if (productsLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-black">
         <Header />

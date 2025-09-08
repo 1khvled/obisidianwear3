@@ -1,0 +1,1 @@
+{"version":1,"functions":{"/api/fix-products":{},"/api/fix-ratings":{},"/api/inventory/[id]":{},"/api/inventory":{},"/api/maintenance":{},"/api/orders/[id]":{},"/api/orders":{},"/api/products/[id]":{},"/api/products":{},"/api/test-supabase":{},"/api/wilaya/sync":{}}}

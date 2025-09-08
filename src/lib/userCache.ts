@@ -158,8 +158,6 @@ export const userCache = {
       if (dataSize > 4 * 1024 * 1024) {
         console.warn('⚠️ Data too large for localStorage, using individual caches instead');
         this.setProducts(data.products);
-        this.setMadeToOrderProducts(data.madeToOrderProducts);
-        this.setWilayaTariffs(data.wilayaTariffs);
         return;
       }
       
@@ -170,8 +168,6 @@ export const userCache = {
         console.warn('⚠️ localStorage quota exceeded, falling back to individual caches');
         // Fallback to individual caches
         this.setProducts(data.products);
-        this.setMadeToOrderProducts(data.madeToOrderProducts);
-        this.setWilayaTariffs(data.wilayaTariffs);
       } else {
         console.error('❌ Error setting all user data cache:', error);
       }

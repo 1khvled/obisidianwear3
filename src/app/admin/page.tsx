@@ -44,7 +44,7 @@ export default function AdminPage() {
   
   // Core state
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [wilayaTariffs, setWilayaTariffs] = useState<Wilaya[]>(sortedWilayas);
+  const [wilayaTariffs, setWilayaTariffs] = useState<(Wilaya & { tariff: number })[]>(sortedWilayas.map(w => ({ ...w, tariff: 0 })));
   const [orders, setOrders] = useState<Order[]>([]);
   const [madeToOrderOrders, setMadeToOrderOrders] = useState<any[]>([]);
   const [madeToOrderProducts, setMadeToOrderProducts] = useState<any[]>([]);
@@ -200,12 +200,14 @@ export default function AdminPage() {
         image: '',
         stock: {},
         images: [],
+        sizes: [],
+        colors: [],
         customSizeChart: undefined,
         inStock: true,
-    rating: 0,
-    reviews: 0,
-    createdAt: new Date(),
-    updatedAt: new Date()
+        rating: 0,
+        reviews: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
     } catch (error) {
       console.error('Error adding product:', error);
@@ -225,7 +227,7 @@ export default function AdminPage() {
       const updatedProduct = {
         ...editingProduct,
         ...newProduct,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       };
       
       await updateProductContext(editingProduct.id, updatedProduct);
@@ -239,12 +241,14 @@ export default function AdminPage() {
         image: '',
         stock: {},
         images: [],
+        sizes: [],
+        colors: [],
         customSizeChart: undefined,
         inStock: true,
-    rating: 0,
-    reviews: 0,
-    createdAt: new Date(),
-    updatedAt: new Date()
+        rating: 0,
+        reviews: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
     } catch (error) {
       console.error('Error updating product:', error);
@@ -488,7 +492,7 @@ export default function AdminPage() {
 
       if (response.ok) {
         setWilayaTariffs(prev => 
-          prev.map(w => w.id === wilayaId ? { ...w, tariff: newTariff } : w)
+          prev.map(w => w.id === parseInt(wilayaId) ? { ...w, tariff: newTariff } : w)
         );
       } else {
         throw new Error('Failed to update tariff');
@@ -887,7 +891,7 @@ export default function AdminPage() {
                           {((editingMadeToOrderProduct?.images && editingMadeToOrderProduct.images.length > 0) || 
                             (newMadeToOrderProduct.images && newMadeToOrderProduct.images.length > 0)) && (
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {(editingMadeToOrderProduct?.images || newMadeToOrderProduct.images || []).map((img, index) => (
+                              {(editingMadeToOrderProduct?.images || newMadeToOrderProduct.images || []).map((img: string, index: number) => (
                                 <div key={index} className="relative">
                                   <img 
                                     src={img} 
@@ -898,7 +902,7 @@ export default function AdminPage() {
                                     type="button"
                                     onClick={() => {
                                       const currentImages = editingMadeToOrderProduct?.images || newMadeToOrderProduct.images || [];
-                                      const updatedImages = currentImages.filter((_, i) => i !== index);
+                                      const updatedImages = currentImages.filter((_: string, i: number) => i !== index);
                                       if (editingMadeToOrderProduct) {
                                         setEditingMadeToOrderProduct({...editingMadeToOrderProduct, images: updatedImages});
                                       } else {
@@ -922,14 +926,14 @@ export default function AdminPage() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">Available Sizes</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          {(editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || []).map((size, index) => (
+                          {(editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || []).map((size: string, index: number) => (
                             <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                               <span className="text-sm text-gray-300 mr-2">{size}</span>
                               <button
                                 type="button"
                                 onClick={() => {
                                   const currentSizes = editingMadeToOrderProduct?.sizes || newMadeToOrderProduct.sizes || [];
-                                  const newSizes = currentSizes.filter((_, i) => i !== index);
+                                  const newSizes = currentSizes.filter((_: string, i: number) => i !== index);
                                   
                                   if (editingMadeToOrderProduct) {
                                     setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizes: newSizes});
@@ -1002,14 +1006,14 @@ export default function AdminPage() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">Available Colors</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          {(editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || []).map((color, index) => (
+                          {(editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || []).map((color: string, index: number) => (
                             <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                               <span className="text-sm text-gray-300 mr-2">{color}</span>
                               <button
                                 type="button"
                                 onClick={() => {
                                   const currentColors = editingMadeToOrderProduct?.colors || newMadeToOrderProduct.colors || [];
-                                  const newColors = currentColors.filter((_, i) => i !== index);
+                                  const newColors = currentColors.filter((_: string, i: number) => i !== index);
                                   
                                   if (editingMadeToOrderProduct) {
                                     setEditingMadeToOrderProduct({...editingMadeToOrderProduct, colors: newColors});
@@ -1400,7 +1404,7 @@ export default function AdminPage() {
                           </td>
                         <td className="px-4 py-4 text-center">
                           <button
-                            onClick={() => handleUpdateWilayaTariff(wilaya.id, wilaya.tariff)}
+                            onClick={() => handleUpdateWilayaTariff(wilaya.id.toString(), wilaya.tariff)}
                             disabled={loading}
                             className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors disabled:opacity-50"
                           >
@@ -1565,17 +1569,6 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <div className="flex items-center">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={newProduct.isActive}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, isActive: e.target.checked }))}
-                      className="mr-2 w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-300">Active Product</span>
-                  </label>
-                </div>
               </div>
 
               {/* Description */}
@@ -1617,14 +1610,14 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Available Sizes</label>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {(newProduct.sizes || []).map((size, index) => (
+                    {(newProduct.sizes || []).map((size: string, index: number) => (
                       <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                         <span className="text-sm text-gray-300 mr-2">{size}</span>
                         <button
                           type="button"
                           onClick={() => {
                             const currentSizes = newProduct.sizes || [];
-                            const newSizes = currentSizes.filter((_, i) => i !== index);
+                            const newSizes = currentSizes.filter((_: string, i: number) => i !== index);
                             setNewProduct(prev => ({ ...prev, sizes: newSizes }));
                           }}
                           className="text-red-400 hover:text-red-300 text-xs"
@@ -1680,14 +1673,14 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Available Colors</label>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {(newProduct.colors || []).map((color, index) => (
+                    {(newProduct.colors || []).map((color: string, index: number) => (
                       <div key={index} className="flex items-center bg-gray-700 rounded-lg px-3 py-1">
                         <span className="text-sm text-gray-300 mr-2">{color}</span>
                         <button
                           type="button"
                           onClick={() => {
                             const currentColors = newProduct.colors || [];
-                            const newColors = currentColors.filter((_, i) => i !== index);
+                            const newColors = currentColors.filter((_: string, i: number) => i !== index);
                             setNewProduct(prev => ({ ...prev, colors: newColors }));
                           }}
                           className="text-red-400 hover:text-red-300 text-xs"

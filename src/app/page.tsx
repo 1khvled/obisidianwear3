@@ -14,7 +14,9 @@ import { useProducts } from '@/context/SmartProductProvider';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const { products, loading } = useProducts();
+  const productsData = useProducts();
+  const products = productsData.products;
+  const loading = 'loading' in productsData ? productsData.loading : false;
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const { t } = useLanguage();
 

@@ -94,7 +94,7 @@ export default function MadeToOrderPage() {
       
       const data = await response.json();
       console.log('✅ Loaded made-to-order products:', data.length);
-      console.log('🖼️ Product images:', data.map(p => ({ 
+      console.log('🖼️ Product images:', data.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         hasImage: !!p.image, 
@@ -103,7 +103,7 @@ export default function MadeToOrderPage() {
         imagesLength: p.images?.length,
         firstImageLength: p.images?.[0]?.length
       })));
-      console.log('🎨 Product colors and sizes:', data.map(p => ({
+      console.log('🎨 Product colors and sizes:', data.map((p: any) => ({
         id: p.id,
         name: p.name,
         colors: p.colors,

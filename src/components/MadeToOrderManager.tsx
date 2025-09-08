@@ -81,7 +81,15 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
         image: order.made_to_order_products.image,
         images: order.made_to_order_products.images,
         description: order.made_to_order_products.description,
-        price: order.made_to_order_products.price
+        price: order.made_to_order_products.price,
+        colors: order.made_to_order_products.colors || [],
+        sizes: order.made_to_order_products.sizes || [],
+        category: order.made_to_order_products.category || '',
+        isActive: order.made_to_order_products.isActive !== undefined ? order.made_to_order_products.isActive : true,
+        displayOrder: order.made_to_order_products.displayOrder || 0,
+        tags: order.made_to_order_products.tags || [],
+        createdAt: order.made_to_order_products.createdAt || new Date(),
+        updatedAt: order.made_to_order_products.updatedAt || new Date()
       };
     }
     // Fallback to lookup
@@ -101,7 +109,7 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
       const productsResponse = await fetch('/api/made-to-order');
       const productsData = await productsResponse.json();
       console.log('✅ Loaded made-to-order products in manager:', productsData.length);
-      console.log('🖼️ Product images in manager:', productsData.map(p => ({ 
+      console.log('🖼️ Product images in manager:', productsData.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         hasImage: !!p.image, 
@@ -116,7 +124,7 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
       const ordersResponse = await fetch('/api/made-to-order/orders');
       const ordersData = await ordersResponse.json();
       console.log('✅ Loaded made-to-order orders in manager:', ordersData.length);
-      console.log('📦 Order product IDs:', ordersData.map(o => ({ orderId: o.id, productId: o.productId })));
+      console.log('📦 Order product IDs:', ordersData.map((o: any) => ({ orderId: o.id, productId: o.productId })));
       console.log('🔍 Order data structure:', ordersData[0] ? {
         hasProductData: !!ordersData[0].made_to_order_products,
         productData: ordersData[0].made_to_order_products,
