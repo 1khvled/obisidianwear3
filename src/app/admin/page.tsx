@@ -61,8 +61,12 @@ export default function AdminPage() {
     colors: [],
     allowCustomText: false,
     allowCustomDesign: false,
-    sizeChart: null,
-    isActive: true
+    customSizeChart: undefined,
+    inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -77,8 +81,12 @@ export default function AdminPage() {
     images: [],
     sizes: [],
     colors: [],
-    sizeChart: null,
-    isActive: true
+    inStock: true,
+    rating: 0,
+    reviews: 0,
+    customSizeChart: undefined,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
   const [loading, setLoading] = useState(false);
 
@@ -158,8 +166,12 @@ export default function AdminPage() {
         images: editingProduct.images || [],
         sizes: editingProduct.sizes || [],
         colors: editingProduct.colors || [],
-        sizeChart: editingProduct.sizeChart || null,
-        isActive: editingProduct.isActive !== undefined ? editingProduct.isActive : true
+        inStock: editingProduct.inStock !== undefined ? editingProduct.inStock : true,
+        rating: editingProduct.rating || 0,
+        reviews: editingProduct.reviews || 0,
+        customSizeChart: editingProduct.customSizeChart || undefined,
+        createdAt: editingProduct.createdAt || new Date(),
+        updatedAt: editingProduct.updatedAt || new Date()
       });
     }
   }, [editingProduct]);
@@ -173,8 +185,8 @@ export default function AdminPage() {
       const productData = {
         ...newProduct,
         id: Date.now().toString(), // Simple ID generation
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       await addProductContext(productData);
@@ -188,8 +200,12 @@ export default function AdminPage() {
         image: '',
         stock: {},
         images: [],
-        sizeChart: null,
-        isActive: true
+        customSizeChart: undefined,
+        inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
       });
     } catch (error) {
       console.error('Error adding product:', error);
@@ -223,8 +239,12 @@ export default function AdminPage() {
         image: '',
         stock: {},
         images: [],
-        sizeChart: null,
-        isActive: true
+        customSizeChart: undefined,
+        inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
       });
     } catch (error) {
       console.error('Error updating product:', error);
@@ -288,8 +308,12 @@ export default function AdminPage() {
           colors: [],
           allowCustomText: false,
           allowCustomDesign: false,
-          sizeChart: null,
-          isActive: true
+          customSizeChart: undefined,
+          inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
         });
         setShowAddMadeToOrderProduct(false);
         alert('Product added successfully!');
@@ -614,8 +638,12 @@ export default function AdminPage() {
                           basePrice: 0,
                           category: '',
                           images: [],
-                          sizeChart: null,
-                          isActive: true
+                          customSizeChart: undefined,
+                          inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
                         });
                       }}
                       className="text-gray-400 hover:text-white"
@@ -1107,8 +1135,12 @@ export default function AdminPage() {
                             colors: [],
                             allowCustomText: false,
                             allowCustomDesign: false,
-                            sizeChart: null,
-                            isActive: true
+                            customSizeChart: undefined,
+                            inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
                           });
                         }}
                         className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
@@ -1723,8 +1755,12 @@ export default function AdminPage() {
                       images: [],
                       sizes: [],
                       colors: [],
-                      sizeChart: null,
-                      isActive: true
+                      customSizeChart: undefined,
+                      inStock: true,
+    rating: 0,
+    reviews: 0,
+    createdAt: new Date(),
+    updatedAt: new Date()
                     });
                   }}
                   className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
