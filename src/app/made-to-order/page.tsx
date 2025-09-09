@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { 
   Palette, 
@@ -42,6 +42,8 @@ export default function MadeToOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -56,8 +58,8 @@ export default function MadeToOrderPage() {
     shippingType: 'homeDelivery' as 'homeDelivery' | 'stopDesk'
   });
 
-  // Helper function to get the best image source
-  const getImageSrc = (product: MadeToOrderProduct) => {
+  // Optimized helper function to get the best image source
+  const getImageSrc = useCallback((product: MadeToOrderProduct) => {
     // Check for main image first
     if (product.image) {
       // If it's a data URL (base64), use it directly
@@ -93,17 +95,38 @@ export default function MadeToOrderPage() {
       }
     }
     
-    console.log('🖼️ No valid image found for product:', { 
-      id: product.id, 
-      name: product.name, 
-      hasImage: !!product.image, 
-      imageLength: product.image?.length,
-      hasImages: !!(product.images && product.images.length > 0),
-      firstImageLength: product.images?.[0]?.length
-    });
-    
     return null;
-  };
+  }, []);
+
+  // Optimized loading strategy - show page as soon as products are available
+  useEffect(() => {
+    if (loading && madeToOrderProducts.length === 0) {
+      setIsPageLoading(true);
+      setLoadingProgress(0);
+      
+      // Simulate loading progress
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) return prev; // Stop at 90% until data loads
+          return prev + Math.random() * 15;
+        });
+      }, 100);
+
+      return () => clearInterval(progressInterval);
+    } else if (madeToOrderProducts.length > 0) {
+      // Products are available, show the page immediately
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setIsPageLoading(false);
+      }, 200); // Quick transition
+    } else if (!loading) {
+      // All data loaded
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setIsPageLoading(false);
+      }, 300);
+    }
+  }, [loading, madeToOrderProducts.length]);
 
   // Debug products state
   useEffect(() => {
@@ -181,27 +204,21 @@ export default function MadeToOrderPage() {
     }
   };
 
-  const getShippingCost = () => {
+  const getShippingCost = useMemo(() => {
     if (!orderForm.wilayaId || !wilayaTariffs || wilayaTariffs.length === 0) {
-      console.log('❌ No wilaya selected or tariffs not loaded:', { wilayaId: orderForm.wilayaId, tariffsLength: wilayaTariffs?.length });
       return 0;
     }
     
     const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
-    console.log('🔍 Looking for wilaya:', { wilayaId: orderForm.wilayaId, foundWilaya: wilaya, allTariffs: wilayaTariffs.length });
     
     if (!wilaya) {
-      console.log('❌ Wilaya not found in tariffs');
       return 0;
     }
     
-    const cost = orderForm.shippingType === 'homeDelivery' 
+    return orderForm.shippingType === 'homeDelivery' 
       ? (wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.home_delivery || wilaya.homeDelivery || 0)
       : (wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stop_desk || wilaya.stopDesk || 0);
-    
-    console.log('💰 Shipping cost calculated:', { cost, shippingType: orderForm.shippingType, wilaya: wilaya.name });
-    return cost;
-  };
+  }, [orderForm.wilayaId, orderForm.shippingType, wilayaTariffs]);
 
   const openWhatsApp = () => {
     const message = t('madeToOrder.whatsappMessage');
@@ -213,7 +230,7 @@ export default function MadeToOrderPage() {
   const openWhatsAppWithOrder = () => {
     if (!selectedProduct) return;
     
-    const shippingCost = getShippingCost();
+    const shippingCost = getShippingCost;
     const totalPrice = selectedProduct.price * orderForm.quantity;
     const depositAmount = totalPrice * 0.5;
     
@@ -246,12 +263,46 @@ Merci de me contacter pour finaliser la commande spéciale!`;
     window.open(url, '_blank');
   };
 
-  if (loading) {
+  if (isPageLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-xl">Loading made-to-order products...</p>
+      <div className="min-h-screen bg-black">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center max-w-md mx-auto px-4">
+            {/* Animated Logo */}
+            <div className="mb-8">
+              <div className="w-20 h-20 mx-auto mb-4 relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-white to-gray-300 rounded-full animate-pulse"></div>
+                <div className="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                  <Package className="w-8 h-8 text-white animate-bounce" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Loading Text */}
+            <h2 className="text-2xl font-bold text-white mb-2">Loading Made-to-Order</h2>
+            <p className="text-gray-400 mb-6">Preparing your custom collection...</p>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
+              <div 
+                className="bg-gradient-to-r from-white to-gray-300 h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+            
+            {/* Progress Percentage */}
+            <div className="text-white text-sm font-medium">
+              {Math.round(loadingProgress)}%
+            </div>
+            
+            {/* Loading Dots */}
+            <div className="flex justify-center mt-6 space-x-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -360,8 +411,12 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {madeToOrderProducts.map((product) => (
-                <div key={product.id} className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101">
+              {madeToOrderProducts.map((product, index) => (
+                <div 
+                  key={product.id} 
+                  className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                     <div className="relative overflow-hidden">
                     {getImageSrc(product) ? (
                       getImageSrc(product)?.startsWith('data:') ? (
@@ -369,8 +424,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                           src={getImageSrc(product)!}
                           alt={product.name}
                           className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                          onLoad={() => console.log('✅ Image loaded for product:', product.name)}
-                          onError={(e) => console.error('❌ Image failed to load for product:', product.name, e)}
+                          loading="lazy"
                         />
                       ) : (
                         <Image
@@ -379,8 +433,8 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                           width={400}
                           height={500}
                           className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                          onLoad={() => console.log('✅ Image loaded for product:', product.name)}
-                          onError={(e) => console.error('❌ Image failed to load for product:', product.name, e)}
+                          loading="lazy"
+                          priority={index < 3} // Prioritize first 3 images
                         />
                       )
                     ) : (
@@ -906,15 +960,15 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Livraison ({orderForm.shippingType === 'homeDelivery' ? 'Domicile' : 'Stop Desk'}):</span>
-                    <span className="text-white">{getShippingCost()} DZD</span>
+                    <span className="text-white">{getShippingCost} DZD</span>
                   </div>
                   <div className="flex justify-between border-t border-gray-700 pt-2">
                     <span className="text-white font-semibold">Total:</span>
-                    <span className="text-white font-bold">{(selectedProduct.price * orderForm.quantity) + getShippingCost()} DZD</span>
+                    <span className="text-white font-bold">{(selectedProduct.price * orderForm.quantity) + getShippingCost} DZD</span>
                   </div>
                   <div className="flex justify-between border-t border-gray-700 pt-2">
                     <span className="text-white">Acompte (50%):</span>
-                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost()) * 0.50).toFixed(0)} DZD</span>
+                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost) * 0.50).toFixed(0)} DZD</span>
                   </div>
                 </div>
               </div>
