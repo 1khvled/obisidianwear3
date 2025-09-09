@@ -205,34 +205,24 @@ export default function ProductDetailPage() {
                         const stock = product.stock?.[size]?.[selectedColor] || 0;
                         return stock > 0;
                       })
-                    : product.sizes;
+                    : product.sizes; // If no color selected, show all sizes
                   
-                  // If no color selected, show all sizes but with warning
-                  const sizesToShow = selectedColor ? availableSizes : product.sizes;
-                  
-                  return sizesToShow.map((size) => {
+                  return availableSizes.map((size) => {
                     const sizeStock = selectedColor ? (product.stock?.[size]?.[selectedColor] || 0) : 0;
-                    const isOutOfStock = selectedColor && sizeStock === 0;
                     
                     return (
                       <button
                         key={size}
                         onClick={() => {
-                          if (!isOutOfStock) {
-                            setSelectedSize(size);
-                          } else {
-                            alert(`❌ Size ${size} in ${selectedColor} is OUT OF STOCK!`);
-                          }
+                          setSelectedSize(size);
                         }}
-                        disabled={!!isOutOfStock}
+                        disabled={false}
                         className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
                           selectedSize === size
                             ? 'border-white bg-white text-black'
-                            : isOutOfStock 
-                              ? 'border-red-600 text-red-400 cursor-not-allowed bg-red-900/20'
-                              : !selectedColor
-                                ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
-                                : 'border-gray-600 text-white hover:border-gray-400'
+                            : !selectedColor
+                              ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
+                              : 'border-gray-600 text-white hover:border-gray-400'
                         }`}
                       >
                         {size}
