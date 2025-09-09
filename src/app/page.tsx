@@ -54,92 +54,102 @@ export default function Home() {
     <div className="min-h-screen bg-black">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative bg-black py-16 px-4 overflow-hidden">
-        <div className="absolute inset-0 opacity-40" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      {/* Premium Collection Hero Section */}
+      <section className="relative bg-black py-20 px-4 overflow-hidden">
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}></div>
+        
         <div className="relative max-w-6xl mx-auto text-center">
-          <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
-            <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
-            <span className="text-white text-sm font-medium">Premium Collection</span>
+          {/* Premium Collection Tag */}
+          <div className="inline-flex items-center bg-gradient-to-r from-yellow-500/20 to-amber-500/20 backdrop-blur-sm border border-yellow-500/30 rounded-full px-6 py-3 mb-12">
+            <span className="w-3 h-3 bg-yellow-400 rounded-full mr-3 animate-pulse"></span>
+            <span className="text-yellow-300 text-lg font-bold tracking-wide">Premium Collection</span>
           </div>
           
-          <div className="mb-6">
+          {/* Logo */}
+          <div className="mb-8">
             <Image
               src="/Logo Obsidian Wear sur fond noir.png"
               alt="OBSIDIAN WEAR Logo"
-              width={220}
-              height={220}
+              width={280}
+              height={280}
               priority
-              className="w-24 sm:w-32 md:w-48 h-auto mx-auto mb-4"
+              className="w-32 sm:w-40 md:w-56 h-auto mx-auto mb-6"
             />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">
-              {t('hero.title')}
-              <span className="block bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                {t('hero.title2')}
+          </div>
+          
+          {/* Main Tagline */}
+          <div className="mb-12">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-4 tracking-tight leading-tight">
+              Plus qu'un vêtement,<br />
+              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                une attitude.
               </span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-              {t('hero.subtitle')}
+            <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Découvrez notre collection exclusive...
             </p>
           </div>
           
-          {/* Main CTA Button - Right Under Hero Content */}
-          <div className="flex justify-center mb-8">
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <button
               onClick={() => {
-                console.log('🚀 Main CTA clicked');
                 const productsSection = document.getElementById('products');
                 if (productsSection) {
-                  console.log('✅ Products section found, scrolling...');
                   productsSection.scrollIntoView({ 
                     behavior: 'smooth',
                     block: 'center',
                     inline: 'nearest'
                   });
-                } else {
-                  console.log('❌ Products section not found');
-                  window.scrollTo({ top: 800, behavior: 'smooth' });
                 }
               }}
-              className="group bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-black px-12 py-6 rounded-2xl text-2xl font-black flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl hover:shadow-white/30 border-4 border-white/30 hover:border-white/50 w-fit"
+              className="group bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-black px-10 py-4 rounded-2xl text-xl font-black flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl hover:shadow-white/30 border-2 border-white/30 hover:border-white/50"
             >
-              <ShoppingBag className="w-8 h-8 mr-3 group-hover:scale-110 transition-transform" />
-              {t('hero.cta')}
-              <ChevronRight className="w-8 h-8 ml-3 group-hover:translate-x-1 transition-transform" />
+              <ShoppingBag className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
+              Voir la Collection
+              <ChevronRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
             </button>
+            
+            <a
+              href="/made-to-order"
+              className="group bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-800 text-white px-10 py-4 rounded-2xl text-xl font-black flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl border-2 border-white/20 hover:border-white/40"
+            >
+              <Package className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
+              Article sur commande
+              <ChevronRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
+            </a>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-4xl mx-auto mb-6">
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 hover:bg-white/10 transition-all duration-300">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-md flex items-center justify-center mb-1 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
-                <Truck className="w-3 h-3 text-blue-400" />
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
+                <Truck className="w-6 h-6 text-blue-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Fast Delivery</h3>
-              <p className="text-gray-400 text-xs">Quick & reliable</p>
+              <h3 className="text-white font-bold mb-2 text-lg">Fast Delivery</h3>
+              <p className="text-gray-400 text-sm">Quick & reliable shipping</p>
             </div>
             
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 hover:bg-white/10 transition-all duration-300">
-              <div className="w-6 h-6 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-md flex items-center justify-center mb-1 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
-                <Shield className="w-3 h-3 text-green-400" />
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
+                <Shield className="w-6 h-6 text-green-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Quality Guarantee</h3>
-              <p className="text-gray-400 text-xs">Premium materials</p>
+              <h3 className="text-white font-bold mb-2 text-lg">Quality</h3>
+              <p className="text-gray-400 text-sm">Premium materials</p>
             </div>
             
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 hover:bg-white/10 transition-all duration-300">
-              <div className="w-6 h-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-md flex items-center justify-center mb-1 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
-                <RotateCcw className="w-3 h-3 text-purple-400" />
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
+                <RotateCcw className="w-6 h-6 text-purple-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Easy Returns</h3>
-              <p className="text-gray-400 text-xs">3-day policy</p>
+              <h3 className="text-white font-bold mb-2 text-lg">Easy</h3>
+              <p className="text-gray-400 text-sm">Simple returns</p>
             </div>
           </div>
         </div>
       </section>
-
-
 
       {/* Products Section */}
       <section id="products" className="py-16 px-4 bg-black">
@@ -202,7 +212,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
 
       {/* Made-to-Order CTA Section */}
       <section className="py-16 px-4 bg-gradient-to-br from-gray-900 via-black to-gray-900">

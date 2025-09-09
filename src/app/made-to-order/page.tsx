@@ -58,12 +58,50 @@ export default function MadeToOrderPage() {
 
   // Helper function to get the best image source
   const getImageSrc = (product: MadeToOrderProduct) => {
-    if (product.image && product.image.length > 100) {
+    // Check for main image first
+    if (product.image) {
+      // If it's a data URL (base64), use it directly
+      if (product.image.startsWith('data:')) {
       return product.image;
     }
-    if (product.images && product.images.length > 0 && product.images[0].length > 100) {
-      return product.images[0];
+      // If it's a URL path, use it
+      if (product.image.startsWith('/') || product.image.startsWith('http')) {
+        return product.image;
+      }
+      // If it's a long base64 string, use it
+      if (product.image.length > 100) {
+        return product.image;
+      }
     }
+    
+    // Check for images array
+    if (product.images && product.images.length > 0) {
+      const firstImage = product.images[0];
+      if (firstImage) {
+        // If it's a data URL (base64), use it directly
+        if (firstImage.startsWith('data:')) {
+          return firstImage;
+        }
+        // If it's a URL path, use it
+        if (firstImage.startsWith('/') || firstImage.startsWith('http')) {
+          return firstImage;
+        }
+        // If it's a long base64 string, use it
+        if (firstImage.length > 100) {
+          return firstImage;
+        }
+      }
+    }
+    
+    console.log('🖼️ No valid image found for product:', { 
+      id: product.id, 
+      name: product.name, 
+      hasImage: !!product.image, 
+      imageLength: product.image?.length,
+      hasImages: !!(product.images && product.images.length > 0),
+      firstImageLength: product.images?.[0]?.length
+    });
+    
     return null;
   };
 
@@ -144,15 +182,25 @@ export default function MadeToOrderPage() {
   };
 
   const getShippingCost = () => {
-    if (!orderForm.wilayaId) return 0;
-    const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
-    if (!wilaya) return 0;
-    
-    if (orderForm.shippingType === 'homeDelivery') {
-      return wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.home_delivery || wilaya.homeDelivery || 0;
-    } else {
-      return wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stop_desk || wilaya.stopDesk || 0;
+    if (!orderForm.wilayaId || !wilayaTariffs || wilayaTariffs.length === 0) {
+      console.log('❌ No wilaya selected or tariffs not loaded:', { wilayaId: orderForm.wilayaId, tariffsLength: wilayaTariffs?.length });
+      return 0;
     }
+    
+    const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
+    console.log('🔍 Looking for wilaya:', { wilayaId: orderForm.wilayaId, foundWilaya: wilaya, allTariffs: wilayaTariffs.length });
+    
+    if (!wilaya) {
+      console.log('❌ Wilaya not found in tariffs');
+      return 0;
+    }
+    
+    const cost = orderForm.shippingType === 'homeDelivery' 
+      ? (wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.home_delivery || wilaya.homeDelivery || 0)
+      : (wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stop_desk || wilaya.stopDesk || 0);
+    
+    console.log('💰 Shipping cost calculated:', { cost, shippingType: orderForm.shippingType, wilaya: wilaya.name });
+    return cost;
   };
 
   const openWhatsApp = () => {
@@ -314,9 +362,9 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {madeToOrderProducts.map((product) => (
                 <div key={product.id} className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101">
-                  {getImageSrc(product) && (
                     <div className="relative overflow-hidden">
-                      {getImageSrc(product)?.startsWith('data:') ? (
+                    {getImageSrc(product) ? (
+                      getImageSrc(product)?.startsWith('data:') ? (
                         <img
                           src={getImageSrc(product)!}
                           alt={product.name}
@@ -334,6 +382,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                           onLoad={() => console.log('✅ Image loaded for product:', product.name)}
                           onError={(e) => console.error('❌ Image failed to load for product:', product.name, e)}
                         />
+                      )
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <Package className="w-16 h-16 text-gray-600" />
+                      </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4">
@@ -348,7 +401,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         </div>
                       </div>
                     </div>
-                  )}
                   <div className="p-4">
                     <h3 className="text-base font-bold text-white mb-2 group-hover:text-white transition-colors">{product.name}</h3>
                     <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
