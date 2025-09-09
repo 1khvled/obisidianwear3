@@ -1,9 +1,9 @@
 'use client';
 
-import { useUserProducts } from '@/context/UserProductContext';
+import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
 
 export default function CacheTestPage() {
-  const { products, loading, lastUpdated, timeUntilRefresh, refreshProducts } = useUserProducts();
+  const { products, loading, lastUpdated, timeUntilRefresh, refreshAllData } = useOptimizedUserData();
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
@@ -21,7 +21,7 @@ export default function CacheTestPage() {
               <p><strong>Time Until Refresh:</strong> {timeUntilRefresh}s</p>
             </div>
             <button 
-              onClick={refreshProducts}
+              onClick={refreshAllData}
               className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
             >
               🔄 Force Refresh

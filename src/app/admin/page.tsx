@@ -107,22 +107,28 @@ export default function AdminPage() {
         try {
           setLoading(true);
 
-          // Load orders
-        const savedOrders = await backendService.getOrders();
-        setOrders(savedOrders);
+          // Load orders (skip during build time)
+          if (typeof window !== 'undefined') {
+            const savedOrders = await backendService.getOrders();
+            setOrders(savedOrders);
+          } else {
+            console.log('Skipping orders load during build time');
+            setOrders([]);
+          }
 
-            // Load made-to-order products
-        const productsResponse = await fetch('/api/made-to-order');
-        const madeToOrderProductsData = await productsResponse.json();
-            setMadeToOrderProducts(madeToOrderProductsData);
+            // Load made-to-order products (skip during build time)
+            if (typeof window !== 'undefined') {
+              const productsResponse = await fetch('/api/made-to-order');
+              const madeToOrderProductsData = await productsResponse.json();
+              setMadeToOrderProducts(madeToOrderProductsData);
 
-            // Load made-to-order orders
-        const ordersResponse = await fetch('/api/made-to-order/orders');
-        if (!ordersResponse.ok) {
-          console.error('❌ Failed to fetch made-to-order orders:', ordersResponse.status, ordersResponse.statusText);
-          throw new Error(`Failed to fetch orders: ${ordersResponse.status}`);
-        }
-        const madeToOrderOrdersData = await ordersResponse.json();
+              // Load made-to-order orders
+              const ordersResponse = await fetch('/api/made-to-order/orders');
+              if (!ordersResponse.ok) {
+                console.error('❌ Failed to fetch made-to-order orders:', ordersResponse.status, ordersResponse.statusText);
+                throw new Error(`Failed to fetch orders: ${ordersResponse.status}`);
+              }
+              const madeToOrderOrdersData = await ordersResponse.json();
         console.log('🔍 Admin Panel - Loaded made-to-order orders:', madeToOrderOrdersData.length);
         console.log('🔍 Admin Panel - Order data structure:', madeToOrderOrdersData[0] ? {
           id: madeToOrderOrdersData[0].id,
@@ -131,14 +137,24 @@ export default function AdminPage() {
           total_price: madeToOrderOrdersData[0].total_price,
           status: madeToOrderOrdersData[0].status
         } : 'No orders');
-            setMadeToOrderOrders(madeToOrderOrdersData);
+              setMadeToOrderOrders(madeToOrderOrdersData);
+            } else {
+              console.log('Skipping made-to-order data load during build time');
+              setMadeToOrderProducts([]);
+              setMadeToOrderOrders([]);
+            }
 
-        // Load wilaya tariffs
-        const wilayaResponse = await fetch('/api/wilaya');
-        const wilayaData = await wilayaResponse.json();
-        if (wilayaData && wilayaData.length > 0) {
-          setWilayaTariffs(wilayaData);
-        }
+            // Load wilaya tariffs (skip during build time)
+            if (typeof window !== 'undefined') {
+              const wilayaResponse = await fetch('/api/wilaya');
+              const wilayaData = await wilayaResponse.json();
+              if (wilayaData && wilayaData.length > 0) {
+                setWilayaTariffs(wilayaData);
+              }
+            } else {
+              console.log('Skipping wilaya data load during build time');
+              setWilayaTariffs([]);
+            }
 
         } catch (error) {
           console.error('Error loading data:', error);
