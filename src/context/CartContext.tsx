@@ -96,24 +96,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (existingItem) {
         // Update existing item quantity
         const newQuantity = existingItem.quantity + quantity;
-        // Check stock availability without exposing numbers
-        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 999;
-        if (newQuantity <= availableStock) {
-          return prevItems.map(item =>
-            item.id === cartItemId
-              ? { ...item, quantity: newQuantity }
-              : item
-          );
-        } else {
-          alert('This item is not available in the selected size and color!');
+        // Check stock availability
+        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+        if (availableStock === 0) {
+          alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
           return prevItems;
         }
+        if (newQuantity > availableStock) {
+          alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+          return prevItems;
+        }
+        return prevItems.map(item =>
+          item.id === cartItemId
+            ? { ...item, quantity: newQuantity }
+            : item
+        );
       } else {
         // Add new item
         const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
         
-        // If no stock data exists for this product at all, assume unlimited stock
+        // If no stock data exists for this product at all, check if it's in stock
         if (!product.stock) {
+          if (!product.inStock) {
+            alert('❌ This product is out of stock!');
+            return prevItems;
+          }
           const newItem: CartItem = {
             id: cartItemId,
             productId: product.id,
@@ -128,24 +135,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           return [...prevItems, newItem];
         }
         
-        // If stock data exists but this specific size/color combination doesn't, 
-        // check if the size exists and use any available color's stock as fallback
-        if (availableStock === 0 && product.stock[selectedSize]) {
-          const fallbackStock = Math.max(...Object.values(product.stock[selectedSize]) as number[]);
-          if (fallbackStock > 0) {
-            const newItem: CartItem = {
-              id: cartItemId,
-              productId: product.id,
-              name: product.name,
-              price: product.price,
-              image: product.image,
-              selectedSize,
-              selectedColor,
-              quantity,
-              addedAt: new Date().toISOString()
-            };
-            return [...prevItems, newItem];
-          }
+        // Check if the specific size/color combination is available
+        if (availableStock === 0) {
+          alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
+          return prevItems;
+        }
+        
+        // Check if requested quantity exceeds available stock
+        if (quantity > availableStock) {
+          alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+          return prevItems;
         }
         
         if (quantity <= availableStock) {

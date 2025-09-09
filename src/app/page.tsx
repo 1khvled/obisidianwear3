@@ -108,7 +108,7 @@ export default function Home() {
               className="group bg-gradient-to-r from-white to-gray-100 hover:from-gray-100 hover:to-white text-black px-10 py-4 rounded-2xl text-xl font-black flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl hover:shadow-white/30 border-2 border-white/30 hover:border-white/50"
             >
               <ShoppingBag className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
-              Voir la Collection
+              {t('home.viewCollection')}
               <ChevronRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
             </button>
             
@@ -117,7 +117,7 @@ export default function Home() {
               className="group bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-800 text-white px-10 py-4 rounded-2xl text-xl font-black flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl border-2 border-white/20 hover:border-white/40"
             >
               <Package className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
-              Article sur commande
+              {t('home.madeToOrder')}
               <ChevronRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />
             </a>
           </div>
@@ -128,24 +128,24 @@ export default function Home() {
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
                 <Truck className="w-6 h-6 text-blue-400" />
               </div>
-              <h3 className="text-white font-bold mb-2 text-lg">Fast Delivery</h3>
-              <p className="text-gray-400 text-sm">Quick & reliable shipping</p>
+              <h3 className="text-white font-bold mb-2 text-lg">{t('home.fastDelivery')}</h3>
+              <p className="text-gray-400 text-sm">{t('home.fastDeliveryDesc')}</p>
             </div>
             
             <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105">
               <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
                 <Shield className="w-6 h-6 text-green-400" />
               </div>
-              <h3 className="text-white font-bold mb-2 text-lg">Quality</h3>
-              <p className="text-gray-400 text-sm">Premium materials</p>
+              <h3 className="text-white font-bold mb-2 text-lg">{t('home.quality')}</h3>
+              <p className="text-gray-400 text-sm">{t('home.qualityDesc')}</p>
             </div>
             
             <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg flex items-center justify-center mb-4 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
                 <RotateCcw className="w-6 h-6 text-purple-400" />
               </div>
-              <h3 className="text-white font-bold mb-2 text-lg">Easy</h3>
-              <p className="text-gray-400 text-sm">Simple returns</p>
+              <h3 className="text-white font-bold mb-2 text-lg">{t('home.easy')}</h3>
+              <p className="text-gray-400 text-sm">{t('home.easyDesc')}</p>
             </div>
           </div>
         </div>

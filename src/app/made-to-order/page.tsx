@@ -162,9 +162,23 @@ export default function MadeToOrderPage() {
     
     if (!selectedProduct) return;
 
+    // Validate phone number (must be exactly 10 digits)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(orderForm.customerPhone)) {
+      alert('Le numéro de téléphone doit contenir exactement 10 chiffres (sans +213)');
+      return;
+    }
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(orderForm.customerEmail)) {
+      alert('Veuillez entrer une adresse email valide');
+      return;
+    }
+    
     // Validate required fields
-    if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.customerAddress || !orderForm.wilayaId || !orderForm.selectedSize || !orderForm.selectedColor) {
-      alert('Please fill in all required fields.');
+    if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.customerEmail || !orderForm.customerAddress || !orderForm.wilayaId || !orderForm.selectedSize || !orderForm.selectedColor) {
+      alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
@@ -195,7 +209,7 @@ export default function MadeToOrderPage() {
 
       if (response.ok) {
         const orderData = await response.json();
-        alert('Your special order has been submitted successfully! We will contact you via WhatsApp to complete the order.');
+        alert('Commande soumise avec succès! NOUS VOUS CONTACTERONS DANS 24H-48H VIA WHATSAPP.');
         setShowOrderForm(false);
         setSelectedProduct(null);
         setOrderForm({
@@ -717,14 +731,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <button
-              onClick={openWhatsApp}
-              className="group bg-white hover:bg-gray-100 text-black px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-2xl"
-            >
-              <MessageCircle className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
-              {t('madeToOrder.orderViaWhatsApp')}
-            </button>
-            
-            <button
               onClick={() => {
                 const productsSection = document.getElementById('products');
                 if (productsSection) {
@@ -796,22 +802,26 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   />
                 </div>
                 <div>
-                  <label className="block text-white font-medium mb-2">Téléphone *</label>
+                  <label className="block text-white font-medium mb-2">Téléphone * (10 chiffres)</label>
                   <input
                     type="tel"
                     required
                     value={orderForm.customerPhone}
                     onChange={(e) => setOrderForm({ ...orderForm, customerPhone: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                    placeholder="+213 123 456 789"
+                    placeholder="1234567890"
+                    pattern="[0-9]{10}"
+                    minLength={10}
+                    maxLength={10}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-white font-medium mb-2">Email</label>
+                <label className="block text-white font-medium mb-2">Email *</label>
                 <input
                   type="email"
+                  required
                   value={orderForm.customerEmail}
                   onChange={(e) => setOrderForm({ ...orderForm, customerEmail: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
@@ -1021,7 +1031,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                 <ul className="text-gray-300 text-sm space-y-1">
                   <li>• Vous devez payer 50% du prix total comme acompte</li>
                   <li>• Le délai de production est de 20-18 jours</li>
-                  <li>• Nous vous contacterons via WhatsApp pour finaliser la commande</li>
+                  <li>• <strong className="text-green-400">NOUS VOUS CONTACTERONS DANS 24H-48H VIA WHATSAPP</strong></li>
                   <li>• Le solde restant sera payé à la livraison</li>
                 </ul>
               </div>
@@ -1033,14 +1043,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
                 >
                   {t('madeToOrder.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={openWhatsAppWithOrder}
-                  className="bg-white hover:bg-gray-200 text-black px-4 py-2 rounded-lg font-medium flex items-center justify-center text-sm"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  {t('madeToOrder.orderViaWhatsApp')}
                 </button>
                 <button
                   type="submit"

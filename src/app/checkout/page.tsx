@@ -614,19 +614,6 @@ export default function CheckoutPage() {
                 )}
               </button>
 
-              {/* WhatsApp Alternative */}
-              <div className="mt-4 text-center">
-                <p className="text-gray-400 text-sm mb-3">Or order directly via WhatsApp</p>
-                <a
-                  href={`https://wa.me/213672536920?text=Hello! I'd like to order: ${product?.name} (Size: ${searchParams.get('size') || 'M'}, Color: ${searchParams.get('color') || 'Black'}, Quantity: ${searchParams.get('quantity') || '1'})`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                >
-                  <Phone className="w-5 h-5 mr-2" />
-                  Order via WhatsApp
-                </a>
-              </div>
             </form>
           </div>
         </div>
