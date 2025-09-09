@@ -165,10 +165,7 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl('/orders'), {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'max-age=30'
-        },
+        headers: this.getAuthHeaders(),
         next: { revalidate: 30 } // Next.js caching
       });
       
@@ -205,7 +202,9 @@ class BackendService {
 
   async getOrder(id: string): Promise<Order | null> {
     try {
-      const response = await fetch(this.getApiUrl(`/orders/${id}`));
+      const response = await fetch(this.getApiUrl(`/orders/${id}`), {
+        headers: this.getAuthHeaders()
+      });
       const result = await response.json();
       
       if (result.success) {
