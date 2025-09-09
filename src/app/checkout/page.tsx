@@ -153,14 +153,7 @@ export default function CheckoutPage() {
 
       const shippingCost = selectedWilaya[selectedShipping];
 
-      // STOCK VALIDATION
-      const availableStock = product.stock?.[selectedSize]?.[selectedColor] ?? 0;
-      if (availableStock < quantity) {
-        setOrderStatus('error');
-        setOrderMessage('Selected quantity exceeds available stock. Please adjust.');
-        setIsSubmitting(false);
-        return;
-      }
+      // Stock validation is now handled in the order service
 
       const orderData = {
         customerName: formData.name,
@@ -186,8 +179,8 @@ export default function CheckoutPage() {
       const result = await orderService.createOrder(orderData, product);
 
       if (result.success && result.orderId) {
-        // Stock is automatically deducted by the API
-        console.log('✅ Order created successfully, stock will be deducted automatically');
+        // Stock is automatically reserved and deducted by the order service
+        console.log('✅ Order created successfully, inventory has been reserved and deducted');
         setOrderStatus('success');
         setOrderId(result.orderId);
         setOrderMessage(`Order #${result.orderId} placed successfully! 🎉\n\nWe'll contact you within 24 hours via WhatsApp.`);
