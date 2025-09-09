@@ -35,7 +35,6 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
   // Load all user-side data in one optimized call
   const loadAllUserData = async (forceRefresh = false) => {
     try {
-      setLoading(true);
       console.log('🚀 OptimizedUserDataContext: Loading all user data...');
       
       // Check if we have valid cached data and don't need to force refresh
@@ -61,6 +60,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
       
       // No valid cache, fetch fresh data
       console.log('🆕 No valid cache, fetching fresh data and caching for 1 minute');
+      setLoading(true);
       await fetchAndCacheFreshData();
       
     } catch (error) {
@@ -74,38 +74,51 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
     try {
       console.log('🌐 Fetching fresh data from all sources...');
       
-      // Fetch all data in parallel for maximum speed
-      const [productsResponse, madeToOrderData, wilayaData] = await Promise.all([
-        fetch('/api/products').then(res => res.json()),
-        fetch('/api/made-to-order').then(res => res.json()),
-        backendService.getWilayaTariffs()
-      ]);
+      // Fetch only essential data first (products) for faster initial load
+      const productsResponse = await fetch('/api/products');
+      const productsData = await productsResponse.json();
       
       // Extract products from the API response
-      const productsData = productsResponse.success ? productsResponse.data : [];
+      const products = productsData.success ? productsData.data : [];
       
-      console.log('✅ Downloaded fresh data:', {
-        products: productsData.length,
-        madeToOrder: madeToOrderData.length,
-        wilayas: wilayaData.length
-      });
+      console.log('✅ Downloaded products:', products.length);
       
-      // Update state with fresh data
-      setProducts(productsData);
-      setMadeToOrderProducts(madeToOrderData);
-      setWilayaTariffs(wilayaData);
+      // Update state with products immediately for faster UI
+      setProducts(products);
       setLastUpdated(new Date());
-      setTimeUntilRefresh(60); // 1 minute
+      setTimeUntilRefresh(300); // 5 minutes
       setLoading(false);
       
-      // Cache all data together
-      const allUserData = {
-        products: productsData,
-        madeToOrderProducts: madeToOrderData,
-        wilayaTariffs: wilayaData
-      };
-      userCache.setAllUserData(allUserData);
-      console.log('💾 Cached all user data for 1 minute');
+      // Cache the products immediately
+      userCache.setAllUserData({
+        products,
+        madeToOrderProducts: [],
+        wilayaTariffs: []
+      });
+      
+      // Load additional data in background (non-blocking)
+      Promise.all([
+        fetch('/api/made-to-order').then(res => res.json()).catch(() => []),
+        backendService.getWilayaTariffs().catch(() => [])
+      ]).then(([madeToOrderData, wilayaData]) => {
+        console.log('✅ Downloaded additional data:', {
+          madeToOrder: madeToOrderData.length,
+          wilayas: wilayaData.length
+        });
+        
+        // Update state with additional data
+        setMadeToOrderProducts(madeToOrderData);
+        setWilayaTariffs(wilayaData);
+        
+        // Update cache with complete data
+        userCache.setAllUserData({
+          products,
+          madeToOrderProducts: madeToOrderData,
+          wilayaTariffs: wilayaData
+        });
+      }).catch(error => {
+        console.error('❌ Background data fetch failed:', error);
+      });
       
     } catch (error) {
       console.error('❌ Error fetching fresh data:', error);
