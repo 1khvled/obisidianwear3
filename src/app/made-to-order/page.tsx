@@ -34,16 +34,14 @@ import { sortedWilayas } from '@/data/wilayas';
 import { backendService } from '@/services/backendService';
 import Header from '@/components/Header';
 import { useLanguage } from '@/context/LanguageContext';
-import { localStorageCache } from '@/lib/localStorageCache';
+import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
 
 export default function MadeToOrderPage() {
   const { t } = useLanguage();
-  const [products, setProducts] = useState<MadeToOrderProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { madeToOrderProducts, wilayaTariffs, loading } = useOptimizedUserData();
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
-  const [wilayaTariffs, setWilayaTariffs] = useState<any[]>([]);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -69,98 +67,15 @@ export default function MadeToOrderPage() {
     return null;
   };
 
-  useEffect(() => {
-    // Load both products and wilaya tariffs in parallel for faster loading
-    Promise.all([
-      loadProducts(),
-      loadWilayaTariffs()
-    ]).catch(error => {
-      console.error('Error loading made-to-order data:', error);
-    });
-  }, []);
-
   // Debug products state
   useEffect(() => {
-    console.log('🔍 Products state changed:', {
-      length: products.length,
-      products: products.map(p => ({ id: p.id, name: p.name, hasImage: !!p.image }))
+    console.log('🔍 Made-to-order products loaded:', {
+      length: madeToOrderProducts.length,
+      products: madeToOrderProducts.map(p => ({ id: p.id, name: p.name, hasImage: !!p.image }))
     });
-  }, [products]);
+  }, [madeToOrderProducts]);
 
-  const loadProducts = async () => {
-    try {
-      // Always fetch from API first to ensure fresh data
-      console.log('Made-to-order: Fetching from server...');
-      const response = await fetch('/api/made-to-order');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Loaded made-to-order products:', data.length);
-      console.log('🖼️ Product images:', data.map((p: any) => ({ 
-        id: p.id, 
-        name: p.name, 
-        hasImage: !!p.image, 
-        imageLength: p.image?.length,
-        hasImages: !!(p.images && p.images.length > 0),
-        imagesLength: p.images?.length,
-        firstImageLength: p.images?.[0]?.length
-      })));
-      console.log('🎨 Product colors and sizes:', data.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        colors: p.colors,
-        sizes: p.sizes,
-        hasColors: !!(p.colors && p.colors.length > 0),
-        hasSizes: !!(p.sizes && p.sizes.length > 0)
-      })));
-      
-      setProducts(data);
-      
-      // Cache the products
-      localStorageCache.setCache({ madeToOrderProducts: data });
-    } catch (error) {
-      console.error('Error loading made-to-order products:', error);
-      
-      // Try to get from cache as fallback
-      try {
-        const cachedProducts = await localStorageCache.getMadeToOrderProducts();
-        if (cachedProducts.length > 0) {
-          console.log('Made-to-order: Using cached products as fallback:', cachedProducts.length);
-          setProducts(cachedProducts);
-        }
-      } catch (cacheError) {
-        console.error('Error loading from cache:', cacheError);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const loadWilayaTariffs = async () => {
-    try {
-      // Try to get from cache first
-      const cachedTariffs = await localStorageCache.getWilayaTariffs();
-      if (cachedTariffs.length > 0) {
-        console.log('Made-to-order: Using cached wilaya tariffs:', cachedTariffs.length);
-        setWilayaTariffs(cachedTariffs);
-        return;
-      }
-
-      // Fallback to backend service
-      console.log('Made-to-order: No cache, fetching wilaya tariffs from server...');
-      const tariffs = await backendService.getWilayaTariffs();
-      setWilayaTariffs(tariffs);
-      
-      // Cache the tariffs
-      localStorageCache.setCache({ wilayaTariffs: tariffs });
-    } catch (error) {
-      console.error('Error loading wilaya tariffs:', error);
-      setWilayaTariffs(sortedWilayas);
-    }
-  };
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +145,7 @@ export default function MadeToOrderPage() {
 
   const getShippingCost = () => {
     if (!orderForm.wilayaId) return 0;
-    const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+    const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
     if (!wilaya) return 0;
     
     if (orderForm.shippingType === 'homeDelivery') {
@@ -388,16 +303,16 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
               <p className="text-gray-400 text-sm">Loading products...</p>
             </div>
-          ) : products.length === 0 ? (
+          ) : madeToOrderProducts.length === 0 ? (
             <div className="text-center py-8">
               <Package className="w-12 h-12 text-gray-600 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-2">{t('madeToOrder.noProducts')}</h3>
               <p className="text-gray-400 text-sm">{t('madeToOrder.noProductsDesc')}</p>
-              <p className="text-gray-500 text-xs mt-2">Debug: products.length = {products.length}</p>
+              <p className="text-gray-500 text-xs mt-2">Debug: products.length = {madeToOrderProducts.length}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map((product) => (
+              {madeToOrderProducts.map((product) => (
                 <div key={product.id} className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101">
                   {getImageSrc(product) && (
                     <div className="relative overflow-hidden">
@@ -777,7 +692,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   required
                   value={orderForm.wilayaId}
                   onChange={(e) => {
-                    const wilaya = wilayaTariffs.find(w => w.id === parseInt(e.target.value) || w.wilaya_id === parseInt(e.target.value));
+                    const wilaya = wilayaTariffs.find(w => w.id === e.target.value || w.wilaya_id === parseInt(e.target.value));
                     setOrderForm({ 
                       ...orderForm, 
                       wilayaId: parseInt(e.target.value),
@@ -814,7 +729,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         <div className="font-semibold">Domicile</div>
                         <div className="text-sm">
                           {(() => {
-                            const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+                            const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
                             const cost = wilaya?.domicile_ecommerce || wilaya?.domicileEcommerce || wilaya?.home_delivery || wilaya?.homeDelivery || 0;
                             return `${cost} DZD`;
                           })()}
@@ -836,7 +751,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         <div className="font-semibold">Stop Desk</div>
                         <div className="text-sm">
                           {(() => {
-                            const wilaya = wilayaTariffs.find(w => w.id === orderForm.wilayaId || w.wilaya_id === orderForm.wilayaId);
+                            const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
                             const cost = wilaya?.stop_desk_ecommerce || wilaya?.stopDeskEcommerce || wilaya?.stop_desk || wilaya?.stopDesk || 0;
                             return `${cost} DZD`;
                           })()}
