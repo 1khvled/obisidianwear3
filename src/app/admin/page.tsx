@@ -1999,7 +1999,7 @@ export default function AdminPage() {
             if (editingProduct) {
               console.log('🔧 Admin: Updating editingProduct with size chart data');
               // Update the editing product
-              setEditingProduct(prev => {
+              setEditingProduct((prev: Product | null) => {
                 if (!prev) return prev;
                 const updated = {
                   ...prev,
@@ -2013,7 +2013,7 @@ export default function AdminPage() {
             } else if (editingMadeToOrderProduct) {
               console.log('🔧 Admin: Updating editingMadeToOrderProduct with size chart data');
               // Update the editing made-to-order product
-              setEditingMadeToOrderProduct(prev => {
+              setEditingMadeToOrderProduct((prev: MadeToOrderProduct | null) => {
                 if (!prev) return prev;
                 const updated = {
                   ...prev,
