@@ -237,7 +237,6 @@ export default function ProductDetailPage() {
                       >
                         {size}
                         {!selectedColor && ' (Select Color)'}
-                        {selectedColor && sizeStock > 0 && ` (${sizeStock})`}
                       </button>
                     );
                   });
@@ -266,7 +265,7 @@ export default function ProductDetailPage() {
                 if (outOfStockSizes.length > 0) {
                   return (
                     <p className="text-gray-400 text-sm mt-2">
-                      Sizes {outOfStockSizes.join(', ')} are out of stock for {selectedColor}
+                      Some sizes are currently unavailable for {selectedColor}
                     </p>
                   );
                 }
@@ -344,7 +343,7 @@ export default function ProductDetailPage() {
                   }
                   
                   if (quantity > availableStock) {
-                    alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+                    alert(`❌ Not enough stock available for ${selectedSize} ${selectedColor}!`);
                     return;
                   }
                   
@@ -375,7 +374,7 @@ export default function ProductDetailPage() {
                   }
                   
                   if (quantity > availableStock) {
-                    alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+                    alert(`❌ Not enough stock available for ${selectedSize} ${selectedColor}!`);
                     return;
                   }
                   

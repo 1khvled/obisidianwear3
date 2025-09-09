@@ -108,7 +108,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         // Check if requested quantity exceeds available stock
         if (quantity > availableStock) {
-          alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
+          alert(`❌ Not enough stock available in ${selectedSize} ${selectedColor}!`);
           return;
         }
       }
