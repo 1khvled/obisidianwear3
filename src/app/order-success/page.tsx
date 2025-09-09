@@ -193,7 +193,7 @@ export default function OrderSuccessPage() {
             </h3>
             <div className="space-y-2 text-sm">
               <p className="text-gray-400">Questions about your order?</p>
-              <p className="text-white">Phone: +213 XXX XXX XXX</p>
+              <p className="text-white">WhatsApp: +213 672 536 920</p>
               <div className="pt-2">
                 <p className="text-gray-400">Social Media:</p>
                 <p className="text-blue-400">Instagram: @obsidianwear_dz</p>
@@ -211,7 +211,7 @@ export default function OrderSuccessPage() {
               <p className="text-gray-400">
                 Need help with your order? Contact us:
               </p>
-              <p className="text-white">Phone: +213 XXX XXX XXX</p>
+              <p className="text-white">WhatsApp: +213 672 536 920</p>
               <p className="text-gray-400">
                 We'll respond within 24 hours to help with your order.
               </p>
@@ -228,6 +228,16 @@ export default function OrderSuccessPage() {
             <ArrowLeft size={20} className="mr-2" />
             Continue Shopping
           </button>
+          
+          <a
+            href="https://wa.me/213672536920"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <MessageCircle size={20} className="mr-2" />
+            Contact via WhatsApp
+          </a>
         </div>
 
         {/* Thank You Message */}

@@ -74,50 +74,55 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
     try {
       console.log('🌐 Fetching fresh data from all sources...');
       
-      // Fetch only essential data first (products) for faster initial load
-      const productsResponse = await fetch('/api/products');
-      const productsData = await productsResponse.json();
+      // Fetch essential data in parallel for faster loading
+      const [productsResponse, madeToOrderResponse] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/made-to-order')
+      ]);
+      
+      const [productsData, madeToOrderData] = await Promise.all([
+        productsResponse.json(),
+        madeToOrderResponse.json()
+      ]);
       
       // Extract products from the API response
       const products = productsData.success ? productsData.data : [];
+      const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
       
-      console.log('✅ Downloaded products:', products.length);
+      console.log('✅ Downloaded essential data:', {
+        products: products.length,
+        madeToOrder: madeToOrderProducts.length
+      });
       
-      // Update state with products immediately for faster UI
+      // Update state with essential data immediately for faster UI
       setProducts(products);
+      setMadeToOrderProducts(madeToOrderProducts);
       setLastUpdated(new Date());
       setTimeUntilRefresh(300); // 5 minutes
       setLoading(false);
       
-      // Cache the products immediately
+      // Cache the essential data immediately
       userCache.setAllUserData({
         products,
-        madeToOrderProducts: [],
+        madeToOrderProducts,
         wilayaTariffs: []
       });
       
-      // Load additional data in background (non-blocking)
-      Promise.all([
-        fetch('/api/made-to-order').then(res => res.json()).catch(() => []),
-        backendService.getWilayaTariffs().catch(() => [])
-      ]).then(([madeToOrderData, wilayaData]) => {
-        console.log('✅ Downloaded additional data:', {
-          madeToOrder: madeToOrderData.length,
-          wilayas: wilayaData.length
-        });
+      // Load wilaya data in background (non-blocking)
+      backendService.getWilayaTariffs().then(wilayaData => {
+        console.log('✅ Downloaded wilaya data:', wilayaData.length);
         
-        // Update state with additional data
-        setMadeToOrderProducts(madeToOrderData);
+        // Update state with wilaya data
         setWilayaTariffs(wilayaData);
         
         // Update cache with complete data
         userCache.setAllUserData({
           products,
-          madeToOrderProducts: madeToOrderData,
+          madeToOrderProducts,
           wilayaTariffs: wilayaData
         });
       }).catch(error => {
-        console.error('❌ Background data fetch failed:', error);
+        console.error('❌ Background wilaya fetch failed:', error);
       });
       
     } catch (error) {
