@@ -189,7 +189,7 @@ export default function SizeChartEditor({ category, productId, productType = 're
     const newSize: SizeData = { size: '' };
     measurementKeys.forEach(key => {
       if (key !== 'size') {
-        newSize[key] = 0;
+        (newSize as any)[key] = 0;
       }
     });
     setSizeData([...sizeData, newSize]);
