@@ -117,7 +117,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
         } catch (error) {
           console.error('❌ Made-to-order loading failed:', error);
         }
-      }, 200);
+      }, 50);
       
       // STEP 3: Load wilaya data in background (after 2 seconds delay)
       setTimeout(async () => {
@@ -139,7 +139,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
         } catch (error) {
           console.error('❌ Wilaya loading failed:', error);
         }
-      }, 500);
+      }, 100);
       
     } catch (error) {
       console.error('❌ Error in progressive loading:', error);

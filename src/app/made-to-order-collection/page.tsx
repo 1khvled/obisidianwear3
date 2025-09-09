@@ -115,7 +115,7 @@ export default function MadeToOrderCollectionPage() {
           </h1>
           
           <p className="text-base text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
-            Premium items crafted to your specifications with exceptional quality and attention to detail
+            Commandez des vêtements uniques sur mesure selon vos goûts et préférences. Chaque pièce est créée spécialement pour vous avec des matériaux de qualité supérieure et une finition soignée.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">

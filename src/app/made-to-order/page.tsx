@@ -162,10 +162,10 @@ export default function MadeToOrderPage() {
     
     if (!selectedProduct) return;
 
-    // Validate phone number (must be exactly 10 digits)
-    const phoneRegex = /^[0-9]{10}$/;
+    // Validate phone number (must start with 0, then 7/6/5, total 10 digits)
+    const phoneRegex = /^0[567][0-9]{8}$/;
     if (!phoneRegex.test(orderForm.customerPhone)) {
-      alert('Le numéro de téléphone doit contenir exactement 10 chiffres (sans +213)');
+      alert('Le numéro de téléphone doit commencer par 0, suivi de 7, 6 ou 5, et contenir exactement 10 chiffres (ex: 0555123456)');
       return;
     }
     
@@ -361,7 +361,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
           </h1>
           
           <p className="text-base text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
-            Premium items crafted to your specifications with exceptional quality and attention to detail
+            Commandez des vêtements uniques sur mesure selon vos goûts et préférences. Chaque pièce est créée spécialement pour vous avec des matériaux de qualité supérieure et une finition soignée.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
@@ -475,7 +475,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                               width={400}
                               height={500}
                               className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                              loading="lazy"
+                              loading={index < 3 ? "eager" : "lazy"}
                               priority={index < 3}
                               onLoad={() => console.log('✅ Next.js Image loaded successfully for:', product.name)}
                               onError={(e) => console.error('❌ Next.js Image failed to load for:', product.name, e)}
@@ -809,8 +809,8 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     value={orderForm.customerPhone}
                     onChange={(e) => setOrderForm({ ...orderForm, customerPhone: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                    placeholder="1234567890"
-                    pattern="[0-9]{10}"
+                    placeholder="0555123456"
+                    pattern="0[567][0-9]{8}"
                     minLength={10}
                     maxLength={10}
                   />

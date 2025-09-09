@@ -16,10 +16,10 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: any, selectedSize: string, selectedColor: string, quantity: number) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (product: any, selectedSize: string, selectedColor: string, quantity: number) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   getTotalItems: () => number;
   getTotalPrice: () => number;
   isCartLoaded: boolean;
@@ -86,68 +86,65 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [items, isCartLoaded]);
 
-  const addToCart = (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
+  const addToCart = async (product: any, selectedSize: string, selectedColor: string, quantity: number) => {
     console.log('CartContext: addToCart called with:', { product, selectedSize, selectedColor, quantity });
     const cartItemId = `${product.id}-${selectedSize}-${selectedColor}`;
     
-    setItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === cartItemId);
+    try {
+      // First, check and reserve inventory
+      const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
       
-      if (existingItem) {
-        // Update existing item quantity
-        const newQuantity = existingItem.quantity + quantity;
-        // Check stock availability
-        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
-        if (availableStock === 0) {
-          alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
-          return prevItems;
+      if (!product.stock) {
+        if (!product.inStock) {
+          alert('❌ This product is out of stock!');
+          return;
         }
-        if (newQuantity > availableStock) {
-          alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
-          return prevItems;
-        }
-        return prevItems.map(item =>
-          item.id === cartItemId
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
       } else {
-        // Add new item
-        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
-        
-        // If no stock data exists for this product at all, check if it's in stock
-        if (!product.stock) {
-          if (!product.inStock) {
-            alert('❌ This product is out of stock!');
-            return prevItems;
-          }
-          const newItem: CartItem = {
-            id: cartItemId,
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image,
-            selectedSize,
-            selectedColor,
-            quantity,
-            addedAt: new Date().toISOString()
-          };
-          return [...prevItems, newItem];
-        }
-        
         // Check if the specific size/color combination is available
         if (availableStock === 0) {
           alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
-          return prevItems;
+          return;
         }
         
         // Check if requested quantity exceeds available stock
         if (quantity > availableStock) {
           alert(`❌ Only ${availableStock} items available in ${selectedSize} ${selectedColor}!`);
-          return prevItems;
+          return;
         }
+      }
+
+      // Reserve inventory by updating the database
+      const reserveResponse = await fetch('/api/inventory/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          size: selectedSize,
+          color: selectedColor,
+          quantity: quantity
+        })
+      });
+
+      if (!reserveResponse.ok) {
+        const errorData = await reserveResponse.json();
+        alert(`❌ Inventory reservation failed: ${errorData.error || 'Unknown error'}`);
+        return;
+      }
+
+      // If inventory reservation successful, add to cart
+      setItems(prevItems => {
+        const existingItem = prevItems.find(item => item.id === cartItemId);
         
-        if (quantity <= availableStock) {
+        if (existingItem) {
+          // Update existing item quantity
+          const newQuantity = existingItem.quantity + quantity;
+          return prevItems.map(item =>
+            item.id === cartItemId
+              ? { ...item, quantity: newQuantity }
+              : item
+          );
+        } else {
+          // Add new item
           const newItem: CartItem = {
             id: cartItemId,
             productId: product.id,
@@ -160,49 +157,137 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             addedAt: new Date().toISOString()
           };
           return [...prevItems, newItem];
-        } else {
-          alert('This item is not available in the selected size and color!');
-          return prevItems;
         }
+      });
+
+      console.log('✅ Item added to cart and inventory reserved');
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+      alert('❌ Failed to add item to cart. Please try again.');
+    }
+  };
+
+  const removeFromCart = async (id: string) => {
+    const itemToRemove = items.find(item => item.id === id);
+    if (!itemToRemove) return;
+
+    try {
+      // Restore inventory when removing from cart
+      const restoreResponse = await fetch('/api/inventory/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: itemToRemove.productId,
+          size: itemToRemove.selectedSize,
+          color: itemToRemove.selectedColor,
+          quantity: itemToRemove.quantity
+        })
+      });
+
+      if (!restoreResponse.ok) {
+        console.error('❌ Failed to restore inventory, but removing from cart anyway');
       }
-    });
+
+      setItems(prevItems => prevItems.filter(item => item.id !== id));
+      console.log('✅ Item removed from cart and inventory restored');
+    } catch (error) {
+      console.error('❌ Error removing from cart:', error);
+      // Still remove from cart even if inventory restore fails
+      setItems(prevItems => prevItems.filter(item => item.id !== id));
+    }
   };
 
-  const removeFromCart = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id));
-  };
-
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = async (id: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(id);
+      await removeFromCart(id);
       return;
     }
-
-    // For quantity updates, we'll allow reasonable quantities without exposing stock
-    // Set a reasonable limit (e.g., 10 items max per product)
-    const maxQuantityPerItem = 10;
     
-    setItems(prevItems =>
-      prevItems.map(item => {
-        if (item.id === id) {
-          if (quantity <= maxQuantityPerItem) {
-            return { ...item, quantity };
-          } else {
-            alert(`Maximum ${maxQuantityPerItem} items allowed per product!`);
-            return item;
-          }
+    const item = items.find(item => item.id === id);
+    if (!item) return;
+
+    const currentQuantity = item.quantity;
+    const quantityDifference = quantity - currentQuantity;
+
+    if (quantityDifference === 0) return; // No change needed
+
+    try {
+      if (quantityDifference > 0) {
+        // Increasing quantity - reserve more inventory
+        const reserveResponse = await fetch('/api/inventory/reserve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: item.productId,
+            size: item.selectedSize,
+            color: item.selectedColor,
+            quantity: quantityDifference
+          })
+        });
+
+        if (!reserveResponse.ok) {
+          const errorData = await reserveResponse.json();
+          alert(`❌ Cannot increase quantity: ${errorData.error || 'Unknown error'}`);
+          return;
         }
-        return item;
-      })
-    );
+      } else {
+        // Decreasing quantity - restore some inventory
+        const restoreResponse = await fetch('/api/inventory/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: item.productId,
+            size: item.selectedSize,
+            color: item.selectedColor,
+            quantity: Math.abs(quantityDifference)
+          })
+        });
+
+        if (!restoreResponse.ok) {
+          console.error('❌ Failed to restore inventory, but updating quantity anyway');
+        }
+      }
+
+      // Update the cart
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.id === id ? { ...item, quantity } : item
+        )
+      );
+
+      console.log('✅ Quantity updated and inventory synced');
+    } catch (error) {
+      console.error('❌ Error updating quantity:', error);
+      alert('❌ Failed to update quantity. Please try again.');
+    }
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
+    // Restore inventory for all items before clearing
+    for (const item of items) {
+      try {
+        await fetch('/api/inventory/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: item.productId,
+            size: item.selectedSize,
+            color: item.selectedColor,
+            quantity: item.quantity
+          })
+        });
+      } catch (error) {
+        console.error('❌ Failed to restore inventory for item:', item.id, error);
+      }
+    }
+
     setItems([]);
     // Also clear from localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('obsidian-cart');
     }
+    
+    console.log('✅ Cart cleared and all inventory restored');
   };
 
   // Function to clear cart data (useful for debugging or reset)

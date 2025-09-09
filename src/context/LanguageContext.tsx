@@ -132,6 +132,16 @@ const translations = {
     'madeToOrder.orderViaWhatsApp': 'Order via WhatsApp',
     'madeToOrder.viewCollection': 'View Collection',
     'madeToOrder.backToHome': 'Back to Home',
+    
+    // Home page translations
+    'home.viewCollection': 'View Collection',
+    'home.madeToOrder': 'Made to Order',
+    'home.fastDelivery': 'Fast Delivery',
+    'home.fastDeliveryDesc': 'Quick & reliable shipping',
+    'home.quality': 'Quality',
+    'home.qualityDesc': 'Premium materials',
+    'home.easy': 'Easy',
+    'home.easyDesc': 'Simple returns',
     'madeToOrder.customOrder': 'Special Order',
     'madeToOrder.premium': 'Premium',
     'madeToOrder.colors': 'Colors',
@@ -326,6 +336,16 @@ const translations = {
     'madeToOrder.orderViaWhatsApp': 'Commander via WhatsApp',
     'madeToOrder.viewCollection': 'Voir la collection',
     'madeToOrder.backToHome': 'Retour à l\'accueil',
+    
+    // Home page translations
+    'home.viewCollection': 'Voir la Collection',
+    'home.madeToOrder': 'Article sur commande',
+    'home.fastDelivery': 'Fast Delivery',
+    'home.fastDeliveryDesc': 'Quick & reliable shipping',
+    'home.quality': 'Quality',
+    'home.qualityDesc': 'Premium materials',
+    'home.easy': 'Easy',
+    'home.easyDesc': 'Simple returns',
     'madeToOrder.customOrder': 'Commande Spéciale',
     'madeToOrder.premium': 'Premium',
     'madeToOrder.colors': 'Couleurs',

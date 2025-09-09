@@ -121,46 +121,108 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
-    // Check if image is too large for VARCHAR(500) - store in images array instead
-    let processedImage = image;
+    console.log('🔄 Updating made-to-order product:', { id, name, hasImage: !!image, imageLength: image?.length });
+
+    // Optimize image handling to prevent timeouts
+    let processedImage = '';
     let processedImages = images || [];
     
-    if (image && image.length > 500) {
-      console.warn('⚠️ Image data is too large for VARCHAR(500) schema. Length:', image.length);
-      console.warn('⚠️ Moving image to images array instead');
-      // Move the large image to the images array and clear the image field
-      processedImages = [image, ...(images || [])];
-      processedImage = ''; // Clear the image field
+    if (image) {
+      // If image is a data URL and too large, move to images array
+      if (image.startsWith('data:') && image.length > 1000) {
+        console.warn('⚠️ Large data URL image detected, moving to images array');
+        processedImages = [image, ...(images || [])];
+        processedImage = ''; // Clear the image field
+      } else if (image.length > 500) {
+        console.warn('⚠️ Image data too large for VARCHAR(500), moving to images array');
+        processedImages = [image, ...(images || [])];
+        processedImage = '';
+      } else {
+        processedImage = image;
+      }
     }
 
-    const { data, error } = await supabase
+    // Create update object with only necessary fields
+    const updateData: any = {
+      name: name || '',
+      description: description || '',
+      price: price || 0,
+      category: category || 'Custom',
+      display_order: displayOrder || 0,
+      is_active: isActive !== undefined ? isActive : true
+    };
+
+    // Only update image fields if they have content
+    if (processedImage) {
+      updateData.image = processedImage;
+    }
+    if (processedImages.length > 0) {
+      updateData.images = processedImages;
+    }
+    if (colors && colors.length > 0) {
+      updateData.colors = colors;
+    }
+    if (sizes && sizes.length > 0) {
+      updateData.sizes = sizes;
+    }
+    if (tags && tags.length > 0) {
+      updateData.tags = tags;
+    }
+
+    console.log('📝 Update data prepared:', { 
+      id, 
+      hasImage: !!updateData.image, 
+      imagesCount: updateData.images?.length || 0,
+      colorsCount: updateData.colors?.length || 0,
+      sizesCount: updateData.sizes?.length || 0
+    });
+
+    // Use a timeout promise to prevent hanging
+    const updatePromise = supabase
       .from('made_to_order_products')
-      .update({
-        name,
-        description,
-        price,
-        image: processedImage,
-        images: processedImages,
-        colors: colors || ['Noir'],
-        sizes: sizes || ['S', 'M', 'L', 'XL'],
-        category: category || 'Custom',
-        tags: tags || [],
-        display_order: displayOrder,
-        is_active: isActive
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database operation timeout')), 10000)
+    );
+
+    const { data, error } = await Promise.race([updatePromise, timeoutPromise]) as any;
+
     if (error) {
-      console.error('Error updating made-to-order product:', error);
-      return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+      console.error('❌ Error updating made-to-order product:', error);
+      
+      // Provide more specific error messages
+      if (error.code === '57014') {
+        return NextResponse.json({ 
+          error: 'Database timeout - please try again with smaller images or contact support' 
+        }, { status: 408 });
+      }
+      
+      return NextResponse.json({ 
+        error: 'Failed to update product', 
+        details: error.message,
+        code: error.code 
+      }, { status: 500 });
     }
 
+    console.log('✅ Product updated successfully:', data?.id);
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in made-to-order PUT:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('❌ Error in made-to-order PUT:', error);
+    
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return NextResponse.json({ 
+        error: 'Request timeout - please try again with smaller images' 
+      }, { status: 408 });
+    }
+    
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
