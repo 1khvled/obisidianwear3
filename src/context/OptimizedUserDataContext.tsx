@@ -32,10 +32,10 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [timeUntilRefresh, setTimeUntilRefresh] = useState(0);
 
-  // Load all user-side data in one optimized call
+  // Progressive loading system - load landing page first, then everything else
   const loadAllUserData = async (forceRefresh = false) => {
     try {
-      console.log('🚀 OptimizedUserDataContext: Loading all user data...');
+      console.log('🚀 OptimizedUserDataContext: Starting progressive loading...');
       
       // Check if we have valid cached data and don't need to force refresh
       if (!forceRefresh && userCache.hasValidCache()) {
@@ -51,17 +51,17 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
           
           // Update cache with fresh data in background (no loading state)
           console.log('🔄 Updating cache in background...');
-          fetchAndCacheFreshData().catch(error => {
+          loadDataProgressively().catch(error => {
             console.error('❌ Background cache update failed:', error);
           });
           return;
         }
       }
       
-      // No valid cache, fetch fresh data
-      console.log('🆕 No valid cache, fetching fresh data and caching for 1 minute');
+      // No valid cache, start progressive loading
+      console.log('🆕 No valid cache, starting progressive loading...');
       setLoading(true);
-      await fetchAndCacheFreshData();
+      await loadDataProgressively();
       
     } catch (error) {
       console.error('❌ OptimizedUserDataContext: Error loading user data:', error);
@@ -69,64 +69,80 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
     }
   };
 
-  // Fetch fresh data from all sources and cache it
-  const fetchAndCacheFreshData = async () => {
+  // Progressive loading system - load data piece by piece
+  const loadDataProgressively = async () => {
     try {
-      console.log('🌐 Fetching fresh data from all sources...');
+      console.log('🌐 Starting progressive data loading...');
       
-      // Fetch essential data in parallel for faster loading
-      const [productsResponse, madeToOrderResponse] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/made-to-order')
-      ]);
-      
-      const [productsData, madeToOrderData] = await Promise.all([
-        productsResponse.json(),
-        madeToOrderResponse.json()
-      ]);
-      
-      // Extract products from the API response
+      // STEP 1: Load products first (most important for landing page)
+      console.log('📦 Step 1: Loading products...');
+      const productsResponse = await fetch('/api/products');
+      const productsData = await productsResponse.json();
       const products = productsData.success ? productsData.data : [];
-      const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
       
-      console.log('✅ Downloaded essential data:', {
-        products: products.length,
-        madeToOrder: madeToOrderProducts.length
-      });
+      console.log('✅ Products loaded:', products.length);
       
-      // Update state with essential data immediately for faster UI
+      // Update UI immediately with products
       setProducts(products);
-      setMadeToOrderProducts(madeToOrderProducts);
       setLastUpdated(new Date());
       setTimeUntilRefresh(300); // 5 minutes
-      setLoading(false);
+      setLoading(false); // Landing page is now ready!
       
-      // Cache the essential data immediately
+      // Cache products immediately
       userCache.setAllUserData({
         products,
-        madeToOrderProducts,
+        madeToOrderProducts: [],
         wilayaTariffs: []
       });
       
-      // Load wilaya data in background (non-blocking)
-      backendService.getWilayaTariffs().then(wilayaData => {
-        console.log('✅ Downloaded wilaya data:', wilayaData.length);
-        
-        // Update state with wilaya data
-        setWilayaTariffs(wilayaData);
-        
-        // Update cache with complete data
-        userCache.setAllUserData({
-          products,
-          madeToOrderProducts,
-          wilayaTariffs: wilayaData
-        });
-      }).catch(error => {
-        console.error('❌ Background wilaya fetch failed:', error);
-      });
+      // STEP 2: Load made-to-order products in background (after 1 second delay)
+      setTimeout(async () => {
+        try {
+          console.log('🎨 Step 2: Loading made-to-order products...');
+          const madeToOrderResponse = await fetch('/api/made-to-order');
+          const madeToOrderData = await madeToOrderResponse.json();
+          const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
+          
+          console.log('✅ Made-to-order products loaded:', madeToOrderProducts.length);
+          
+          // Update UI with made-to-order products
+          setMadeToOrderProducts(madeToOrderProducts);
+          
+          // Update cache
+          userCache.setAllUserData({
+            products,
+            madeToOrderProducts,
+            wilayaTariffs: []
+          });
+        } catch (error) {
+          console.error('❌ Made-to-order loading failed:', error);
+        }
+      }, 1000);
+      
+      // STEP 3: Load wilaya data in background (after 2 seconds delay)
+      setTimeout(async () => {
+        try {
+          console.log('🗺️ Step 3: Loading wilaya data...');
+          const wilayaData = await backendService.getWilayaTariffs();
+          
+          console.log('✅ Wilaya data loaded:', wilayaData.length);
+          
+          // Update UI with wilaya data
+          setWilayaTariffs(wilayaData);
+          
+          // Update cache with complete data
+          userCache.setAllUserData({
+            products,
+            madeToOrderProducts: [],
+            wilayaTariffs: wilayaData
+          });
+        } catch (error) {
+          console.error('❌ Wilaya loading failed:', error);
+        }
+      }, 2000);
       
     } catch (error) {
-      console.error('❌ Error fetching fresh data:', error);
+      console.error('❌ Error in progressive loading:', error);
       setLoading(false);
     }
   };

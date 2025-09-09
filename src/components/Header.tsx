@@ -40,9 +40,9 @@ export default function Header() {
             </Link>
             <Link 
               href="/made-to-order" 
-              className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium"
+              className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white px-4 py-2 rounded-lg font-bold text-sm xl:text-base transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-white/20 border border-white/30"
             >
-              {t('nav.madeToOrder')}
+              ✨ {t('nav.madeToOrder')} ✨
             </Link>
             <Link href="/cart" className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium">
               Cart
@@ -101,10 +101,10 @@ export default function Header() {
               </Link>
               <Link 
                 href="/made-to-order"
-                className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
+                className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white font-bold py-3 px-4 rounded-lg text-left block touch-target transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-white/20 border border-white/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.madeToOrder')}
+                ✨ {t('nav.madeToOrder')} ✨
               </Link>
               <Link 
                 href="/cart"
