@@ -10,60 +10,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    console.log('🔒 Reserving inventory:', { productId, size, color, quantity });
+    console.log('🔒 Reserving inventory from inventory table:', { productId, size, color, quantity });
 
-    // Get current product data
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('stock, inStock')
-      .eq('id', productId)
+    // Get current inventory data from inventory table
+    const { data: inventoryItem, error: fetchError } = await supabase
+      .from('inventory')
+      .select('available_quantity, quantity, reserved_quantity')
+      .eq('product_id', productId)
+      .eq('size', size)
+      .eq('color', color)
       .single();
 
-    if (fetchError) {
-      console.error('❌ Error fetching product:', fetchError);
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    if (fetchError || !inventoryItem) {
+      console.error('❌ Error fetching inventory:', fetchError);
+      return NextResponse.json({ error: 'Inventory record not found' }, { status: 404 });
     }
 
-    // Check if product is in stock
-    if (!product.inStock) {
-      return NextResponse.json({ error: 'Product is out of stock' }, { status: 400 });
-    }
-
-    // Check current stock for this size/color combination
-    const currentStock = product.stock?.[size]?.[color] || 0;
+    const availableQuantity = inventoryItem.available_quantity;
     
-    if (currentStock < quantity) {
+    if (availableQuantity < quantity) {
+      console.log('❌ Insufficient stock:', { available: availableQuantity, requested: quantity });
       return NextResponse.json({ 
-        error: `Only ${currentStock} items available in ${size} ${color}` 
+        error: `Only ${availableQuantity} items available in ${size} ${color}` 
       }, { status: 400 });
     }
 
-    // Calculate new stock
-    const newStock = currentStock - quantity;
-    
-    // Update the stock in database
-    const updatedStock = {
-      ...product.stock,
-      [size]: {
-        ...product.stock?.[size],
-        [color]: newStock
-      }
-    };
-
-    // If new stock is 0, mark as out of stock
-    const isInStock = Object.values(updatedStock[size] || {}).some((stock: any) => stock > 0);
+    // Reserve inventory by increasing reserved_quantity
+    const newReservedQuantity = inventoryItem.reserved_quantity + quantity;
 
     const { error: updateError } = await supabase
-      .from('products')
-      .update({
-        stock: updatedStock,
-        inStock: isInStock
+      .from('inventory')
+      .update({ 
+        reserved_quantity: newReservedQuantity,
+        last_updated: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('id', productId);
+      .eq('product_id', productId)
+      .eq('size', size)
+      .eq('color', color);
 
     if (updateError) {
       console.error('❌ Error updating inventory:', updateError);
-      return NextResponse.json({ error: 'Failed to update inventory' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to reserve inventory' }, { status: 500 });
+    }
+
+    // Log transaction
+    const { error: transactionError } = await supabase
+      .from('inventory_transactions')
+      .insert({
+        id: `TXN-${Date.now()}-${productId}-${size}-${color}`,
+        product_id: productId,
+        size: size,
+        color: color,
+        transaction_type: 'reserve',
+        quantity_change: quantity,
+        previous_quantity: inventoryItem.quantity,
+        new_quantity: inventoryItem.quantity,
+        reason: 'Cart reservation',
+        created_by: 'system'
+      });
+
+    if (transactionError) {
+      console.warn('Failed to log inventory transaction:', transactionError);
     }
 
     console.log('✅ Inventory reserved successfully:', { 
@@ -71,13 +79,13 @@ export async function POST(request: NextRequest) {
       size, 
       color, 
       reserved: quantity, 
-      remaining: newStock 
+      available: availableQuantity - quantity
     });
 
     return NextResponse.json({ 
       success: true, 
       reserved: quantity, 
-      remaining: newStock 
+      remaining: availableQuantity - quantity
     });
 
   } catch (error) {

@@ -10,45 +10,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    console.log('🔄 Restoring inventory:', { productId, size, color, quantity });
+    console.log('🔄 Restoring inventory from inventory table:', { productId, size, color, quantity });
 
-    // Get current product data
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('stock, inStock')
-      .eq('id', productId)
+    // Get current inventory data from inventory table
+    const { data: inventoryItem, error: fetchError } = await supabase
+      .from('inventory')
+      .select('available_quantity, quantity, reserved_quantity')
+      .eq('product_id', productId)
+      .eq('size', size)
+      .eq('color', color)
       .single();
 
-    if (fetchError) {
-      console.error('❌ Error fetching product:', fetchError);
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    if (fetchError || !inventoryItem) {
+      console.error('❌ Error fetching inventory:', fetchError);
+      return NextResponse.json({ error: 'Inventory record not found' }, { status: 404 });
     }
 
-    // Calculate new stock (restore the quantity)
-    const currentStock = product.stock?.[size]?.[color] || 0;
-    const newStock = currentStock + quantity;
-    
-    // Update the stock in database
-    const updatedStock = {
-      ...product.stock,
-      [size]: {
-        ...product.stock?.[size],
-        [color]: newStock
-      }
-    };
+    // Restore inventory by decreasing reserved_quantity
+    const newReservedQuantity = Math.max(0, inventoryItem.reserved_quantity - quantity);
 
-    // Mark as in stock since we're adding inventory back
     const { error: updateError } = await supabase
-      .from('products')
-      .update({
-        stock: updatedStock,
-        inStock: true
+      .from('inventory')
+      .update({ 
+        reserved_quantity: newReservedQuantity,
+        last_updated: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('id', productId);
+      .eq('product_id', productId)
+      .eq('size', size)
+      .eq('color', color);
 
     if (updateError) {
       console.error('❌ Error restoring inventory:', updateError);
       return NextResponse.json({ error: 'Failed to restore inventory' }, { status: 500 });
+    }
+
+    // Log transaction
+    const { error: transactionError } = await supabase
+      .from('inventory_transactions')
+      .insert({
+        id: `TXN-${Date.now()}-${productId}-${size}-${color}`,
+        product_id: productId,
+        size: size,
+        color: color,
+        transaction_type: 'unreserve',
+        quantity_change: -quantity,
+        previous_quantity: inventoryItem.quantity,
+        new_quantity: inventoryItem.quantity,
+        reason: 'Cart restoration',
+        created_by: 'system'
+      });
+
+    if (transactionError) {
+      console.warn('Failed to log inventory transaction:', transactionError);
     }
 
     console.log('✅ Inventory restored successfully:', { 
@@ -56,13 +70,13 @@ export async function POST(request: NextRequest) {
       size, 
       color, 
       restored: quantity, 
-      newTotal: newStock 
+      available: inventoryItem.quantity - newReservedQuantity
     });
 
     return NextResponse.json({ 
       success: true, 
       restored: quantity, 
-      newTotal: newStock 
+      available: inventoryItem.quantity - newReservedQuantity
     });
 
   } catch (error) {

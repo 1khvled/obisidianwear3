@@ -258,13 +258,21 @@ export default function MadeToOrderCollectionPage() {
                       </div>
                     </div>
                     
-                    <a
-                      href={`/made-to-order?productId=${product.id}`}
-                      className="w-full bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
-                    >
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Order Now
-                    </a>
+                    <div className="flex space-x-2">
+                      <a
+                        href={`/made-to-order/${product.id}`}
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102 border border-white/20"
+                      >
+                        View Details
+                      </a>
+                      <a
+                        href={`/made-to-order?productId=${product.id}`}
+                        className="flex-1 bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
+                      >
+                        <ShoppingBag className="w-4 h-4 mr-1" />
+                        Order
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))}

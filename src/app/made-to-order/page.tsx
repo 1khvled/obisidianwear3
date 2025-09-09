@@ -554,21 +554,29 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                       </div>
                     </div>
                     
-                    <button
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setOrderForm(prev => ({
-                          ...prev,
-                          selectedSize: (product.sizes || [])[0] || '',
-                          selectedColor: (product.colors || [])[0] || ''
-                        }));
-                        setShowOrderForm(true);
-                      }}
-                      className="w-full bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
-                    >
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      {t('madeToOrder.orderNow')}
-                    </button>
+                    <div className="flex space-x-2">
+                      <a
+                        href={`/made-to-order/${product.id}`}
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102 border border-white/20"
+                      >
+                        View Details
+                      </a>
+                      <button
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setOrderForm(prev => ({
+                            ...prev,
+                            selectedSize: (product.sizes || [])[0] || '',
+                            selectedColor: (product.colors || [])[0] || ''
+                          }));
+                          setShowOrderForm(true);
+                        }}
+                        className="flex-1 bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
+                      >
+                        <ShoppingBag className="w-4 h-4 mr-1" />
+                        Order
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

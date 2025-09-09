@@ -30,10 +30,40 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    console.log('✅ Product fetched successfully:', product.name);
-    console.log('📦 Current stock:', product.stock);
+    // Fetch REAL-TIME inventory data from inventory table
+    console.log('🔍 Fetching REAL-TIME inventory data for product:', productId);
+    const { data: inventoryData, error: inventoryError } = await supabase
+      .from('inventory')
+      .select('size, color, available_quantity')
+      .eq('product_id', productId);
 
-    return NextResponse.json(product);
+    if (inventoryError) {
+      console.error('❌ Error fetching inventory:', inventoryError);
+      // Fall back to product stock if inventory table fails
+      console.log('📦 Using product stock as fallback:', product.stock);
+      return NextResponse.json(product);
+    }
+
+    // Convert inventory data to stock format
+    const realTimeStock: any = {};
+    if (inventoryData && inventoryData.length > 0) {
+      inventoryData.forEach((item: any) => {
+        if (!realTimeStock[item.size]) {
+          realTimeStock[item.size] = {};
+        }
+        realTimeStock[item.size][item.color] = item.available_quantity;
+      });
+    }
+
+    console.log('✅ REAL-TIME inventory data:', realTimeStock);
+
+    // Update product with real-time stock data
+    const productWithRealTimeStock = {
+      ...product,
+      stock: realTimeStock
+    };
+
+    return NextResponse.json(productWithRealTimeStock);
   } catch (error) {
     console.error('❌ Error in product API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
