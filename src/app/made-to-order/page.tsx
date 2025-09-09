@@ -60,18 +60,32 @@ export default function MadeToOrderPage() {
 
   // Optimized helper function to get the best image source
   const getImageSrc = useCallback((product: MadeToOrderProduct) => {
+    console.log('🖼️ Getting image for product:', {
+      id: product.id,
+      name: product.name,
+      hasImage: !!product.image,
+      imageValue: product.image,
+      imageType: typeof product.image,
+      hasImages: !!(product.images && product.images.length > 0),
+      imagesArray: product.images
+    });
+
     // Check for main image first
     if (product.image) {
+      console.log('📸 Checking main image:', product.image);
       // If it's a data URL (base64), use it directly
       if (product.image.startsWith('data:')) {
-      return product.image;
-    }
+        console.log('✅ Found data URL image');
+        return product.image;
+      }
       // If it's a URL path, use it
       if (product.image.startsWith('/') || product.image.startsWith('http')) {
+        console.log('✅ Found URL path image');
         return product.image;
       }
       // If it's a long base64 string, use it
       if (product.image.length > 100) {
+        console.log('✅ Found long base64 image');
         return product.image;
       }
     }
@@ -79,22 +93,27 @@ export default function MadeToOrderPage() {
     // Check for images array
     if (product.images && product.images.length > 0) {
       const firstImage = product.images[0];
+      console.log('📸 Checking first image in array:', firstImage);
       if (firstImage) {
         // If it's a data URL (base64), use it directly
         if (firstImage.startsWith('data:')) {
+          console.log('✅ Found data URL in images array');
           return firstImage;
         }
         // If it's a URL path, use it
         if (firstImage.startsWith('/') || firstImage.startsWith('http')) {
+          console.log('✅ Found URL path in images array');
           return firstImage;
         }
         // If it's a long base64 string, use it
         if (firstImage.length > 100) {
+          console.log('✅ Found long base64 in images array');
           return firstImage;
         }
       }
     }
     
+    console.log('❌ No valid image found for product:', product.name);
     return null;
   }, []);
 
@@ -417,31 +436,51 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                    <div className="relative overflow-hidden">
-                    {getImageSrc(product) ? (
-                      getImageSrc(product)?.startsWith('data:') ? (
-                        <img
-                          src={getImageSrc(product)!}
-                          alt={product.name}
-                          className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <Image
-                          src={getImageSrc(product)!}
-                          alt={product.name}
-                          width={400}
-                          height={500}
-                          className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                          loading="lazy"
-                          priority={index < 3} // Prioritize first 3 images
-                        />
-                      )
-                    ) : (
-                      <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                        <Package className="w-16 h-16 text-gray-600" />
-                      </div>
-                      )}
+                  <div className="relative overflow-hidden">
+                    {(() => {
+                      const imageSrc = getImageSrc(product);
+                      console.log('🎯 Rendering image for product:', product.name, 'src:', imageSrc);
+                      
+                      if (imageSrc) {
+                        if (imageSrc.startsWith('data:')) {
+                          return (
+                            <img
+                              src={imageSrc}
+                              alt={product.name}
+                              className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                              loading="lazy"
+                              onLoad={() => console.log('✅ Image loaded successfully for:', product.name)}
+                              onError={(e) => console.error('❌ Image failed to load for:', product.name, e)}
+                            />
+                          );
+                        } else {
+                          return (
+                            <Image
+                              src={imageSrc}
+                              alt={product.name}
+                              width={400}
+                              height={500}
+                              className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                              loading="lazy"
+                              priority={index < 3}
+                              onLoad={() => console.log('✅ Next.js Image loaded successfully for:', product.name)}
+                              onError={(e) => console.error('❌ Next.js Image failed to load for:', product.name, e)}
+                            />
+                          );
+                        }
+                      } else {
+                        // Try fallback to a default image
+                        return (
+                          <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <div className="text-center">
+                              <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
+                              <p className="text-gray-500 text-xs">No Image Available</p>
+                              <p className="text-gray-600 text-xs">{product.name}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4">
                         <span className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-3 py-1 rounded-full text-xs font-semibold">
