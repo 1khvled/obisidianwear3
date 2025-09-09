@@ -63,7 +63,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, image, images, colors, sizes, category, tags, displayOrder } = body;
+    const { name, description, price, image, images, colors, sizes, category, tags, displayOrder, customSizeChart, useCustomSizeChart, sizeChartCategory } = body;
 
     // Validate required fields
     if (!name || !price) {
@@ -95,7 +95,10 @@ export async function POST(request: NextRequest) {
         category: category || 'Custom',
         tags: tags || [],
         display_order: displayOrder || 0,
-        is_active: true
+        is_active: true,
+        custom_size_chart: customSizeChart || null,
+        use_custom_size_chart: useCustomSizeChart || false,
+        size_chart_category: sizeChartCategory || category || 'Custom'
       })
       .select()
       .single();
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, description, price, image, images, colors, sizes, category, tags, displayOrder, isActive } = body;
+    const { id, name, description, price, image, images, colors, sizes, category, tags, displayOrder, isActive, customSizeChart, useCustomSizeChart, sizeChartCategory } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -149,7 +152,10 @@ export async function PUT(request: NextRequest) {
       price: price || 0,
       category: category || 'Custom',
       display_order: displayOrder || 0,
-      is_active: isActive !== undefined ? isActive : true
+      is_active: isActive !== undefined ? isActive : true,
+      custom_size_chart: customSizeChart || null,
+      use_custom_size_chart: useCustomSizeChart || false,
+      size_chart_category: sizeChartCategory || category || 'Custom'
     };
 
     // Only update image fields if they have content

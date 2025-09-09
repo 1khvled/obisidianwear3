@@ -169,8 +169,10 @@ export async function addProduct(product: Product): Promise<Product> {
       weight: product.weight,
       dimensions: product.dimensions,
       tags: product.tags || [],
-      featured: product.featured || false
-      // Note: size_chart_category, custom_size_chart, and use_custom_size_chart columns may not exist in the database yet
+      featured: product.featured || false,
+      custom_size_chart: product.customSizeChart || null,
+      use_custom_size_chart: product.useCustomSizeChart || false,
+      size_chart_category: product.sizeChartCategory || product.category
       // created_at and updated_at are automatically set by the database
     };
 

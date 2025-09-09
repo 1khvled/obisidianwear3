@@ -15,7 +15,8 @@ import {
   X,
   Clock,
   CheckCircle,
-  Loader2
+  Loader2,
+  Ruler
 } from 'lucide-react';
 import { Product, Order, Customer, Wilaya } from '@/types';
 import { backendService } from '@/services/backendService';
@@ -26,6 +27,7 @@ import EnhancedProductManager from '@/components/EnhancedProductManager';
 import InventoryManager from '@/components/InventoryManager';
 import EnhancedOrderManager from '@/components/EnhancedOrderManager';
 import MaintenanceManager from '@/components/MaintenanceManager';
+import SizeChartEditor from '@/components/SizeChartEditor';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdminProducts } from '@/context/ProductContext';
@@ -91,6 +93,7 @@ export default function AdminPage() {
     updatedAt: new Date()
   });
   const [loading, setLoading] = useState(false);
+  const [showSizeChartEditor, setShowSizeChartEditor] = useState(false);
 
   // Navigation items - simplified
   const navigationItems = [
@@ -173,6 +176,14 @@ export default function AdminPage() {
   // Populate form when editing a product
   useEffect(() => {
     if (editingProduct) {
+      console.log('🔍 Admin: Editing product with custom size chart data:', {
+        id: editingProduct.id,
+        name: editingProduct.name,
+        customSizeChart: editingProduct.customSizeChart,
+        useCustomSizeChart: editingProduct.useCustomSizeChart,
+        sizeChartCategory: editingProduct.sizeChartCategory
+      });
+      
       setNewProduct({
         id: editingProduct.id,
         name: editingProduct.name || '',
@@ -188,6 +199,8 @@ export default function AdminPage() {
         rating: editingProduct.rating || 0,
         reviews: editingProduct.reviews || 0,
         customSizeChart: editingProduct.customSizeChart || undefined,
+        useCustomSizeChart: editingProduct.useCustomSizeChart || false,
+        sizeChartCategory: editingProduct.sizeChartCategory || editingProduct.category || 'T-Shirts',
         createdAt: editingProduct.createdAt || new Date(),
         updatedAt: editingProduct.updatedAt || new Date()
       });
@@ -248,6 +261,14 @@ export default function AdminPage() {
         updatedAt: new Date()
       };
       
+      console.log('🔧 Admin: handleUpdateProduct - updatedProduct:', {
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        customSizeChart: updatedProduct.customSizeChart,
+        useCustomSizeChart: updatedProduct.useCustomSizeChart,
+        sizeChartCategory: updatedProduct.sizeChartCategory
+      });
+      
       await updateProductContext(editingProduct.id, updatedProduct);
       setEditingProduct(null);
       setNewProduct({
@@ -297,7 +318,10 @@ export default function AdminPage() {
         sizes: newMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'],
         tags: [],
         displayOrder: 0,
-        isActive: newMadeToOrderProduct.isActive
+        isActive: newMadeToOrderProduct.isActive,
+        customSizeChart: newMadeToOrderProduct.customSizeChart,
+        useCustomSizeChart: newMadeToOrderProduct.useCustomSizeChart,
+        sizeChartCategory: newMadeToOrderProduct.sizeChartCategory
       };
 
       console.log('💾 Adding made-to-order product with data:', {
@@ -374,7 +398,10 @@ export default function AdminPage() {
         sizes: editingMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'],
         tags: editingMadeToOrderProduct.tags || [],
         displayOrder: editingMadeToOrderProduct.displayOrder || 0,
-        isActive: editingMadeToOrderProduct.isActive
+        isActive: editingMadeToOrderProduct.isActive,
+        customSizeChart: editingMadeToOrderProduct.customSizeChart,
+        useCustomSizeChart: editingMadeToOrderProduct.useCustomSizeChart,
+        sizeChartCategory: editingMadeToOrderProduct.sizeChartCategory
       };
 
       console.log('💾 Updating made-to-order product with data:', {
@@ -587,6 +614,7 @@ export default function AdminPage() {
                     </div>
         )}
 
+
         {activeTab === 'orders' && (
           <div className="p-6">
             <div className="mb-6">
@@ -677,13 +705,20 @@ export default function AdminPage() {
                           description: '',
                           basePrice: 0,
                           category: '',
+                          image: '',
                           images: [],
+                          sizes: [],
+                          colors: [],
+                          allowCustomText: false,
+                          allowCustomDesign: false,
                           customSizeChart: undefined,
+                          useCustomSizeChart: false,
+                          sizeChartCategory: '',
                           inStock: true,
-    rating: 0,
-    reviews: 0,
-    createdAt: new Date(),
-    updatedAt: new Date()
+                          rating: 0,
+                          reviews: 0,
+                          createdAt: new Date(),
+                          updatedAt: new Date()
                         });
                       }}
                       className="text-gray-400 hover:text-white"
@@ -736,15 +771,15 @@ export default function AdminPage() {
                           required
                         >
                           <option value="">Select Category</option>
-                          <option value="Custom T-Shirts">Custom T-Shirts</option>
-                          <option value="Custom Hoodies">Custom Hoodies</option>
-                          <option value="Custom Pants">Custom Pants</option>
-                          <option value="Custom Shorts">Custom Shorts</option>
-                          <option value="Custom Jackets">Custom Jackets</option>
-                          <option value="Custom Sweaters">Custom Sweaters</option>
-                          <option value="Custom Dresses">Custom Dresses</option>
-                          <option value="Custom Shoes">Custom Shoes</option>
-                          <option value="Custom Accessories">Custom Accessories</option>
+                          <option value="T-Shirts">T-Shirts</option>
+                          <option value="Hoodies">Hoodies</option>
+                          <option value="Pants">Pants</option>
+                          <option value="Shorts">Shorts</option>
+                          <option value="Jackets">Jackets</option>
+                          <option value="Sweaters">Sweaters</option>
+                          <option value="Dresses">Dresses</option>
+                          <option value="Shoes">Shoes</option>
+                          <option value="Watches">Watches</option>
                           <option value="Bulk Orders">Bulk Orders</option>
                         </select>
                     </div>
@@ -1157,294 +1192,46 @@ export default function AdminPage() {
                       </div>
             </div>
 
-                    {/* Custom Size Chart */}
+                    {/* Size Chart Category */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <label className="block text-sm font-medium text-gray-300">Custom Size Chart</label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="useCustomSizeChartMTO"
-                            checked={editingMadeToOrderProduct?.useCustomSizeChart || newMadeToOrderProduct.useCustomSizeChart || false}
-                            onChange={(e) => {
-                              if (editingMadeToOrderProduct) {
-                                setEditingMadeToOrderProduct({...editingMadeToOrderProduct, useCustomSizeChart: e.target.checked});
-                              } else {
-                                setNewMadeToOrderProduct({...newMadeToOrderProduct, useCustomSizeChart: e.target.checked});
-                              }
-                            }}
-                            className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor="useCustomSizeChartMTO" className="text-sm text-gray-300">
-                            Enable custom size chart
-                          </label>
-                        </div>
-                      </div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Category</label>
+                      <select
+                        value={editingMadeToOrderProduct?.sizeChartCategory || newMadeToOrderProduct.sizeChartCategory || editingMadeToOrderProduct?.category || newMadeToOrderProduct.category}
+                        onChange={(e) => {
+                          if (editingMadeToOrderProduct) {
+                            setEditingMadeToOrderProduct({...editingMadeToOrderProduct, sizeChartCategory: e.target.value});
+                          } else {
+                            setNewMadeToOrderProduct({...newMadeToOrderProduct, sizeChartCategory: e.target.value});
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="T-Shirts">T-Shirts</option>
+                        <option value="Hoodies">Hoodies</option>
+                        <option value="Pants">Pants</option>
+                        <option value="Shorts">Shorts</option>
+                        <option value="Jackets">Jackets</option>
+                        <option value="Sweaters">Sweaters</option>
+                        <option value="Dresses">Dresses</option>
+                        <option value="Shoes">Shoes</option>
+                        <option value="Watches">Watches</option>
+                        <option value="Accessories">Accessories</option>
+                      </select>
+                      <p className="text-xs text-gray-400 mt-1">Choose the size chart template to use for this product</p>
+                    </div>
 
-                      {(editingMadeToOrderProduct?.useCustomSizeChart || newMadeToOrderProduct.useCustomSizeChart) && (
-                        <div className="space-y-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Title</label>
-                            <input
-                              type="text"
-                              value={editingMadeToOrderProduct?.customSizeChart?.title || newMadeToOrderProduct.customSizeChart?.title || ''}
-                              onChange={(e) => {
-                                if (editingMadeToOrderProduct) {
-                                  setEditingMadeToOrderProduct({
-                                    ...editingMadeToOrderProduct,
-                                    customSizeChart: {
-                                      ...editingMadeToOrderProduct.customSizeChart,
-                                      title: e.target.value,
-                                      measurements: editingMadeToOrderProduct.customSizeChart?.measurements || [],
-                                      instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                    }
-                                  });
-                                } else {
-                                  setNewMadeToOrderProduct({
-                                    ...newMadeToOrderProduct,
-                                    customSizeChart: {
-                                      ...newMadeToOrderProduct.customSizeChart,
-                                      title: e.target.value,
-                                      measurements: newMadeToOrderProduct.customSizeChart?.measurements || [],
-                                      instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                    }
-                                  });
-                                }
-                              }}
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="e.g., Custom Hoodie Sizing"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Instructions</label>
-                            <textarea
-                              value={editingMadeToOrderProduct?.customSizeChart?.instructions || newMadeToOrderProduct.customSizeChart?.instructions || ''}
-                              onChange={(e) => {
-                                if (editingMadeToOrderProduct) {
-                                  setEditingMadeToOrderProduct({
-                                    ...editingMadeToOrderProduct,
-                                    customSizeChart: {
-                                      ...editingMadeToOrderProduct.customSizeChart,
-                                      title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                      measurements: editingMadeToOrderProduct.customSizeChart?.measurements || [],
-                                      instructions: e.target.value
-                                    }
-                                  });
-                                } else {
-                                  setNewMadeToOrderProduct({
-                                    ...newMadeToOrderProduct,
-                                    customSizeChart: {
-                                      ...newMadeToOrderProduct.customSizeChart,
-                                      title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                      measurements: newMadeToOrderProduct.customSizeChart?.measurements || [],
-                                      instructions: e.target.value
-                                    }
-                                  });
-                                }
-                              }}
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              rows={3}
-                              placeholder="Instructions for measuring (e.g., Chest: Measure around the fullest part...)"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Size Measurements</label>
-                            <div className="space-y-2">
-                              {((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || []).map((measurement: any, index: number) => (
-                                <div key={index} className="flex items-center space-x-2 p-3 bg-gray-700 rounded-lg">
-                                  <input
-                                    type="text"
-                                    placeholder="Size (e.g., XS, S, M, L, XL)"
-                                    value={measurement.size || ''}
-                                    onChange={(e) => {
-                                      const newMeasurements = [...((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || [])];
-                                      newMeasurements[index] = { ...measurement, size: e.target.value };
-                                      if (editingMadeToOrderProduct) {
-                                        setEditingMadeToOrderProduct({
-                                          ...editingMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...editingMadeToOrderProduct.customSizeChart,
-                                            title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      } else {
-                                        setNewMadeToOrderProduct({
-                                          ...newMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...newMadeToOrderProduct.customSizeChart,
-                                            title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="w-20 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm font-medium"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Chest (cm)"
-                                    value={measurement.chest || ''}
-                                    onChange={(e) => {
-                                      const newMeasurements = [...((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || [])];
-                                      newMeasurements[index] = { ...measurement, chest: parseFloat(e.target.value) || 0 };
-                                      if (editingMadeToOrderProduct) {
-                                        setEditingMadeToOrderProduct({
-                                          ...editingMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...editingMadeToOrderProduct.customSizeChart,
-                                            title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      } else {
-                                        setNewMadeToOrderProduct({
-                                          ...newMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...newMadeToOrderProduct.customSizeChart,
-                                            title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Length (cm)"
-                                    value={measurement.length || ''}
-                                    onChange={(e) => {
-                                      const newMeasurements = [...((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || [])];
-                                      newMeasurements[index] = { ...measurement, length: parseFloat(e.target.value) || 0 };
-                                      if (editingMadeToOrderProduct) {
-                                        setEditingMadeToOrderProduct({
-                                          ...editingMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...editingMadeToOrderProduct.customSizeChart,
-                                            title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      } else {
-                                        setNewMadeToOrderProduct({
-                                          ...newMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...newMadeToOrderProduct.customSizeChart,
-                                            title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Shoulder (cm)"
-                                    value={measurement.shoulder || ''}
-                                    onChange={(e) => {
-                                      const newMeasurements = [...((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || [])];
-                                      newMeasurements[index] = { ...measurement, shoulder: parseFloat(e.target.value) || 0 };
-                                      if (editingMadeToOrderProduct) {
-                                        setEditingMadeToOrderProduct({
-                                          ...editingMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...editingMadeToOrderProduct.customSizeChart,
-                                            title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      } else {
-                                        setNewMadeToOrderProduct({
-                                          ...newMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...newMadeToOrderProduct.customSizeChart,
-                                            title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newMeasurements = ((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || []).filter((_: any, i: number) => i !== index);
-                                      if (editingMadeToOrderProduct) {
-                                        setEditingMadeToOrderProduct({
-                                          ...editingMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...editingMadeToOrderProduct.customSizeChart,
-                                            title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      } else {
-                                        setNewMadeToOrderProduct({
-                                          ...newMadeToOrderProduct,
-                                          customSizeChart: {
-                                            ...newMadeToOrderProduct.customSizeChart,
-                                            title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                            measurements: newMeasurements,
-                                            instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="text-red-400 hover:text-red-300 text-lg font-bold px-2"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newMeasurements = [...((editingMadeToOrderProduct?.customSizeChart?.measurements || newMadeToOrderProduct.customSizeChart?.measurements) || []), { size: '', chest: 0, length: 0, shoulder: 0 }];
-                                  if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({
-                                      ...editingMadeToOrderProduct,
-                                      customSizeChart: {
-                                        ...editingMadeToOrderProduct.customSizeChart,
-                                        title: editingMadeToOrderProduct.customSizeChart?.title || '',
-                                        measurements: newMeasurements,
-                                        instructions: editingMadeToOrderProduct.customSizeChart?.instructions || ''
-                                      }
-                                    });
-                                  } else {
-                                    setNewMadeToOrderProduct({
-                                      ...newMadeToOrderProduct,
-                                      customSizeChart: {
-                                        ...newMadeToOrderProduct.customSizeChart,
-                                        title: newMadeToOrderProduct.customSizeChart?.title || '',
-                                        measurements: newMeasurements,
-                                        instructions: newMadeToOrderProduct.customSizeChart?.instructions || ''
-                                      }
-                                    });
-                                  }
-                                }}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center gap-2"
-                              >
-                                <Plus className="w-4 h-4" />
-                                Add Size Row
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                    {/* Size Chart Editor Button */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowSizeChartEditor(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                      >
+                        <Ruler className="w-4 h-4" />
+                        Edit Size Chart
+                      </button>
+                      <p className="text-xs text-gray-400 mt-1">Click to edit the size chart for this product</p>
                     </div>
               
 
@@ -2088,188 +1875,40 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Custom Size Chart */}
+              {/* Size Chart Category */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-gray-300">Custom Size Chart</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="useCustomSizeChart"
-                      checked={newProduct.useCustomSizeChart || false}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, useCustomSizeChart: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="useCustomSizeChart" className="text-sm text-gray-300">
-                      Enable custom size chart
-                    </label>
-                  </div>
-                </div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Category</label>
+                <select
+                  value={newProduct.sizeChartCategory || newProduct.category}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, sizeChartCategory: e.target.value }))}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="T-Shirts">T-Shirts</option>
+                  <option value="Hoodies">Hoodies</option>
+                  <option value="Pants">Pants</option>
+                  <option value="Shorts">Shorts</option>
+                  <option value="Jackets">Jackets</option>
+                  <option value="Sweaters">Sweaters</option>
+                  <option value="Dresses">Dresses</option>
+                  <option value="Shoes">Shoes</option>
+                  <option value="Watches">Watches</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Choose the size chart template to use for this product</p>
+              </div>
 
-                {newProduct.useCustomSizeChart && (
-                  <div className="space-y-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Title</label>
-                      <input
-                        type="text"
-                        value={newProduct.customSizeChart?.title || ''}
-                        onChange={(e) => setNewProduct(prev => ({
-                          ...prev,
-                          customSizeChart: {
-                            ...prev.customSizeChart,
-                            title: e.target.value,
-                            measurements: prev.customSizeChart?.measurements || [],
-                            instructions: prev.customSizeChart?.instructions || ''
-                          }
-                        }))}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g., Custom Hoodie Sizing"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart Instructions</label>
-                      <textarea
-                        value={newProduct.customSizeChart?.instructions || ''}
-                        onChange={(e) => setNewProduct(prev => ({
-                          ...prev,
-                          customSizeChart: {
-                            ...prev.customSizeChart,
-                            title: prev.customSizeChart?.title || '',
-                            measurements: prev.customSizeChart?.measurements || [],
-                            instructions: e.target.value
-                          }
-                        }))}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows={3}
-                        placeholder="Instructions for measuring (e.g., Chest: Measure around the fullest part...)"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Size Measurements</label>
-                      <div className="space-y-2">
-                        {(newProduct.customSizeChart?.measurements || []).map((measurement: any, index: number) => (
-                          <div key={index} className="flex items-center space-x-2 p-3 bg-gray-700 rounded-lg">
-                            <input
-                              type="text"
-                              placeholder="Size (e.g., XS, S, M, L, XL)"
-                              value={measurement.size || ''}
-                              onChange={(e) => {
-                                const newMeasurements = [...(newProduct.customSizeChart?.measurements || [])];
-                                newMeasurements[index] = { ...measurement, size: e.target.value };
-                                setNewProduct(prev => ({
-                                  ...prev,
-                                  customSizeChart: {
-                                    ...prev.customSizeChart,
-                                    title: prev.customSizeChart?.title || '',
-                                    measurements: newMeasurements,
-                                    instructions: prev.customSizeChart?.instructions || ''
-                                  }
-                                }));
-                              }}
-                              className="w-20 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm font-medium"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Chest (cm)"
-                              value={measurement.chest || ''}
-                              onChange={(e) => {
-                                const newMeasurements = [...(newProduct.customSizeChart?.measurements || [])];
-                                newMeasurements[index] = { ...measurement, chest: parseFloat(e.target.value) || 0 };
-                                setNewProduct(prev => ({
-                                  ...prev,
-                                  customSizeChart: {
-                                    ...prev.customSizeChart,
-                                    title: prev.customSizeChart?.title || '',
-                                    measurements: newMeasurements,
-                                    instructions: prev.customSizeChart?.instructions || ''
-                                  }
-                                }));
-                              }}
-                              className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Length (cm)"
-                              value={measurement.length || ''}
-                              onChange={(e) => {
-                                const newMeasurements = [...(newProduct.customSizeChart?.measurements || [])];
-                                newMeasurements[index] = { ...measurement, length: parseFloat(e.target.value) || 0 };
-                                setNewProduct(prev => ({
-                                  ...prev,
-                                  customSizeChart: {
-                                    ...prev.customSizeChart,
-                                    title: prev.customSizeChart?.title || '',
-                                    measurements: newMeasurements,
-                                    instructions: prev.customSizeChart?.instructions || ''
-                                  }
-                                }));
-                              }}
-                              className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Shoulder (cm)"
-                              value={measurement.shoulder || ''}
-                              onChange={(e) => {
-                                const newMeasurements = [...(newProduct.customSizeChart?.measurements || [])];
-                                newMeasurements[index] = { ...measurement, shoulder: parseFloat(e.target.value) || 0 };
-                                setNewProduct(prev => ({
-                                  ...prev,
-                                  customSizeChart: {
-                                    ...prev.customSizeChart,
-                                    title: prev.customSizeChart?.title || '',
-                                    measurements: newMeasurements,
-                                    instructions: prev.customSizeChart?.instructions || ''
-                                  }
-                                }));
-                              }}
-                              className="w-24 px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newMeasurements = (newProduct.customSizeChart?.measurements || []).filter((_: any, i: number) => i !== index);
-                                setNewProduct(prev => ({
-                                  ...prev,
-                                  customSizeChart: {
-                                    ...prev.customSizeChart,
-                                    title: prev.customSizeChart?.title || '',
-                                    measurements: newMeasurements,
-                                    instructions: prev.customSizeChart?.instructions || ''
-                                  }
-                                }));
-                              }}
-                              className="text-red-400 hover:text-red-300 text-lg font-bold px-2"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMeasurements = [...(newProduct.customSizeChart?.measurements || []), { size: '', chest: 0, length: 0, shoulder: 0 }];
-                            setNewProduct(prev => ({
-                              ...prev,
-                              customSizeChart: {
-                                ...prev.customSizeChart,
-                                title: prev.customSizeChart?.title || '',
-                                measurements: newMeasurements,
-                                instructions: prev.customSizeChart?.instructions || ''
-                              }
-                            }));
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Size Row
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {/* Size Chart Editor Button */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Size Chart</label>
+                <button
+                  type="button"
+                  onClick={() => setShowSizeChartEditor(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                >
+                  <Ruler className="w-4 h-4" />
+                  Edit Size Chart
+                </button>
+                <p className="text-xs text-gray-400 mt-1">Click to edit the size chart for this product</p>
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -2314,6 +1953,95 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Size Chart Editor Modal */}
+      {showSizeChartEditor && (() => {
+        // Convert database field names to camelCase for made-to-order products
+        const existingData = editingProduct?.customSizeChart || 
+                            (editingMadeToOrderProduct?.custom_size_chart ? {
+                              title: editingMadeToOrderProduct.custom_size_chart.title,
+                              measurements: editingMadeToOrderProduct.custom_size_chart.measurements,
+                              instructions: editingMadeToOrderProduct.custom_size_chart.instructions
+                            } : null) || 
+                            newProduct?.customSizeChart;
+        
+        console.log('🔧 Admin: Opening SizeChartEditor with data:', {
+          editingProduct: !!editingProduct,
+          editingMadeToOrderProduct: !!editingMadeToOrderProduct,
+          existingCustomSizeChart: existingData,
+          category: editingProduct ? (editingProduct.sizeChartCategory || editingProduct.category || 'T-Shirts') : 
+                   editingMadeToOrderProduct ? (editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 'T-Shirts') :
+                   (newProduct.sizeChartCategory || newProduct.category || 'T-Shirts'),
+          madeToOrderProductData: editingMadeToOrderProduct ? {
+            custom_size_chart: editingMadeToOrderProduct.custom_size_chart,
+            size_chart_category: editingMadeToOrderProduct.size_chart_category,
+            category: editingMadeToOrderProduct.category
+          } : null
+        });
+        return (
+        <SizeChartEditor
+          category={editingProduct ? (editingProduct.sizeChartCategory || editingProduct.category || 'T-Shirts') : 
+                   editingMadeToOrderProduct ? (editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 'T-Shirts') :
+                   (newProduct.sizeChartCategory || newProduct.category || 'T-Shirts')}
+          productId={editingProduct?.id || editingMadeToOrderProduct?.id}
+          productType={editingMadeToOrderProduct ? 'made-to-order' : 'regular'}
+          existingCustomSizeChart={existingData}
+          onSave={(category, customSizeChart) => {
+            console.log('🔧 Admin: SizeChartEditor onSave called:', {
+              category,
+              customSizeChart,
+              editingProduct: !!editingProduct,
+              editingMadeToOrderProduct: !!editingMadeToOrderProduct,
+              newProduct: !editingProduct && !editingMadeToOrderProduct
+            });
+            
+            // Update the appropriate product with the new size chart data
+            if (editingProduct) {
+              console.log('🔧 Admin: Updating editingProduct with size chart data');
+              // Update the editing product
+              setEditingProduct(prev => {
+                const updated = {
+                  ...prev,
+                  customSizeChart: customSizeChart,
+                  useCustomSizeChart: true,
+                  sizeChartCategory: category
+                };
+                console.log('🔧 Admin: Updated editingProduct:', updated);
+                return updated;
+              });
+            } else if (editingMadeToOrderProduct) {
+              console.log('🔧 Admin: Updating editingMadeToOrderProduct with size chart data');
+              // Update the editing made-to-order product
+              setEditingMadeToOrderProduct(prev => {
+                const updated = {
+                  ...prev,
+                  customSizeChart: customSizeChart,
+                  useCustomSizeChart: true,
+                  sizeChartCategory: category
+                };
+                console.log('🔧 Admin: Updated editingMadeToOrderProduct:', updated);
+                return updated;
+              });
+            } else {
+              console.log('🔧 Admin: Updating newProduct with size chart data');
+              // Update the new product
+              setNewProduct(prev => {
+                const updated = {
+                  ...prev,
+                  customSizeChart: customSizeChart,
+                  useCustomSizeChart: true,
+                  sizeChartCategory: category
+                };
+                console.log('🔧 Admin: Updated newProduct:', updated);
+                return updated;
+              });
+            }
+            setShowSizeChartEditor(false);
+          }}
+          onClose={() => setShowSizeChartEditor(false)}
+        />
+        );
+      })()}
     </div>
   );
 }

@@ -69,3 +69,74 @@ export async function GET(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const productId = params.id;
+    const body = await request.json();
+
+    if (!productId) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
+    console.log('🔧 Updating product:', productId, {
+      name: body.name,
+      customSizeChart: body.customSizeChart,
+      useCustomSizeChart: body.useCustomSizeChart,
+      sizeChartCategory: body.sizeChartCategory
+    });
+
+    // Update product in database
+    const { data: updatedProduct, error } = await supabase
+      .from('products')
+      .update({
+        name: body.name,
+        description: body.description,
+        price: body.price,
+        category: body.category,
+        image: body.image,
+        images: body.images,
+        sizes: body.sizes,
+        colors: body.colors,
+        stock: body.stock,
+        in_stock: body.inStock,
+        rating: body.rating,
+        reviews: body.reviews,
+        sku: body.sku,
+        weight: body.weight,
+        dimensions: body.dimensions,
+        tags: body.tags,
+        featured: body.featured,
+        custom_size_chart: body.customSizeChart,
+        use_custom_size_chart: body.useCustomSizeChart,
+        size_chart_category: body.sizeChartCategory,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error updating product:', error);
+      return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+    }
+
+    if (!updatedProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    console.log('✅ Product updated successfully:', updatedProduct.id);
+
+    return NextResponse.json({
+      success: true,
+      data: updatedProduct,
+      message: 'Product updated successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error in product update API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

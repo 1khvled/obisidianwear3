@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS products (
   dimensions JSONB,
   tags TEXT[] DEFAULT '{}',
   featured BOOLEAN DEFAULT false,
+  custom_size_chart JSONB,
+  use_custom_size_chart BOOLEAN DEFAULT false,
+  size_chart_category TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
