@@ -70,8 +70,13 @@ export default function MadeToOrderPage() {
   };
 
   useEffect(() => {
-    loadProducts();
-    loadWilayaTariffs();
+    // Load both products and wilaya tariffs in parallel for faster loading
+    Promise.all([
+      loadProducts(),
+      loadWilayaTariffs()
+    ]).catch(error => {
+      console.error('Error loading made-to-order data:', error);
+    });
   }, []);
 
   // Debug products state

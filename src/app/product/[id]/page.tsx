@@ -304,7 +304,7 @@ export default function ProductDetailPage() {
                 <span>
                   {!product.inStock ? 'Out of Stock' : 
                    !selectedSize || !selectedColor ? 'Select Size & Color' :
-                   `Add to Cart - ${(product.price * quantity).toFixed(0)} DA`}
+                   `Buy Now - ${(product.price * quantity).toFixed(0)} DA`}
                 </span>
               </button>
               
@@ -332,7 +332,7 @@ export default function ProductDetailPage() {
                 className="w-full bg-gray-800 text-white py-4 px-8 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 <ShoppingCart size={20} />
-                <span>Add to Cart</span>
+                <span>Buy Now</span>
               </button>
               
               <div className="flex space-x-4">
