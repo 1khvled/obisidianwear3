@@ -18,7 +18,7 @@ import {
   Loader2,
   Ruler
 } from 'lucide-react';
-import { Product, Order, Customer, Wilaya } from '@/types';
+import { Product, MadeToOrderProduct, Order, Customer, Wilaya } from '@/types';
 import { backendService } from '@/services/backendService';
 import { supabase } from '@/lib/supabaseDatabase';
 import AdminLogin from '@/components/AdminLogin';
