@@ -25,12 +25,39 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [realTimeStock, setRealTimeStock] = useState<any>(null);
+  const [stockLoading, setStockLoading] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
+
+  // Fetch real-time stock data from database
+  const fetchRealTimeStock = async (productId: string) => {
+    if (!productId) return;
+    
+    setStockLoading(true);
+    try {
+      console.log('🔄 Fetching REAL-TIME stock data for product:', productId);
+      const response = await fetch(`/api/products/${productId}`);
+      if (response.ok) {
+        const productData = await response.json();
+        console.log('✅ REAL-TIME stock data:', productData.stock);
+        setRealTimeStock(productData.stock);
+      } else {
+        console.error('❌ Failed to fetch real-time stock data');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching real-time stock:', error);
+    } finally {
+      setStockLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (params.id) {
       const foundProduct = getProduct(params.id as string);
       setProduct(foundProduct);
+      
+      // Fetch REAL-TIME stock data from database
+      fetchRealTimeStock(params.id as string);
       
       // Add to recently viewed
       if (foundProduct) {
@@ -42,9 +69,29 @@ export default function ProductDetailPage() {
         setSelectedColor(foundProduct.colors[0]);
       }
       
+      // Clear selected size if it's out of stock for the selected color
+      if (foundProduct && selectedSize && selectedColor) {
+        const sizeStock = foundProduct.stock?.[selectedSize]?.[selectedColor] || 0;
+        if (sizeStock === 0) {
+          setSelectedSize('');
+        }
+      }
+      
       console.log('Product detail page updated:', foundProduct?.name);
     }
-  }, [params.id, getProduct, products, selectedColor]); // Added products as dependency
+  }, [params.id, getProduct, products, selectedColor, selectedSize]); // Added selectedSize as dependency
+
+  // Clear selected size if it becomes out of stock when color changes
+  useEffect(() => {
+    if (product && selectedSize && selectedColor) {
+      // Use real-time stock data if available, otherwise fall back to cached data
+      const stockData = realTimeStock || product.stock;
+      const sizeStock = stockData?.[selectedSize]?.[selectedColor] || 0;
+      if (sizeStock === 0) {
+        setSelectedSize('');
+      }
+    }
+  }, [product, selectedColor, selectedSize, realTimeStock]);
 
   if (!product) {
     return (
@@ -198,35 +245,32 @@ export default function ProductDetailPage() {
             <div>
               <h3 className="text-white font-semibold text-lg mb-4">Size</h3>
               <div className="flex flex-wrap gap-3">
-                {(() => {
-                  // Filter sizes based on inventory for selected color
-                  const availableSizes = selectedColor 
-                    ? product.sizes.filter(size => {
-                        const stock = product.stock?.[size]?.[selectedColor] || 0;
-                        return stock > 0;
-                      })
-                    : product.sizes; // If no color selected, show all sizes
-                  
-                  return availableSizes.map((size) => {
-                    const sizeStock = selectedColor ? (product.stock?.[size]?.[selectedColor] || 0) : 0;
+                 {(() => {
+                   // Show all sizes, but mark out-of-stock ones as disabled
+                   // Use real-time stock data if available, otherwise fall back to cached data
+                   const stockData = realTimeStock || product.stock;
+                   return product.sizes.map((size) => {
+                     const sizeStock = selectedColor ? (stockData?.[size]?.[selectedColor] || 0) : 0;
+                     const isOutOfStock = selectedColor && sizeStock === 0;
                     
                     return (
                       <button
                         key={size}
-                        onClick={() => {
-                          setSelectedSize(size);
-                        }}
-                        disabled={false}
+                        onClick={isOutOfStock ? undefined : () => setSelectedSize(size)}
+                        disabled={!!isOutOfStock}
                         className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
                           selectedSize === size
                             ? 'border-white bg-white text-black'
-                            : !selectedColor
-                              ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
-                              : 'border-gray-600 text-white hover:border-gray-400'
+                            : isOutOfStock
+                              ? 'border-red-600 text-red-400 cursor-not-allowed bg-red-900/20'
+                              : !selectedColor
+                                ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
+                                : 'border-gray-600 text-white hover:border-gray-400'
                         }`}
                       >
                         {size}
                         {!selectedColor && ' (Select Color)'}
+                        {isOutOfStock && ' (OUT OF STOCK)'}
                       </button>
                     );
                   });
@@ -326,9 +370,12 @@ export default function ProductDetailPage() {
                     return;
                   }
                   
-                  const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+                  // Use real-time stock data if available, otherwise fall back to cached data
+                  const stockData = realTimeStock || product.stock;
+                  const availableStock = stockData?.[selectedSize]?.[selectedColor] || 0;
                   if (availableStock === 0) {
                     alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
+                    setSelectedSize(''); // Clear the selected size
                     return;
                   }
                   
@@ -357,9 +404,12 @@ export default function ProductDetailPage() {
                     return;
                   }
                   
-                  const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+                  // Use real-time stock data if available, otherwise fall back to cached data
+                  const stockData = realTimeStock || product.stock;
+                  const availableStock = stockData?.[selectedSize]?.[selectedColor] || 0;
                   if (availableStock === 0) {
                     alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
+                    setSelectedSize(''); // Clear the selected size
                     return;
                   }
                   

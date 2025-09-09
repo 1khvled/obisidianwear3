@@ -38,6 +38,9 @@ export default function CheckoutPage() {
   useEffect(() => {
     const productId = searchParams.get('productId');
     const productDataParam = searchParams.get('productData');
+    const selectedSize = searchParams.get('size');
+    const selectedColor = searchParams.get('color');
+    const quantity = parseInt(searchParams.get('quantity') || '1');
     
     if (productId) {
       // First try to use product data from URL parameters (faster)
@@ -45,6 +48,16 @@ export default function CheckoutPage() {
         try {
           const productData = JSON.parse(decodeURIComponent(productDataParam));
           setProduct(productData);
+          
+          // Check if the selected size/color combination is in stock
+          if (selectedSize && selectedColor) {
+            const availableStock = productData.stock?.[selectedSize]?.[selectedColor] || 0;
+            if (availableStock < quantity) {
+              setOrderStatus('error');
+              setOrderMessage(`❌ This item is out of stock. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
+              return;
+            }
+          }
         } catch (error) {
           console.error('Error parsing product data from URL:', error);
           // Fallback to product lookup
@@ -55,6 +68,16 @@ export default function CheckoutPage() {
         // Fallback to product lookup
         const foundProduct = getProduct(productId);
         setProduct(foundProduct || null);
+        
+        // Check stock for found product
+        if (foundProduct && selectedSize && selectedColor) {
+          const availableStock = foundProduct.stock?.[selectedSize]?.[selectedColor] || 0;
+          if (availableStock < quantity) {
+            setOrderStatus('error');
+            setOrderMessage(`❌ This item is out of stock. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
+            return;
+          }
+        }
       }
     }
 
@@ -153,7 +176,14 @@ export default function CheckoutPage() {
 
       const shippingCost = selectedWilaya[selectedShipping];
 
-      // Stock validation is now handled in the order service
+      // Additional stock validation as safety check
+      const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+      if (availableStock < quantity) {
+        setOrderStatus('error');
+        setOrderMessage(`❌ Not enough stock available. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
+        setIsSubmitting(false);
+        return;
+      }
 
       const orderData = {
         customerName: formData.name,

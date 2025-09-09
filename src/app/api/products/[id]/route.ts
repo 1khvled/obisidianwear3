@@ -1,150 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Product } from '@/types';
-import { getProduct, updateProduct, deleteProduct } from '@/lib/supabaseDatabase';
+import { supabase } from '@/lib/supabaseDatabase';
 
-// Ensure we use Node.js runtime for Supabase compatibility
-export const runtime = 'nodejs';
-
-// GET /api/products/[id] - Get single product
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Products API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
+    const productId = params.id;
+
+    if (!productId) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
-    
-    const product = await getProduct(id);
-    
+
+    console.log('🔍 Fetching product from database:', productId);
+
+    // Fetch product from database
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (error) {
+      console.error('❌ Error fetching product:', error);
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
     if (!product) {
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    console.log('Products API: GET single product:', id);
-    
-    return NextResponse.json({
-      success: true,
-      data: product,
-      timestamp: Date.now()
-    });
+    console.log('✅ Product fetched successfully:', product.name);
+    console.log('📦 Current stock:', product.stock);
+
+    return NextResponse.json(product);
   } catch (error) {
-    console.error('Products API: GET single error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch product' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT /api/products/[id] - Update product
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-    const updateData = await request.json();
-    
-    console.log('🔧 Products API: PUT request received for product:', id);
-    console.log('🔧 Update data:', JSON.stringify(updateData, null, 2));
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Products API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
-    const updatedProduct = await updateProduct(id, {
-      ...updateData,
-      updatedAt: new Date()
-    });
-    
-    if (!updatedProduct) {
-      console.error('Products API: Product not found or update failed:', id);
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
-    }
-    
-    console.log('✅ Products API: PUT request - updated product successfully:', id);
-    console.log('✅ Updated product data:', JSON.stringify(updatedProduct, null, 2));
-    
-    return NextResponse.json({
-      success: true,
-      data: updatedProduct,
-      message: 'Product updated successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('❌ Products API: PUT error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update product' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/products/[id] - Delete product
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Products API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
-    const deletedProduct = await getProduct(id);
-    if (!deletedProduct) {
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
-    }
-
-    const success = await deleteProduct(id);
-    if (!success) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to delete product' },
-        { status: 500 }
-      );
-    }
-    
-    console.log('Products API: DELETE request - deleted product:', id);
-    
-    return NextResponse.json({
-      success: true,
-      data: deletedProduct,
-      message: 'Product deleted successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Products API: DELETE error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete product' },
-      { status: 500 }
-    );
+    console.error('❌ Error in product API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
