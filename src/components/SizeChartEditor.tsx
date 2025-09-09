@@ -188,7 +188,9 @@ export default function SizeChartEditor({ category, productId, productType = 're
   const addSizeRow = () => {
     const newSize: SizeData = { size: '' };
     measurementKeys.forEach(key => {
-      newSize[key as keyof SizeData] = 0;
+      if (key !== 'size') {
+        newSize[key] = 0;
+      }
     });
     setSizeData([...sizeData, newSize]);
   };
