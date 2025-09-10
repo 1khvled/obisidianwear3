@@ -139,16 +139,24 @@ export default function MadeToOrderPage() {
       console.log('⏳ Still loading, no products yet');
       setIsLoadingProducts(true);
       setLoadedProducts([]);
-    } else if (madeToOrderProducts.length > 0) {
+    } else if (madeToOrderProducts.length > 0 && loadedProducts.length === 0) {
       console.log('🚀 Products available, starting progressive loading');
-      // Start progressive loading when products are available
+      // Start progressive loading when products are available and none are loaded yet
       setIsLoadingProducts(false);
       loadProductsProgressively();
-    } else {
+    } else if (madeToOrderProducts.length === 0) {
       console.log('❌ No products available');
       setIsLoadingProducts(false);
     }
-  }, [loading, madeToOrderProducts.length]);
+  }, [loading, madeToOrderProducts.length, loadedProducts.length]);
+
+  // Handle when products become available after initial load
+  useEffect(() => {
+    if (madeToOrderProducts.length > 0 && loadedProducts.length === 0 && !loading) {
+      console.log('🎯 Products became available after loading, starting progressive loading');
+      loadProductsProgressively();
+    }
+  }, [madeToOrderProducts.length, loadedProducts.length, loading]);
 
   // Progressive loading function - load products one by one
   const loadProductsProgressively = async () => {
