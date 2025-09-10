@@ -127,14 +127,67 @@ export default function MadeToOrderPage() {
     setIsPageLoading(false);
   }, []);
 
-  // Simple loading logic - show loading only when context is loading AND no products yet
+  // Progressive loading logic - show products as they load
   useEffect(() => {
+    console.log('🔄 Progressive loading useEffect triggered:', {
+      loading,
+      productsLength: madeToOrderProducts.length,
+      loadedProductsLength: loadedProducts.length
+    });
+
     if (loading && madeToOrderProducts.length === 0) {
+      console.log('⏳ Still loading, no products yet');
       setIsLoadingProducts(true);
+      setLoadedProducts([]);
+    } else if (madeToOrderProducts.length > 0) {
+      console.log('🚀 Products available, starting progressive loading');
+      // Start progressive loading when products are available
+      setIsLoadingProducts(false);
+      loadProductsProgressively();
     } else {
+      console.log('❌ No products available');
       setIsLoadingProducts(false);
     }
   }, [loading, madeToOrderProducts.length]);
+
+  // Progressive loading function - load products one by one
+  const loadProductsProgressively = async () => {
+    console.log('🚀 Starting progressive loading:', {
+      loadedProducts: loadedProducts.length,
+      totalProducts: madeToOrderProducts.length
+    });
+
+    if (loadedProducts.length >= madeToOrderProducts.length) {
+      console.log('✅ All products already loaded');
+      setIsLoadingMore(false);
+      return;
+    }
+
+    setIsLoadingMore(true);
+    console.log('⏳ Loading more products...');
+    
+    // Load products in batches of 3 with 200ms delay between each
+    const batchSize = 3;
+    const startIndex = loadedProducts.length;
+    const endIndex = Math.min(startIndex + batchSize, madeToOrderProducts.length);
+    
+    console.log(`📦 Loading batch: ${startIndex} to ${endIndex}`);
+    
+    for (let i = startIndex; i < endIndex; i++) {
+      await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between products
+      console.log(`➕ Adding product ${i + 1}:`, madeToOrderProducts[i].name);
+      setLoadedProducts(prev => [...prev, madeToOrderProducts[i]]);
+    }
+    
+    // If there are more products to load, continue
+    if (endIndex < madeToOrderProducts.length) {
+      console.log('🔄 More products to load, continuing...');
+      setTimeout(() => loadProductsProgressively(), 100); // Small delay before next batch
+    } else {
+      console.log('✅ All products loaded!');
+      setIsLoadingMore(false);
+    }
+  };
 
   // Debug products state
   useEffect(() => {
