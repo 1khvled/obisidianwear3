@@ -44,6 +44,7 @@ export default function MadeToOrderPage() {
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -450,42 +451,107 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               <p className="text-gray-500 text-xs mt-2">Debug: products.length = {madeToOrderProducts.length}</p>
             </div>
           ) : (
-            <div className="space-y-12">
-              {(() => {
-                // Group products by category
-                const productsByCategory = madeToOrderProducts.reduce((acc, product) => {
-                  const category = product.category || 'Other';
-                  if (!acc[category]) {
-                    acc[category] = [];
+            <div className="space-y-8">
+              {/* Category Filter Buttons */}
+              <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
+                <div className="flex flex-wrap justify-center gap-2 max-w-full overflow-x-auto pb-2">
+                {(() => {
+                  // Get all available categories
+                  const availableCategories = Array.from(new Set(madeToOrderProducts.map(p => p.category || 'Other')));
+                  
+                  const categoryNames: Record<string, string> = {
+                    'Shoes': '👟 Chaussures',
+                    'T-Shirts': '👕 T-Shirts', 
+                    'Hoodies': '🧥 Sweats à Capuche',
+                    'Jackets': '🧥 Vestes',
+                    'Pants': '👖 Pantalons',
+                    'Accessories': '👜 Accessoires',
+                    'Other': '📦 Autres'
+                  };
+
+                  return (
+                    <>
+                      <button
+                        onClick={() => setSelectedCategory('All')}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                          selectedCategory === 'All'
+                            ? 'bg-white text-black'
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                        }`}
+                      >
+                        Tous
+                      </button>
+                      {availableCategories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedCategory(category)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                            selectedCategory === category
+                              ? 'bg-white text-black'
+                              : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {categoryNames[category] || category}
+                        </button>
+                      ))}
+                    </>
+                  );
+                })()}
+                </div>
+              </div>
+
+              {/* Products Display */}
+              <div className="space-y-12">
+                {(() => {
+                  // Filter products based on selected category
+                  const filteredProducts = selectedCategory === 'All' 
+                    ? madeToOrderProducts 
+                    : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
+
+                  if (filteredProducts.length === 0) {
+                    return (
+                      <div className="text-center py-12">
+                        <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-white mb-2">Aucun produit trouvé</h3>
+                        <p className="text-gray-400">Aucun produit dans cette catégorie pour le moment.</p>
+                      </div>
+                    );
                   }
-                  acc[category].push(product);
-                  return acc;
-                }, {} as Record<string, MadeToOrderProduct[]>);
 
-                // Define category order and display names
-                const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Accessories', 'Other'];
-                const categoryNames: Record<string, string> = {
-                  'Shoes': '👟 Chaussures',
-                  'T-Shirts': '👕 T-Shirts',
-                  'Hoodies': '🧥 Sweats à Capuche',
-                  'Jackets': '🧥 Vestes',
-                  'Pants': '👖 Pantalons',
-                  'Accessories': '👜 Accessoires',
-                  'Other': '📦 Autres'
-                };
+                  // Group filtered products by category
+                  const productsByCategory = filteredProducts.reduce((acc, product) => {
+                    const category = product.category || 'Other';
+                    if (!acc[category]) {
+                      acc[category] = [];
+                    }
+                    acc[category].push(product);
+                    return acc;
+                  }, {} as Record<string, MadeToOrderProduct[]>);
 
-                return categoryOrder
-                  .filter(category => productsByCategory[category]?.length > 0)
-                  .map((category, categoryIndex) => (
-                    <div key={category} className="space-y-6">
-                      <div className="text-center">
-                        <h2 className="text-3xl font-bold text-white mb-2">
+                  // Define category order and display names
+                  const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Accessories', 'Other'];
+                  const categoryNames: Record<string, string> = {
+                    'Shoes': '👟 Chaussures',
+                    'T-Shirts': '👕 T-Shirts',
+                    'Hoodies': '🧥 Sweats à Capuche',
+                    'Jackets': '🧥 Vestes',
+                    'Pants': '👖 Pantalons',
+                    'Accessories': '👜 Accessoires',
+                    'Other': '📦 Autres'
+                  };
+
+                  return categoryOrder
+                    .filter(category => productsByCategory[category]?.length > 0)
+                    .map((category, categoryIndex) => (
+                    <div key={category} className="space-y-4 sm:space-y-6">
+                      <div className="text-center px-4">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                           {categoryNames[category] || category}
                         </h2>
-                        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+                        <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                         {productsByCategory[category].map((product, index) => (
                 <div 
                   key={product.id} 
@@ -550,13 +616,13 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         </div>
                       </div>
                     </div>
-                  <div className="p-4">
-                    <h3 className="text-base font-bold text-white mb-2 group-hover:text-white transition-colors">{product.name}</h3>
+                  <div className="p-3 sm:p-4">
+                    <h3 className="text-sm sm:text-base font-bold text-white mb-2 group-hover:text-white transition-colors line-clamp-1">{product.name}</h3>
                     <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
                     
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-xl font-black text-white">{Number(product.price).toFixed(0)} DZD</div>
-                      <div className="text-xs text-gray-400">Starting from</div>
+                      <div className="text-lg sm:text-xl font-black text-white">{Number(product.price).toFixed(0)} DZD</div>
+                      <div className="text-xs text-gray-400 hidden sm:block">Starting from</div>
                     </div>
                     
                     <div className="mb-3">
@@ -596,12 +662,13 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                       </div>
                     </div>
                     
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <a
                         href={`/made-to-order/${product.id}`}
-                        className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102 border border-white/20"
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102 border border-white/20"
                       >
-                        View Details
+                        <span className="hidden sm:inline">View Details</span>
+                        <span className="sm:hidden">Details</span>
                       </a>
                       <button
                         onClick={() => {
@@ -613,10 +680,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                           }));
                           setShowOrderForm(true);
                         }}
-                        className="flex-1 bg-white hover:bg-gray-100 text-black py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
+                        className="flex-1 bg-white hover:bg-gray-100 text-black py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
                       >
                         <ShoppingBag className="w-4 h-4 mr-1" />
-                        Order
+                        <span className="hidden sm:inline">Order</span>
+                        <span className="sm:hidden">Order</span>
                       </button>
                     </div>
                   </div>
@@ -626,6 +694,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     </div>
                   ));
                 })()}
+              </div>
             </div>
           )}
         </div>
