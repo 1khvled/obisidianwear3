@@ -450,8 +450,43 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               <p className="text-gray-500 text-xs mt-2">Debug: products.length = {madeToOrderProducts.length}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {madeToOrderProducts.map((product, index) => (
+            <div className="space-y-12">
+              {(() => {
+                // Group products by category
+                const productsByCategory = madeToOrderProducts.reduce((acc, product) => {
+                  const category = product.category || 'Other';
+                  if (!acc[category]) {
+                    acc[category] = [];
+                  }
+                  acc[category].push(product);
+                  return acc;
+                }, {} as Record<string, MadeToOrderProduct[]>);
+
+                // Define category order and display names
+                const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Accessories', 'Other'];
+                const categoryNames: Record<string, string> = {
+                  'Shoes': '👟 Chaussures',
+                  'T-Shirts': '👕 T-Shirts',
+                  'Hoodies': '🧥 Sweats à Capuche',
+                  'Jackets': '🧥 Vestes',
+                  'Pants': '👖 Pantalons',
+                  'Accessories': '👜 Accessoires',
+                  'Other': '📦 Autres'
+                };
+
+                return categoryOrder
+                  .filter(category => productsByCategory[category]?.length > 0)
+                  .map((category, categoryIndex) => (
+                    <div key={category} className="space-y-6">
+                      <div className="text-center">
+                        <h2 className="text-3xl font-bold text-white mb-2">
+                          {categoryNames[category] || category}
+                        </h2>
+                        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {productsByCategory[category].map((product, index) => (
                 <div 
                   key={product.id} 
                   className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
@@ -586,7 +621,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     </div>
                   </div>
                 </div>
-              ))}
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
             </div>
           )}
         </div>
