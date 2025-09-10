@@ -118,15 +118,11 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Simple loading state - no delay, show immediately when available
+  // Simple loading state - show page immediately, let sub-loading handle products
   useEffect(() => {
-    if (loading) {
-      setIsPageLoading(true);
-    } else {
-      // No delay - show products immediately when available
+    // Show page immediately - no waiting
         setIsPageLoading(false);
-    }
-  }, [loading]);
+  }, []);
 
   // Debug products state
   useEffect(() => {
