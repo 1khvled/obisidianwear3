@@ -46,8 +46,6 @@ export default function MadeToOrderPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [loadedProducts, setLoadedProducts] = useState<MadeToOrderProduct[]>([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -121,81 +119,14 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Show page immediately, no artificial loading delay
+  // Simple loading state - just like the normal products page
   useEffect(() => {
-    // Show page immediately - no waiting for products
-    setIsPageLoading(false);
-  }, []);
-
-  // Progressive loading logic - show products as they load
-  useEffect(() => {
-    console.log('🔄 Progressive loading useEffect triggered:', {
-      loading,
-      productsLength: madeToOrderProducts.length,
-      loadedProductsLength: loadedProducts.length
-    });
-
-    if (loading && madeToOrderProducts.length === 0) {
-      console.log('⏳ Still loading, no products yet');
+    if (loading) {
       setIsLoadingProducts(true);
-      setLoadedProducts([]);
-    } else if (madeToOrderProducts.length > 0 && loadedProducts.length === 0) {
-      console.log('🚀 Products available, starting progressive loading');
-      // Start progressive loading when products are available and none are loaded yet
-      setIsLoadingProducts(false);
-      loadProductsProgressively();
-    } else if (madeToOrderProducts.length === 0) {
-      console.log('❌ No products available');
-      setIsLoadingProducts(false);
-    }
-  }, [loading, madeToOrderProducts.length, loadedProducts.length]);
-
-  // Handle when products become available after initial load
-  useEffect(() => {
-    if (madeToOrderProducts.length > 0 && loadedProducts.length === 0 && !loading) {
-      console.log('🎯 Products became available after loading, starting progressive loading');
-      loadProductsProgressively();
-    }
-  }, [madeToOrderProducts.length, loadedProducts.length, loading]);
-
-  // Progressive loading function - load products one by one
-  const loadProductsProgressively = async () => {
-    console.log('🚀 Starting progressive loading:', {
-      loadedProducts: loadedProducts.length,
-      totalProducts: madeToOrderProducts.length
-    });
-
-    if (loadedProducts.length >= madeToOrderProducts.length) {
-      console.log('✅ All products already loaded');
-      setIsLoadingMore(false);
-      return;
-    }
-
-    setIsLoadingMore(true);
-    console.log('⏳ Loading more products...');
-    
-    // Load products in batches of 3 with 200ms delay between each
-    const batchSize = 3;
-    const startIndex = loadedProducts.length;
-    const endIndex = Math.min(startIndex + batchSize, madeToOrderProducts.length);
-    
-    console.log(`📦 Loading batch: ${startIndex} to ${endIndex}`);
-    
-    for (let i = startIndex; i < endIndex; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between products
-      console.log(`➕ Adding product ${i + 1}:`, madeToOrderProducts[i].name);
-      setLoadedProducts(prev => [...prev, madeToOrderProducts[i]]);
-    }
-    
-    // If there are more products to load, continue
-    if (endIndex < madeToOrderProducts.length) {
-      console.log('🔄 More products to load, continuing...');
-      setTimeout(() => loadProductsProgressively(), 100); // Small delay before next batch
     } else {
-      console.log('✅ All products loaded!');
-      setIsLoadingMore(false);
+      setIsLoadingProducts(false);
     }
-  };
+  }, [loading]);
 
   // Debug products state
   useEffect(() => {
@@ -561,11 +492,10 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               {/* Products Display */}
               <div className="space-y-12">
                 {(() => {
-                  // Filter products based on selected category (use loadedProducts for progressive loading)
-                  const productsToShow = loadedProducts.length > 0 ? loadedProducts : madeToOrderProducts;
+                  // Filter products based on selected category
                   const filteredProducts = selectedCategory === 'All' 
-                    ? productsToShow 
-                    : productsToShow.filter(p => (p.category || 'Other') === selectedCategory);
+                    ? madeToOrderProducts 
+                    : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
 
                   if (filteredProducts.length === 0) {
                     return (
@@ -614,11 +544,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         {productsByCategory[category].map((product, index) => (
                 <div 
                   key={product.id} 
-                  className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101 animate-fadeInUp"
-                  style={{ 
-                    animationDelay: `${index * 100}ms`,
-                    animation: 'fadeInUp 0.6s ease-out forwards'
-                  }}
+                  className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
                 >
                   <div className="relative overflow-hidden">
                     {(() => {
@@ -758,17 +684,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                 })()}
               </div>
 
-              {/* Progressive Loading Indicator */}
-              {isLoadingMore && (
-                <div className="text-center py-8">
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-full mb-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  </div>
-                  <p className="text-gray-400 text-sm">
-                    Loading more products... ({loadedProducts.length}/{madeToOrderProducts.length})
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>
