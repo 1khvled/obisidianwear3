@@ -369,32 +369,40 @@ Merci de me contacter pour finaliser la commande spéciale!`;
           </h1>
           
           <p className="text-base text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
-            Commandez des vêtements uniques sur mesure selon vos goûts et préférences. Chaque pièce est créée spécialement pour vous avec des matériaux de qualité supérieure et une finition soignée.
+            Découvrez une sélection de vêtements, chaussures et accessoires fabriqués en Chine.
           </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
-                <Clock className="w-4 h-4 text-blue-400" />
+          <p className="text-sm text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Large choix de modèles tendance • Livraison estimée entre 18 et 20 jours • Des produits choisis pour leur style et leur qualité
+          </p>
+          
+          <p className="text-sm text-gray-500 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Apportez une touche unique à votre garde-robe avec nos articles soigneusement sélectionnés.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all duration-300">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg flex items-center justify-center mb-3 group-hover:from-blue-500/30 group-hover:to-cyan-500/30 transition-all duration-300">
+                <Clock className="w-5 h-5 text-blue-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Fast Delivery</h3>
-              <p className="text-gray-400 text-xs">{t('madeToOrder.productionTime')}</p>
+              <h3 className="text-white font-bold mb-2 text-sm">Fast Delivery</h3>
+              <p className="text-gray-400 text-xs leading-relaxed">Livraison estimée entre 18 et 20 jours</p>
             </div>
             
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
-                <CreditCard className="w-4 h-4 text-green-400" />
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all duration-300">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg flex items-center justify-center mb-3 group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
+                <CreditCard className="w-5 h-5 text-green-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Easy Payment</h3>
-              <p className="text-gray-400 text-xs">{t('madeToOrder.depositRequired')}</p>
+              <h3 className="text-white font-bold mb-2 text-sm">Easy Payment</h3>
+              <p className="text-gray-400 text-xs leading-relaxed">50% deposit required</p>
             </div>
             
-            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all duration-300">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-md flex items-center justify-center mb-2 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
-                <MessageCircle className="w-4 h-4 text-purple-400" />
+            <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all duration-300">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg flex items-center justify-center mb-3 group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all duration-300">
+                <MessageCircle className="w-5 h-5 text-purple-400" />
               </div>
-              <h3 className="text-white font-semibold mb-1 text-xs">Direct Contact</h3>
-              <p className="text-gray-400 text-xs">{t('madeToOrder.whatsappOrder')}</p>
+              <h3 className="text-white font-bold mb-2 text-sm">Direct Contact</h3>
+              <p className="text-gray-400 text-xs leading-relaxed">Order via WhatsApp</p>
             </div>
           </div>
           
@@ -689,7 +697,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     </div>
                   </div>
                 </div>
-                        ))}
+              ))}
                       </div>
                     </div>
                   ));
