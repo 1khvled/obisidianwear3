@@ -46,6 +46,8 @@ export default function MadeToOrderPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [loadedProducts, setLoadedProducts] = useState<MadeToOrderProduct[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -498,10 +500,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               {/* Products Display */}
               <div className="space-y-12">
                 {(() => {
-                  // Filter products based on selected category
+                  // Filter products based on selected category (use loadedProducts for progressive loading)
+                  const productsToShow = loadedProducts.length > 0 ? loadedProducts : madeToOrderProducts;
                   const filteredProducts = selectedCategory === 'All' 
-                    ? madeToOrderProducts 
-                    : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
+                    ? productsToShow 
+                    : productsToShow.filter(p => (p.category || 'Other') === selectedCategory);
 
                   if (filteredProducts.length === 0) {
                     return (
@@ -550,8 +553,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                         {productsByCategory[category].map((product, index) => (
                 <div 
                   key={product.id} 
-                  className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101 animate-fadeInUp"
+                  style={{ 
+                    animationDelay: `${index * 100}ms`,
+                    animation: 'fadeInUp 0.6s ease-out forwards'
+                  }}
                 >
                   <div className="relative overflow-hidden">
                     {(() => {
@@ -690,6 +696,18 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   ));
                 })()}
               </div>
+
+              {/* Progressive Loading Indicator */}
+              {isLoadingMore && (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-full mb-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    Loading more products... ({loadedProducts.length}/{madeToOrderProducts.length})
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
