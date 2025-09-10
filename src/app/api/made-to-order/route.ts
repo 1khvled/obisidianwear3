@@ -6,26 +6,26 @@ export async function GET() {
   try {
     console.log('🔧 Fetching made-to-order products...');
     
-    // First try with the full query
+    // Use a single optimized query with minimal fields first
     let { data, error } = await supabase
       .from('made_to_order_products')
-      .select('*')
+      .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order')
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 
-    console.log('🔧 Full query result:', { data, error });
+    console.log('🔧 Optimized query result:', { dataLength: data?.length, error });
 
     // If that fails, try without the is_active filter
     if (error) {
       console.log('🔧 Trying without is_active filter...');
       const result = await supabase
         .from('made_to_order_products')
-        .select('*')
+        .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order')
         .order('display_order', { ascending: true });
       
       data = result.data;
       error = result.error;
-      console.log('🔧 Simple query result:', { data, error });
+      console.log('🔧 Simple query result:', { dataLength: data?.length, error });
     }
 
     // If that still fails, try the most basic query
@@ -33,11 +33,11 @@ export async function GET() {
       console.log('🔧 Trying basic query...');
       const result = await supabase
         .from('made_to_order_products')
-        .select('*');
+        .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order');
       
       data = result.data;
       error = result.error;
-      console.log('🔧 Basic query result:', { data, error });
+      console.log('🔧 Basic query result:', { dataLength: data?.length, error });
     }
 
     if (error) {
@@ -49,8 +49,11 @@ export async function GET() {
       }, { status: 500 });
     }
 
-    console.log('✅ Successfully fetched products:', data?.length || 0);
-    return NextResponse.json(data || []);
+    // Filter out inactive products if is_active filter didn't work
+    const activeProducts = (data || []).filter(product => product.is_active !== false);
+    
+    console.log('✅ Successfully fetched products:', activeProducts.length);
+    return NextResponse.json(activeProducts);
   } catch (error) {
     console.error('❌ Error in made-to-order GET:', error);
     return NextResponse.json({ 

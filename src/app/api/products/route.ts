@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Product } from '@/types';
-import { getProducts, addProduct } from '@/lib/supabaseDatabase';
+import { getProducts, addProduct, deleteProduct } from '@/lib/supabaseDatabase';
 import { ValidationUtils } from '@/lib/validation';
 
 // Ensure we use Node.js runtime for Supabase compatibility
@@ -114,6 +114,48 @@ export async function POST(request: NextRequest) {
     console.error('❌ Products API: Error details:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to create product', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/products - Delete product (PROTECTED)
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log('🔧 Products API: DELETE request received');
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('id');
+    
+    if (!productId) {
+      console.error('❌ Products API: No product ID provided');
+      return NextResponse.json(
+        { success: false, error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🔧 Products API: Deleting product with ID:', productId);
+    
+    const success = await deleteProduct(productId);
+    
+    if (success) {
+      console.log('✅ Products API: Product deleted successfully');
+      return NextResponse.json({
+        success: true,
+        message: 'Product deleted successfully',
+        deletedId: productId
+      });
+    } else {
+      console.error('❌ Products API: Failed to delete product');
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete product' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Products API: DELETE error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete product', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

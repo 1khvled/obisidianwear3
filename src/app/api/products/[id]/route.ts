@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseDatabase';
+import { supabase, deleteProduct } from '@/lib/supabaseDatabase';
 
 export async function GET(
   request: NextRequest,
@@ -138,5 +138,43 @@ export async function PUT(
   } catch (error) {
     console.error('❌ Error in product update API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const productId = params.id;
+
+    if (!productId) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
+    console.log('🔧 Products API: DELETE request for product ID:', productId);
+    
+    const success = await deleteProduct(productId);
+    
+    if (success) {
+      console.log('✅ Products API: Product deleted successfully');
+      return NextResponse.json({
+        success: true,
+        message: 'Product deleted successfully',
+        deletedId: productId
+      });
+    } else {
+      console.error('❌ Products API: Failed to delete product');
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete product' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Products API: DELETE error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete product', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

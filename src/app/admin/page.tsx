@@ -157,8 +157,24 @@ export default function AdminPage() {
             if (typeof window !== 'undefined') {
               const wilayaResponse = await fetch('/api/wilaya');
               const wilayaData = await wilayaResponse.json();
-              if (wilayaData && wilayaData.length > 0) {
-                setWilayaTariffs(wilayaData);
+              console.log('🔧 Admin: Wilaya API response:', wilayaData);
+              
+              if (wilayaData && wilayaData.success && wilayaData.data && wilayaData.data.length > 0) {
+                // Transform the data to match the expected format
+                const transformedTariffs = wilayaData.data.map((tariff: any) => ({
+                  id: tariff.wilaya_id || tariff.id,
+                  name: tariff.name,
+                  tariff: tariff.domicile_ecommerce || tariff.domicileEcommerce || 0, // Use domicile as default tariff
+                  domicile_ecommerce: tariff.domicile_ecommerce || tariff.domicileEcommerce || 0,
+                  stop_desk_ecommerce: tariff.stop_desk_ecommerce || tariff.stopDeskEcommerce || 0,
+                  domicileEcommerce: tariff.domicile_ecommerce || tariff.domicileEcommerce || 0,
+                  stopDeskEcommerce: tariff.stop_desk_ecommerce || tariff.stopDeskEcommerce || 0
+                }));
+                console.log('🔧 Admin: Transformed wilaya tariffs:', transformedTariffs);
+                setWilayaTariffs(transformedTariffs);
+              } else {
+                console.log('⚠️ Admin: No wilaya data or invalid format, using defaults');
+                setWilayaTariffs(sortedWilayas.map(w => ({ ...w, tariff: 0 })));
               }
             } else {
               console.log('Skipping wilaya data load during build time');
@@ -551,18 +567,37 @@ export default function AdminPage() {
   const handleUpdateWilayaTariff = async (wilayaId: string, newTariff: number) => {
     try {
       setLoading(true);
+      console.log('🔧 Admin: Updating wilaya tariff:', { wilayaId, newTariff });
+      
       const response = await fetch('/api/wilaya', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wilayaId, tariff: newTariff })
+        body: JSON.stringify({ 
+          wilayaId, 
+          domicile_ecommerce: newTariff,
+          stop_desk_ecommerce: newTariff * 0.8 // Stop desk is usually cheaper
+        })
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('🔧 Admin: Wilaya update result:', result);
+        
         setWilayaTariffs(prev => 
-          prev.map(w => w.id === parseInt(wilayaId) ? { ...w, tariff: newTariff } : w)
+          prev.map(w => w.id === parseInt(wilayaId) ? { 
+            ...w, 
+            tariff: newTariff,
+            domicile_ecommerce: newTariff,
+            domicileEcommerce: newTariff,
+            stop_desk_ecommerce: newTariff * 0.8,
+            stopDeskEcommerce: newTariff * 0.8
+          } : w)
         );
+        alert('Tariff updated successfully!');
       } else {
-        throw new Error('Failed to update tariff');
+        const errorData = await response.json();
+        console.error('❌ Admin: Wilaya update failed:', errorData);
+        throw new Error(errorData.error || 'Failed to update tariff');
       }
     } catch (error) {
       console.error('Error updating wilaya tariff:', error);

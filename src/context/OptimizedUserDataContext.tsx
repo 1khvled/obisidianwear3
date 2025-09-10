@@ -95,29 +95,27 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
         wilayaTariffs: []
       });
       
-      // STEP 2: Load made-to-order products in background (after 1 second delay)
-      setTimeout(async () => {
-        try {
-          console.log('🎨 Step 2: Loading made-to-order products...');
-          const madeToOrderResponse = await fetch('/api/made-to-order');
-          const madeToOrderData = await madeToOrderResponse.json();
-          const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
-          
-          console.log('✅ Made-to-order products loaded:', madeToOrderProducts.length);
-          
-          // Update UI with made-to-order products
-          setMadeToOrderProducts(madeToOrderProducts);
-          
-          // Update cache
-          userCache.setAllUserData({
-            products,
-            madeToOrderProducts,
-            wilayaTariffs: []
-          });
-        } catch (error) {
-          console.error('❌ Made-to-order loading failed:', error);
-        }
-      }, 50);
+      // STEP 2: Load made-to-order products in background (immediately, no delay)
+      try {
+        console.log('🎨 Step 2: Loading made-to-order products...');
+        const madeToOrderResponse = await fetch('/api/made-to-order');
+        const madeToOrderData = await madeToOrderResponse.json();
+        const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
+        
+        console.log('✅ Made-to-order products loaded:', madeToOrderProducts.length);
+        
+        // Update UI with made-to-order products
+        setMadeToOrderProducts(madeToOrderProducts);
+        
+        // Update cache
+        userCache.setAllUserData({
+          products,
+          madeToOrderProducts,
+          wilayaTariffs: []
+        });
+      } catch (error) {
+        console.error('❌ Made-to-order loading failed:', error);
+      }
       
       // STEP 3: Load wilaya data in background (after 2 seconds delay)
       setTimeout(async () => {
