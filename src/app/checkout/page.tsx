@@ -281,7 +281,7 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Checkout Form - First on mobile, second on desktop */}
-          <div className="space-y-6 lg:order-2">
+          <div className="space-y-6 lg:order-2 order-1">
             <h2 className="text-2xl font-bold text-white">{t('checkout.deliveryInformation')}</h2>
             
             
@@ -462,7 +462,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Order Summary - Second on mobile, first on desktop */}
-          <div className="space-y-6 lg:order-1">
+          <div className="space-y-6 lg:order-1 order-2">
             <h2 className="text-2xl font-bold text-white">{t('checkout.orderSummary')}</h2>
             
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">

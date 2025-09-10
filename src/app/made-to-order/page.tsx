@@ -182,6 +182,12 @@ export default function MadeToOrderPage() {
       return;
     }
 
+    // Additional validation for wilaya selection
+    if (orderForm.wilayaId === 0) {
+      alert('Veuillez sélectionner une wilaya');
+      return;
+    }
+
     try {
       const orderData = {
         productId: selectedProduct.id,
@@ -189,6 +195,7 @@ export default function MadeToOrderPage() {
         customerPhone: orderForm.customerPhone,
         customerEmail: orderForm.customerEmail || '',
         customerAddress: orderForm.customerAddress,
+        customerCity: orderForm.customerAddress.split(',')[0] || orderForm.customerAddress, // Extract city from address
         wilayaId: orderForm.wilayaId,
         wilayaName: orderForm.wilayaName,
         selectedSize: orderForm.selectedSize,
