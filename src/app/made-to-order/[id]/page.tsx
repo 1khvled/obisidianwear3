@@ -469,7 +469,7 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
               </button>
             </div>
             <SizeChart 
-              category={product.category || 'Hoodies'}
+              category={product.sizeChartCategory || product.category || 'hoodies'}
               isOpen={showSizeChart}
               onClose={() => setShowSizeChart(false)}
               customSizeChart={product.customSizeChart}

@@ -280,187 +280,8 @@ export default function CheckoutPage() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Order Summary */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">{t('checkout.orderSummary')}</h2>
-            
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <div className="flex space-x-4">
-                <div className="w-20 h-20 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold text-lg">{product.name}</h3>
-                  <p className="text-gray-400">{product.category}</p>
-                  <div className="mt-2 space-y-1">
-                    {size && <p className="text-gray-400 text-sm">{t('checkout.size')}: {size}</p>}
-                    {color && <p className="text-gray-400 text-sm">{t('checkout.color')}: {color}</p>}
-                    <p className="text-gray-400 text-sm">{t('checkout.quantity')}: {quantity}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-semibold">{product.price} DZD</p>
-                  <p className="text-gray-400 text-sm">x{quantity}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Shipping Options */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <h3 className="text-white font-semibold text-lg mb-2 flex items-center">
-                <Truck size={20} className="mr-2" />
-                {t('checkout.deliveryOptions')} <span className="text-red-400 ml-2">*</span>
-              </h3>
-              <p className="text-gray-400 text-sm mb-4">{t('checkout.selectDeliveryOption')}</p>
-              <div className="space-y-3">
-                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
-                  selectedShipping === 'stopDeskEcommerce' 
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
-                }`}>
-                  <div className="relative">
-                    <input
-                      type="radio"
-                      name="shipping"
-                      value="stopDeskEcommerce"
-                      checked={selectedShipping === 'stopDeskEcommerce'}
-                      onChange={(e) => {
-                        console.log('Radio clicked:', e.target.value);
-                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
-                        setSelectedShipping(newShipping);
-                        // Save shipping method to localStorage
-                        localStorage.setItem('checkoutShippingMethod', newShipping);
-                      }}
-                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                    />
-                    {selectedShipping === 'stopDeskEcommerce' && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-white font-semibold text-lg">{t('checkout.stopDesk')}</p>
-                      {selectedShipping === 'stopDeskEcommerce' && (
-                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('checkout.selected')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm mt-1">{t('checkout.stopDeskDescription')}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-white font-bold text-lg">
-                      {selectedWilaya ? `${selectedWilaya.stopDeskEcommerce} DZD` : '--'}
-                    </span>
-                  </div>
-                </label>
-                
-                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
-                  selectedShipping === 'domicileEcommerce' 
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
-                }`}>
-                  <div className="relative">
-                    <input
-                      type="radio"
-                      name="shipping"
-                      value="domicileEcommerce"
-                      checked={selectedShipping === 'domicileEcommerce'}
-                      onChange={(e) => {
-                        console.log('Radio clicked:', e.target.value);
-                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
-                        setSelectedShipping(newShipping);
-                        // Save shipping method to localStorage
-                        localStorage.setItem('checkoutShippingMethod', newShipping);
-                      }}
-                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                    />
-                    {selectedShipping === 'domicileEcommerce' && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-white font-semibold text-lg">{t('checkout.homeDelivery')}</p>
-                      {selectedShipping === 'domicileEcommerce' && (
-                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('checkout.selected')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm mt-1">{t('checkout.homeDeliveryDescription')}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-white font-bold text-lg">
-                      {selectedWilaya ? `${selectedWilaya.domicileEcommerce} DZD` : '--'}
-                    </span>
-                  </div>
-                </label>
-              </div>
-              
-              {/* No free shipping banner */}
-            </div>
-
-            {/* Payment Method */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
-                <CreditCard size={20} className="mr-2" />
-                Mode de Paiement
-              </h3>
-              <div className="bg-green-900 border border-green-700 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">✓</span>
-                  </div>
-                  <div>
-                    <p className="text-green-300 font-semibold">Paiement à la Livraison (COD)</p>
-                    <p className="text-green-400 text-sm">Payez quand votre commande arrive</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Order Total */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('checkout.subtotal')}</span>
-                  <span className="text-white">{subtotal.toFixed(0)} DA</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('checkout.shipping')}</span>
-                  <span className="text-white">{shippingCost.toFixed(0)} DA</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">
-                    {selectedShipping === 'stopDeskEcommerce' ? t('checkout.stopDesk') : t('checkout.homeDelivery')}
-                  </span>
-                  <span className="text-gray-500">
-                    {selectedWilaya ? selectedWilaya.name : t('checkout.selectWilaya')}
-                  </span>
-                </div>
-                <div className="border-t border-gray-700 pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-white font-semibold text-lg">{t('checkout.total')}</span>
-                    <span className="text-white font-bold text-xl">{total.toFixed(0)} DA</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Checkout Form */}
-          <div className="space-y-6">
+          {/* Checkout Form - First on mobile, second on desktop */}
+          <div className="space-y-6 lg:order-2">
             <h2 className="text-2xl font-bold text-white">{t('checkout.deliveryInformation')}</h2>
             
             
@@ -638,6 +459,185 @@ export default function CheckoutPage() {
               </button>
 
             </form>
+          </div>
+
+          {/* Order Summary - Second on mobile, first on desktop */}
+          <div className="space-y-6 lg:order-1">
+            <h2 className="text-2xl font-bold text-white">{t('checkout.orderSummary')}</h2>
+            
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="flex space-x-4">
+                <div className="w-20 h-20 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-lg">{product.name}</h3>
+                  <p className="text-gray-400">{product.category}</p>
+                  <div className="mt-2 space-y-1">
+                    {size && <p className="text-gray-400 text-sm">{t('checkout.size')}: {size}</p>}
+                    {color && <p className="text-gray-400 text-sm">{t('checkout.color')}: {color}</p>}
+                    <p className="text-gray-400 text-sm">{t('checkout.quantity')}: {quantity}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-white font-semibold">{product.price} DZD</p>
+                  <p className="text-gray-400 text-sm">x{quantity}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Shipping Options */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <h3 className="text-white font-semibold text-lg mb-2 flex items-center">
+                <Truck size={20} className="mr-2" />
+                {t('checkout.deliveryOptions')} <span className="text-red-400 ml-2">*</span>
+              </h3>
+              <p className="text-gray-400 text-sm mb-4">{t('checkout.selectDeliveryOption')}</p>
+              <div className="space-y-3">
+                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
+                  selectedShipping === 'stopDeskEcommerce' 
+                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
+                }`}>
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="stopDeskEcommerce"
+                      checked={selectedShipping === 'stopDeskEcommerce'}
+                      onChange={(e) => {
+                        console.log('Radio clicked:', e.target.value);
+                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
+                        setSelectedShipping(newShipping);
+                        // Save shipping method to localStorage
+                        localStorage.setItem('checkoutShippingMethod', newShipping);
+                      }}
+                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                    />
+                    {selectedShipping === 'stopDeskEcommerce' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-semibold text-lg">{t('checkout.stopDesk')}</p>
+                      {selectedShipping === 'stopDeskEcommerce' && (
+                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {t('checkout.selected')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{t('checkout.stopDeskDescription')}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white font-bold text-lg">
+                      {selectedWilaya ? `${selectedWilaya.stopDeskEcommerce} DZD` : '--'}
+                    </span>
+                  </div>
+                </label>
+                
+                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
+                  selectedShipping === 'domicileEcommerce' 
+                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
+                }`}>
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="domicileEcommerce"
+                      checked={selectedShipping === 'domicileEcommerce'}
+                      onChange={(e) => {
+                        console.log('Radio clicked:', e.target.value);
+                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
+                        setSelectedShipping(newShipping);
+                        // Save shipping method to localStorage
+                        localStorage.setItem('checkoutShippingMethod', newShipping);
+                      }}
+                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                    />
+                    {selectedShipping === 'domicileEcommerce' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-semibold text-lg">{t('checkout.homeDelivery')}</p>
+                      {selectedShipping === 'domicileEcommerce' && (
+                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {t('checkout.selected')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{t('checkout.homeDeliveryDescription')}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white font-bold text-lg">
+                      {selectedWilaya ? `${selectedWilaya.domicileEcommerce} DZD` : '--'}
+                    </span>
+                  </div>
+                </label>
+              </div>
+              
+              {/* No free shipping banner */}
+            </div>
+
+            {/* Payment Method */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
+                <CreditCard size={20} className="mr-2" />
+                Mode de Paiement
+              </h3>
+              <div className="bg-green-900 border border-green-700 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">✓</span>
+                  </div>
+                  <div>
+                    <p className="text-green-300 font-semibold">Paiement à la Livraison (COD)</p>
+                    <p className="text-green-400 text-sm">Payez quand votre commande arrive</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Order Total */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">{t('checkout.subtotal')}</span>
+                  <span className="text-white">{subtotal.toFixed(0)} DA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">{t('checkout.shipping')}</span>
+                  <span className="text-white">{shippingCost.toFixed(0)} DA</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">
+                    {selectedShipping === 'stopDeskEcommerce' ? t('checkout.stopDesk') : t('checkout.homeDelivery')}
+                  </span>
+                  <span className="text-gray-500">
+                    {selectedWilaya ? selectedWilaya.name : t('checkout.selectWilaya')}
+                  </span>
+                </div>
+                <div className="border-t border-gray-700 pt-3">
+                  <div className="flex justify-between">
+                    <span className="text-white font-semibold text-lg">{t('checkout.total')}</span>
+                    <span className="text-white font-bold text-xl">{total.toFixed(0)} DA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

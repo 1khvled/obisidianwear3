@@ -1067,7 +1067,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
       
       {/* Size Chart Modal */}
       <SizeChart 
-        category={selectedProduct?.category || 'T-Shirts'} 
+        category={selectedProduct?.sizeChartCategory || selectedProduct?.category || 't-shirts'} 
         isOpen={showSizeChart} 
         onClose={() => setShowSizeChart(false)}
         customSizeChart={selectedProduct?.customSizeChart}

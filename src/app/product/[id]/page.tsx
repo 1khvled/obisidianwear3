@@ -467,7 +467,7 @@ export default function ProductDetailPage() {
       
       {/* Size Chart Modal */}
       <SizeChart 
-        category={product.sizeChartCategory || product.category} 
+        category={product.sizeChartCategory || product.category || 't-shirts'} 
         isOpen={showSizeChart} 
         onClose={() => setShowSizeChart(false)}
         customSizeChart={product.customSizeChart}

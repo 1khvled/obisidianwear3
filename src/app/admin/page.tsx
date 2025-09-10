@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Product, MadeToOrderProduct, Order, Customer, Wilaya } from '@/types';
 import { backendService } from '@/services/backendService';
-import { supabase } from '@/lib/supabaseDatabase';
+import { supabase, updateProduct } from '@/lib/supabaseDatabase';
 import AdminLogin from '@/components/AdminLogin';
 import EnhancedDashboard from '@/components/EnhancedDashboard';
 import EnhancedProductManager from '@/components/EnhancedProductManager';
@@ -28,6 +28,7 @@ import InventoryManager from '@/components/InventoryManager';
 import EnhancedOrderManager from '@/components/EnhancedOrderManager';
 import MaintenanceManager from '@/components/MaintenanceManager';
 import SizeChartEditor from '@/components/SizeChartEditor';
+import SizeChart from '@/components/SizeChart';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdminProducts } from '@/context/ProductContext';
@@ -94,6 +95,7 @@ export default function AdminPage() {
   });
   const [loading, setLoading] = useState(false);
   const [showSizeChartEditor, setShowSizeChartEditor] = useState(false);
+  const [showSizeChartEditorModal, setShowSizeChartEditorModal] = useState(false);
 
   // Navigation items - simplified
   const navigationItems = [
@@ -1954,96 +1956,86 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Size Chart Editor Modal */}
-      {showSizeChartEditor && (() => {
-        // Convert database field names to camelCase for made-to-order products
-        const existingData = editingProduct?.customSizeChart || 
-                            (editingMadeToOrderProduct?.custom_size_chart ? {
-                              title: editingMadeToOrderProduct.custom_size_chart.title,
-                              measurements: editingMadeToOrderProduct.custom_size_chart.measurements,
-                              instructions: editingMadeToOrderProduct.custom_size_chart.instructions
-                            } : null) || 
-                            newProduct?.customSizeChart;
-        
-        console.log('🔧 Admin: Opening SizeChartEditor with data:', {
-          editingProduct: !!editingProduct,
-          editingMadeToOrderProduct: !!editingMadeToOrderProduct,
-          existingCustomSizeChart: existingData,
-          category: editingProduct ? (editingProduct.sizeChartCategory || editingProduct.category || 'T-Shirts') : 
-                   editingMadeToOrderProduct ? (editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 'T-Shirts') :
-                   (newProduct.sizeChartCategory || newProduct.category || 'T-Shirts'),
-          madeToOrderProductData: editingMadeToOrderProduct ? {
-            custom_size_chart: editingMadeToOrderProduct.custom_size_chart,
-            size_chart_category: editingMadeToOrderProduct.size_chart_category,
-            category: editingMadeToOrderProduct.category
-          } : null
-        });
-        return (
-        <SizeChartEditor
-          category={editingProduct ? (editingProduct.sizeChartCategory || editingProduct.category || 'T-Shirts') : 
-                   editingMadeToOrderProduct ? (editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 'T-Shirts') :
-                   (newProduct.sizeChartCategory || newProduct.category || 'T-Shirts')}
-          productId={editingProduct?.id || editingMadeToOrderProduct?.id}
-          productType={editingMadeToOrderProduct ? 'made-to-order' : 'regular'}
-          existingCustomSizeChart={existingData}
-          onSave={(category, customSizeChart) => {
-            console.log('🔧 Admin: SizeChartEditor onSave called:', {
-              category,
-              customSizeChart,
-              editingProduct: !!editingProduct,
-              editingMadeToOrderProduct: !!editingMadeToOrderProduct,
-              newProduct: !editingProduct && !editingMadeToOrderProduct
-            });
-            
+      {/* Size Chart Modal - Same as product page */}
+      <SizeChart
+        category={editingProduct ? (editingProduct.sizeChartCategory || editingProduct.category || 't-shirts') : 
+                 editingMadeToOrderProduct ? (editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 't-shirts') :
+                 (newProduct.sizeChartCategory || newProduct.category || 't-shirts')}
+        isOpen={showSizeChartEditor}
+        onClose={() => setShowSizeChartEditor(false)}
+        customSizeChart={editingProduct?.customSizeChart || 
+                        (editingMadeToOrderProduct?.custom_size_chart ? {
+                          title: editingMadeToOrderProduct.custom_size_chart.title,
+                          measurements: editingMadeToOrderProduct.custom_size_chart.measurements,
+                          instructions: editingMadeToOrderProduct.custom_size_chart.instructions,
+                          category: editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 't-shirts'
+                        } : null) || 
+                        newProduct?.customSizeChart}
+        useCustomSizeChart={editingProduct?.useCustomSizeChart || editingMadeToOrderProduct?.useCustomSizeChart || newProduct?.useCustomSizeChart}
+        isAdmin={true}
+        onSave={async (customSizeChart) => {
+          try {
             // Update the appropriate product with the new size chart data
             if (editingProduct) {
-              console.log('🔧 Admin: Updating editingProduct with size chart data');
-              // Update the editing product
-              setEditingProduct((prev: Product | null) => {
-                if (!prev) return prev;
-                const updated = {
-                  ...prev,
-                  customSizeChart: customSizeChart,
-                  useCustomSizeChart: true,
-                  sizeChartCategory: category
-                };
-                console.log('🔧 Admin: Updated editingProduct:', updated);
-                return updated;
+              // Save to database
+              const updatedProduct = await updateProduct(editingProduct.id, {
+                customSizeChart: customSizeChart,
+                useCustomSizeChart: true,
+                sizeChartCategory: customSizeChart.category
               });
+              
+              if (updatedProduct) {
+                // Update local state
+                setEditingProduct(updatedProduct);
+                // Refresh products list using the context function
+                refreshProducts();
+                alert('Size chart saved successfully!');
+              } else {
+                alert('Error saving size chart to database');
+              }
             } else if (editingMadeToOrderProduct) {
-              console.log('🔧 Admin: Updating editingMadeToOrderProduct with size chart data');
-              // Update the editing made-to-order product
-              setEditingMadeToOrderProduct((prev: MadeToOrderProduct | null) => {
-                if (!prev) return prev;
-                const updated = {
-                  ...prev,
-                  customSizeChart: customSizeChart,
-                  useCustomSizeChart: true,
-                  sizeChartCategory: category
-                };
-                console.log('🔧 Admin: Updated editingMadeToOrderProduct:', updated);
-                return updated;
-              });
+              // Update made-to-order product in database
+              const { error } = await supabase
+                .from('made_to_order_products')
+                .update({
+                  custom_size_chart: customSizeChart,
+                  use_custom_size_chart: true,
+                  size_chart_category: customSizeChart.category
+                })
+                .eq('id', editingMadeToOrderProduct.id);
+              
+              if (error) {
+                console.error('Error updating made-to-order product:', error);
+                alert('Error saving size chart to database');
+              } else {
+                // Update local state
+                setEditingMadeToOrderProduct((prev: MadeToOrderProduct | null) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    customSizeChart: customSizeChart,
+                    useCustomSizeChart: true,
+                    sizeChartCategory: customSizeChart.category
+                  };
+                });
+                alert('Size chart saved successfully!');
+              }
             } else {
-              console.log('🔧 Admin: Updating newProduct with size chart data');
-              // Update the new product
-              setNewProduct(prev => {
-                const updated = {
-                  ...prev,
-                  customSizeChart: customSizeChart,
-                  useCustomSizeChart: true,
-                  sizeChartCategory: category
-                };
-                console.log('🔧 Admin: Updated newProduct:', updated);
-                return updated;
-              });
+              setNewProduct(prev => ({
+                ...prev,
+                customSizeChart: customSizeChart,
+                useCustomSizeChart: true,
+                sizeChartCategory: customSizeChart.category
+              }));
+              alert('Size chart prepared for new product!');
             }
-            setShowSizeChartEditor(false);
-          }}
-          onClose={() => setShowSizeChartEditor(false)}
-        />
-        );
-      })()}
+          } catch (error) {
+            console.error('Error saving size chart:', error);
+            alert('Error saving size chart: ' + error.message);
+          }
+        }}
+      />
+
     </div>
   );
 }

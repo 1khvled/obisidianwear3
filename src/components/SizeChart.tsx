@@ -2,20 +2,16 @@
 
 import React, { useState } from 'react';
 import { X, Ruler, Shirt, Footprints, Watch } from 'lucide-react';
+import { sizeChartService, SizeChartData } from '@/lib/sizeChartService';
 
 interface SizeChartProps {
   category: string;
   isOpen: boolean;
   onClose: () => void;
-  customSizeChart?: {
-    title: string;
-    measurements: Array<{
-      size: string;
-      [key: string]: string | number;
-    }>;
-    instructions: string;
-  };
+  customSizeChart?: SizeChartData;
   useCustomSizeChart?: boolean;
+  isAdmin?: boolean;
+  onSave?: (customSizeChart: SizeChartData) => void;
 }
 
 interface SizeData {
@@ -79,19 +75,20 @@ const sizeCharts: Record<string, SizeData[]> = {
   ]
 };
 
-const getCategoryIcon = (category: string) => {
+const getMeasurementKeys = (category: string) => {
   switch (category.toLowerCase()) {
     case 't-shirts':
+      return ['chest', 'length', 'shoulder'];
     case 'hoodies':
-      return <Shirt className="w-5 h-5" />;
+      return ['chest', 'length', 'shoulder', 'sleeve'];
     case 'pants':
-      return <Shirt className="w-5 h-5" />;
+      return ['waist', 'length'];
     case 'shoes':
-      return <Footprints className="w-5 h-5" />;
+      return ['footLength', 'footWidth'];
     case 'watches':
-      return <Watch className="w-5 h-5" />;
+      return ['wrist', 'bandWidth'];
     default:
-      return <Ruler className="w-5 h-5" />;
+      return ['chest', 'length', 'shoulder'];
   }
 };
 
@@ -108,31 +105,23 @@ const getMeasurementLabels = (category: string) => {
     case 'watches':
       return ['Wrist (cm)', 'Band Width (cm)'];
     default:
-      return ['Size'];
+      return ['Chest (cm)', 'Length (cm)', 'Shoulder (cm)'];
   }
 };
 
-const getMeasurementKeys = (category: string) => {
-  switch (category.toLowerCase()) {
-    case 't-shirts':
-      return ['chest', 'length', 'shoulder'];
-    case 'hoodies':
-      return ['chest', 'length', 'shoulder', 'sleeve'];
-    case 'pants':
-      return ['waist', 'length'];
-    case 'shoes':
-      return ['footLength', 'footWidth'];
-    case 'watches':
-      return ['wrist', 'bandWidth'];
-    default:
-      return ['size'];
-  }
-};
-
-export default function SizeChart({ category, isOpen, onClose, customSizeChart, useCustomSizeChart }: SizeChartProps) {
+export default function SizeChart({ 
+  category, 
+  isOpen, 
+  onClose, 
+  customSizeChart, 
+  useCustomSizeChart,
+  isAdmin = false,
+  onSave
+}: SizeChartProps) {
   const [selectedCategory, setSelectedCategory] = useState(category);
-  
-  if (!isOpen) return null;
+  const [editingData, setEditingData] = useState<SizeMeasurement[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Use custom size chart if available and enabled
   const isUsingCustom = useCustomSizeChart && customSizeChart && customSizeChart.measurements && customSizeChart.measurements.length > 0;
@@ -148,6 +137,46 @@ export default function SizeChart({ category, isOpen, onClose, customSizeChart, 
   const measurementKeys = isUsingCustom
     ? Object.keys(customSizeChart.measurements[0] || {}).filter(key => key !== 'size')
     : getMeasurementKeys(selectedCategory);
+
+  // Initialize editing data
+  React.useEffect(() => {
+    if (isAdmin && chartData.length > 0) {
+      setEditingData([...chartData]);
+    }
+  }, [isAdmin, chartData]);
+
+  if (!isOpen) return null;
+
+  const handleSizeChange = (index: number, field: string, value: string | number) => {
+    if (!isAdmin) return;
+    const newData = [...editingData];
+    newData[index] = {
+      ...newData[index],
+      [field]: field === 'size' ? value : parseFloat(value as string) || 0
+    };
+    setEditingData(newData);
+  };
+
+  const handleSave = async () => {
+    if (!isAdmin || !onSave) return;
+    setSaving(true);
+    try {
+      const newCustomSizeChart: SizeChartData = {
+        title: customSizeChart?.title || `${selectedCategory} Size Chart`,
+        instructions: customSizeChart?.instructions || `Instructions for measuring ${selectedCategory.toLowerCase()}`,
+        measurements: editingData,
+        category: selectedCategory
+      };
+      await onSave(newCustomSizeChart);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving size chart:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayData = isEditing ? editingData : chartData;
 
   // Safety check for custom size chart data
   if (isUsingCustom && (!customSizeChart.measurements || customSizeChart.measurements.length === 0)) {
@@ -172,65 +201,88 @@ export default function SizeChart({ category, isOpen, onClose, customSizeChart, 
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="bg-black text-white p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getCategoryIcon(selectedCategory)}
-            <h2 className="text-2xl font-black">
-              {isUsingCustom ? customSizeChart.title : 'Size Chart'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-300 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Category Selector - Only show if not using custom chart */}
-        {!isUsingCustom && (
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(sizeCharts).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedCategory === cat
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Ruler className="w-6 h-6 text-gray-700 mr-3" />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Size Guide</h2>
+                <p className="text-gray-600 text-sm">
+                  {isUsingCustom ? 'Custom size chart for this product' : 'Standard size chart'}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
+            >
+              ×
+            </button>
           </div>
-        )}
 
-        {/* Size Chart Table */}
-        <div className="p-6 overflow-x-auto">
-          <div className="bg-gray-50 rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Size</th>
+          {/* Instructions */}
+          {customSizeChart?.instructions && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 text-sm">{customSizeChart.instructions}</p>
+            </div>
+          )}
+
+          {/* Size Chart Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-900 bg-gray-50">
+                    Size
+                  </th>
                   {measurementLabels.map((label, index) => (
-                    <th key={index} className="px-4 py-3 text-center font-semibold text-gray-700">
+                    <th 
+                      key={index} 
+                      className="text-center py-3 px-4 font-semibold text-gray-900 bg-gray-50"
+                    >
                       {label}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {chartData.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{row.size}</td>
-                    {measurementKeys.map((key, keyIndex) => (
-                      <td key={keyIndex} className="px-4 py-3 text-center text-gray-700">
-                        {row[key as keyof SizeData] || '-'}
+                {displayData.map((size, index) => (
+                  <tr 
+                    key={index} 
+                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-25'
+                    }`}
+                  >
+                    <td className="py-3 px-4 font-semibold text-gray-900">
+                      {isAdmin && isEditing ? (
+                        <input
+                          type="text"
+                          value={size.size}
+                          onChange={(e) => handleSizeChange(index, 'size', e.target.value)}
+                          className="w-full px-2 py-1 bg-transparent border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-black"
+                        />
+                      ) : (
+                        size.size
+                      )}
+                    </td>
+                    {measurementKeys.map((key) => (
+                      <td 
+                        key={key} 
+                        className="text-center py-3 px-4 text-gray-700"
+                      >
+                        {isAdmin && isEditing ? (
+                          <input
+                            type="number"
+                            value={size[key] || ''}
+                            onChange={(e) => handleSizeChange(index, key, e.target.value)}
+                            className="w-full px-2 py-1 bg-transparent border border-gray-300 rounded text-gray-700 text-sm focus:outline-none focus:border-black text-center"
+                            step="0.1"
+                          />
+                        ) : (
+                          size[key] || '--'
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -238,30 +290,49 @@ export default function SizeChart({ category, isOpen, onClose, customSizeChart, 
               </tbody>
             </table>
           </div>
-        </div>
 
-        {/* Instructions */}
-        <div className="p-6 bg-gray-50 border-t border-gray-200">
-          <div className="flex items-start gap-3">
-            <Ruler className="w-5 h-5 text-gray-600 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">How to Measure</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
+          {/* Footer */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <p className="text-gray-600 text-sm">
                 {isUsingCustom 
-                  ? customSizeChart.instructions
-                  : (selectedCategory.toLowerCase() === 't-shirts' && 
-                      "Chest: Measure around the fullest part of your chest. Length: Measure from shoulder to hem. Shoulder: Measure from shoulder seam to shoulder seam.")
-                  || (selectedCategory.toLowerCase() === 'hoodies' && 
-                      "Chest: Measure around the fullest part of your chest. Length: Measure from shoulder to hem. Shoulder: Measure from shoulder seam to shoulder seam. Sleeve: Measure from shoulder to cuff.")
-                  || (selectedCategory.toLowerCase() === 'pants' && 
-                      "Waist: Measure around your natural waistline. Length: Measure from waist to ankle.")
-                  || (selectedCategory.toLowerCase() === 'shoes' && 
-                      "Foot Length: Measure from heel to longest toe. Foot Width: Measure across the widest part of your foot.")
-                  || (selectedCategory.toLowerCase() === 'watches' && 
-                      "Wrist: Measure around your wrist. Band Width: Measure the width of the watch band.")
-                  || "Please refer to the measurements above to find your perfect size. If you're between sizes, we recommend sizing up."
+                  ? 'This product has a custom size chart tailored specifically for it.'
+                  : 'This is the standard size chart for this product category.'
                 }
               </p>
+              <div className="flex space-x-3">
+                {isAdmin && !isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Edit Chart
+                  </button>
+                )}
+                {isAdmin && isEditing && (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
