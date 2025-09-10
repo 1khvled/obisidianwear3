@@ -140,22 +140,39 @@ class BackendService {
 
   async deleteProduct(id: string): Promise<boolean> {
     try {
+      console.log('🔧 BackendService: Deleting product:', id);
+      console.log('🔧 BackendService: API URL:', this.getApiUrl(`/products/${id}`));
+      console.log('🔧 BackendService: Auth headers:', this.getAuthHeaders());
+      
       const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'DELETE',
-        headers: this.getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
+      console.log('🔧 BackendService: Response status:', response.status);
+      console.log('🔧 BackendService: Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        console.error('❌ BackendService: HTTP error! status:', response.status);
+        const errorText = await response.text();
+        console.error('❌ BackendService: Error response body:', errorText);
+        return false;
+      }
+      
       const result = await response.json();
+      console.log('🔧 BackendService: Response JSON:', result);
       
       if (result.success) {
-        console.log('BackendService: Deleted product:', id);
+        console.log('✅ BackendService: Deleted product:', id);
         return true;
       } else {
-        console.error('BackendService: Failed to delete product:', result.error);
+        console.error('❌ BackendService: Failed to delete product:', result.error);
         return false;
       }
     } catch (error) {
-      console.error('BackendService: Error deleting product:', error);
+      console.error('❌ BackendService: Error deleting product:', error);
       return false;
     }
   }
