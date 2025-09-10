@@ -42,7 +42,7 @@ export default function MadeToOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  // Removed isPageLoading - using loading from context directly
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [orderForm, setOrderForm] = useState({
@@ -118,11 +118,13 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Simple loading state - show page immediately, let sub-loading handle products
+  // Debug loading states
   useEffect(() => {
-    // Show page immediately - no waiting
-        setIsPageLoading(false);
-  }, []);
+    console.log('🔍 Loading states:', { 
+      loading, 
+      productsLength: madeToOrderProducts.length 
+    });
+  }, [loading, madeToOrderProducts.length]);
 
   // Debug products state
   useEffect(() => {
@@ -280,50 +282,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
     window.open(url, '_blank');
   };
 
-  if (isPageLoading) {
-    return (
-      <div className="min-h-screen bg-black">
-        <Header />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center max-w-md mx-auto px-4">
-            {/* Animated Logo */}
-            <div className="mb-8">
-              <div className="w-20 h-20 mx-auto mb-4 relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-white to-gray-300 rounded-full animate-pulse"></div>
-                <div className="absolute inset-2 bg-black rounded-full flex items-center justify-center">
-                  <Package className="w-8 h-8 text-white animate-bounce" />
-                </div>
-              </div>
-            </div>
-            
-            {/* Loading Text */}
-            <h2 className="text-2xl font-bold text-white mb-2">Loading Made-to-Order</h2>
-            <p className="text-gray-400 mb-6">Preparing your custom collection...</p>
-            
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
-              <div 
-                className="bg-gradient-to-r from-white to-gray-300 h-2 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${loadingProgress}%` }}
-              ></div>
-            </div>
-            
-            {/* Progress Percentage */}
-            <div className="text-white text-sm font-medium">
-              {Math.round(loadingProgress)}%
-            </div>
-            
-            {/* Loading Dots */}
-            <div className="flex justify-center mt-6 space-x-2">
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Removed isPageLoading check - page loads immediately
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -422,13 +381,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {isPageLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <h3 className="text-xl font-bold text-white mb-2">Loading Products...</h3>
-              <p className="text-gray-400">Please wait while we fetch our collection</p>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-3">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
