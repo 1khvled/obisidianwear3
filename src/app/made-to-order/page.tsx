@@ -45,6 +45,7 @@ export default function MadeToOrderPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -123,6 +124,30 @@ export default function MadeToOrderPage() {
     // Show page immediately - no waiting for products
     setIsPageLoading(false);
   }, []);
+
+  // Track when made-to-order products are actually loaded
+  useEffect(() => {
+    if (madeToOrderProducts.length > 0) {
+      console.log('✅ Made-to-order products loaded, stopping loading state');
+      setIsLoadingProducts(false);
+    } else if (!loading) {
+      // If context is not loading but we have no products, they might have failed to load
+      console.log('⚠️ Context finished loading but no made-to-order products found');
+      setIsLoadingProducts(false);
+    }
+  }, [madeToOrderProducts.length, loading]);
+
+  // Timeout fallback - stop loading after 10 seconds
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoadingProducts) {
+        console.log('⏰ Loading timeout reached, stopping loading state');
+        setIsLoadingProducts(false);
+      }
+    }, 10000); // 10 seconds timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoadingProducts]);
 
   // Debug products state
   useEffect(() => {
@@ -422,8 +447,20 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {loading && madeToOrderProducts.length === 0 ? (
+          {isLoadingProducts ? (
             <div className="space-y-8">
+              {/* Loading indicator */}
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-full mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Loading Products...</h3>
+                <p className="text-gray-400 text-sm">Fetching our latest collection</p>
+                <div className="mt-4 text-xs text-gray-500">
+                  Debug: loading={loading.toString()}, products={madeToOrderProducts.length}
+                </div>
+              </div>
+              
               {/* Skeleton loading for category filters */}
               <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
                 <div className="h-8 w-16 bg-white/10 rounded-full animate-pulse"></div>
