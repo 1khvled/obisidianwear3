@@ -118,15 +118,13 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Simple loading state with reduced delay
+  // Simple loading state - no delay, show immediately when available
   useEffect(() => {
     if (loading) {
       setIsPageLoading(true);
     } else if (madeToOrderProducts.length > 0) {
-      // Reduced delay - just 500ms instead of longer delays
-      setTimeout(() => {
-        setIsPageLoading(false);
-      }, 500);
+      // No delay - show products immediately when available
+      setIsPageLoading(false);
     } else {
       setIsPageLoading(false);
     }
