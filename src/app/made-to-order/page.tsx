@@ -45,7 +45,6 @@ export default function MadeToOrderPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -120,13 +119,7 @@ export default function MadeToOrderPage() {
   }, []);
 
   // Simple loading state - just like the normal products page
-  useEffect(() => {
-    if (loading) {
-      setIsLoadingProducts(true);
-    } else {
-      setIsLoadingProducts(false);
-    }
-  }, [loading]);
+  const isLoading = loading || !Array.isArray(madeToOrderProducts) || madeToOrderProducts.length === 0;
 
   // Debug products state
   useEffect(() => {
@@ -426,7 +419,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {isLoadingProducts ? (
+          {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
               <h3 className="text-xl font-bold text-white mb-2">Loading Products...</h3>
