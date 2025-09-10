@@ -7,13 +7,15 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/data/products';
 import { Product } from '@/types';
-import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag, Package } from 'lucide-react';
+import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag, Package, Search, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { MobileProductGridSkeleton, FeatureGridSkeleton, DataLoadingAnimation, CacheLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
 import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showSearch, setShowSearch] = useState<boolean>(false);
   const { products, madeToOrderProducts, loading } = useOptimizedUserData();
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const { t } = useLanguage();
@@ -23,15 +25,26 @@ export default function Home() {
     
     // Ensure products is an array before filtering
     if (Array.isArray(products)) {
-      if (selectedCategory === 'All') {
-        setFilteredProducts(products);
-      } else {
-        setFilteredProducts(products.filter(product => product.category === selectedCategory));
+      let filtered = products;
+      
+      // Apply category filter
+      if (selectedCategory !== 'All') {
+        filtered = filtered.filter(product => product.category === selectedCategory);
       }
       
-      // Products are loaded and filtered
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(product => 
+          product.name.toLowerCase().includes(query) ||
+          product.description.toLowerCase().includes(query) ||
+          product.category.toLowerCase().includes(query)
+        );
+      }
+      
+      setFilteredProducts(filtered);
     }
-  }, [products, selectedCategory]);
+  }, [products, selectedCategory, searchQuery]);
 
   // Show loading state only if still loading or no products are available yet
   if (loading || !Array.isArray(products) || products.length === 0) {
@@ -167,6 +180,54 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 px-4">
+            {/* Search Button */}
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 border border-white/20"
+            >
+              <Search className="w-4 h-4" />
+              {showSearch ? 'Hide Search' : 'Search Products'}
+            </button>
+            
+            {/* Search Input */}
+            {showSearch && (
+              <div className="flex items-center gap-2 w-full max-w-md">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                  />
+                </div>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="text-center py-4 mb-4">
+              <p className="text-gray-400">
+                {filteredProducts.length > 0 
+                  ? `Found ${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'} for "${searchQuery}"`
+                  : `No products found for "${searchQuery}"`
+                }
+              </p>
+            </div>
+          )}
+
           {/* Category Filter */}
           <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
             {categories.map((category, index) => (
@@ -206,8 +267,15 @@ export default function Home() {
               <div className="w-16 h-16 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag size={24} className="text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">{t('products.empty')}</h3>
-              <p className="text-gray-400 text-sm">{t('products.empty.desc')}</p>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {searchQuery ? 'No products found' : t('products.empty')}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {searchQuery 
+                  ? `No products match your search "${searchQuery}"`
+                  : t('products.empty.desc')
+                }
+              </p>
             </div>
           )}
         </div>

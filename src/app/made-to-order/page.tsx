@@ -26,7 +26,8 @@ import {
   X,
   AlertCircle,
   ArrowLeft,
-  Home
+  Home,
+  Search
 } from 'lucide-react';
 import { MadeToOrderProduct } from '@/types';
 import SizeChart from '@/components/SizeChart';
@@ -45,6 +46,8 @@ export default function MadeToOrderPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [showSubLoading, setShowSubLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showSearch, setShowSearch] = useState<boolean>(false);
   
   // Lazy loading states
   const [visibleProducts, setVisibleProducts] = useState<MadeToOrderProduct[]>([]);
@@ -125,12 +128,24 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Get filtered products based on selected category
+  // Get filtered products based on selected category and search query
   const filteredProducts = useMemo(() => {
-    return selectedCategory === 'All' 
+    let filtered = selectedCategory === 'All' 
       ? madeToOrderProducts 
       : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
-  }, [selectedCategory, madeToOrderProducts]);
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query) ||
+        (p.category || '').toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, madeToOrderProducts, searchQuery]);
 
   // Lazy loading function
   const loadNextBatch = useCallback(() => {
@@ -158,13 +173,13 @@ export default function MadeToOrderPage() {
     }, 200); // 200ms delay for smooth loading
   }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts, visibleProducts.length]);
 
-  // Reset lazy loading when category changes
+  // Reset lazy loading when category or search changes
   useEffect(() => {
     setVisibleProducts([]);
     setCurrentBatch(0);
     setHasMoreProducts(true);
     setIsLoadingMore(false);
-  }, [selectedCategory]);
+  }, [selectedCategory, searchQuery]);
 
   // Update lazy loading when filtered products change
   useEffect(() => {
@@ -480,6 +495,42 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </div>
           ) : (
             <div className="space-y-8">
+              {/* Search and Filter Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 px-4">
+                {/* Search Button */}
+                <button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 border border-white/20"
+                >
+                  <Search className="w-4 h-4" />
+                  {showSearch ? 'Hide Search' : 'Search Products'}
+                </button>
+                
+                {/* Search Input */}
+                {showSearch && (
+                  <div className="flex items-center gap-2 w-full max-w-md">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                      />
+                    </div>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="p-2 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Category Filter Buttons */}
               <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
                 <div className="flex flex-wrap justify-center gap-2 max-w-full overflow-x-auto pb-2">
@@ -528,6 +579,18 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                 </div>
               </div>
 
+              {/* Search Results Info */}
+              {searchQuery && (
+                <div className="text-center py-4">
+                  <p className="text-gray-400">
+                    {filteredProducts.length > 0 
+                      ? `Found ${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'} for "${searchQuery}"`
+                      : `No products found for "${searchQuery}"`
+                    }
+                  </p>
+                </div>
+              )}
+
               {/* Products Display */}
               <div className="space-y-12">
                 {(() => {
@@ -538,8 +601,15 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     return (
                       <div className="text-center py-12">
                         <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-white mb-2">Aucun produit trouvé</h3>
-                        <p className="text-gray-400">Aucun produit dans cette catégorie pour le moment.</p>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                          {searchQuery ? 'No products found' : 'Aucun produit trouvé'}
+                        </h3>
+                        <p className="text-gray-400">
+                          {searchQuery 
+                            ? `No products match your search "${searchQuery}"`
+                            : 'Aucun produit dans cette catégorie pour le moment.'
+                          }
+                        </p>
                       </div>
                     );
                   }
