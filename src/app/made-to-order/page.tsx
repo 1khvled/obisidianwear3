@@ -118,8 +118,19 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Simple loading state - just like the normal products page
-  const isLoading = loading || !Array.isArray(madeToOrderProducts) || madeToOrderProducts.length === 0;
+  // Simple loading state with reduced delay
+  useEffect(() => {
+    if (loading) {
+      setIsPageLoading(true);
+    } else if (madeToOrderProducts.length > 0) {
+      // Reduced delay - just 500ms instead of longer delays
+      setTimeout(() => {
+        setIsPageLoading(false);
+      }, 500);
+    } else {
+      setIsPageLoading(false);
+    }
+  }, [loading, madeToOrderProducts.length]);
 
   // Debug products state
   useEffect(() => {
@@ -419,7 +430,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {isLoading ? (
+          {isPageLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
               <h3 className="text-xl font-bold text-white mb-2">Loading Products...</h3>
