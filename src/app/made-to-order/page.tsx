@@ -42,7 +42,8 @@ export default function MadeToOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
-  // Removed isPageLoading - using loading from context directly
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [showSubLoading, setShowSubLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [orderForm, setOrderForm] = useState({
@@ -118,13 +119,31 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Debug loading states
+  // Manage loading states
   useEffect(() => {
     console.log('🔍 Loading states:', { 
       loading, 
-      productsLength: madeToOrderProducts.length 
+      productsLength: madeToOrderProducts.length,
+      isPageLoading,
+      showSubLoading
     });
-  }, [loading, madeToOrderProducts.length]);
+    
+    // If context is loading, show main loading
+    if (loading) {
+      setIsPageLoading(true);
+      setShowSubLoading(false);
+    }
+    // If context finished loading and we have products, hide main loading
+    else if (!loading && madeToOrderProducts.length > 0) {
+      setIsPageLoading(false);
+      setShowSubLoading(false);
+    }
+    // If context finished loading but no products yet, show sub-loading
+    else if (!loading && madeToOrderProducts.length === 0) {
+      setIsPageLoading(false);
+      setShowSubLoading(true);
+    }
+  }, [loading, madeToOrderProducts.length, isPageLoading, showSubLoading]);
 
   // Debug products state
   useEffect(() => {
@@ -381,13 +400,20 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {loading ? (
+          {isPageLoading ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-3">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               </div>
               <h3 className="text-lg font-bold text-white mb-2">Loading Products...</h3>
               <p className="text-gray-400 text-sm">Please wait while we load our collection</p>
+            </div>
+          ) : showSubLoading ? (
+            <div className="text-center py-4">
+              <div className="inline-flex items-center justify-center w-6 h-6 bg-white/10 rounded-full mb-2">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              </div>
+              <p className="text-sm text-gray-400">Loading products...</p>
             </div>
           ) : madeToOrderProducts.length === 0 ? (
             <div className="text-center py-8">
