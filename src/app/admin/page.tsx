@@ -16,7 +16,9 @@ import {
   Clock,
   CheckCircle,
   Loader2,
-  Ruler
+  Ruler,
+  Home,
+  LogOut
 } from 'lucide-react';
 import { Product, MadeToOrderProduct, Order, Customer, Wilaya } from '@/types';
 import { backendService } from '@/services/backendService';
@@ -1582,6 +1584,24 @@ export default function AdminPage() {
           <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">OBSIDIAN</h1>
             <p className="text-gray-400 text-sm">Admin Dashboard</p>
+            
+            {/* Exit and Logout Buttons */}
+            <div className="mt-4 space-y-2">
+              <button
+                onClick={() => window.location.href = '/'}
+                className="w-full flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
+              >
+                <Home className="w-4 h-4" />
+                <span>Exit to Store</span>
+              </button>
+              <button
+                onClick={logout}
+                className="w-full flex items-center justify-center space-x-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
         </div>
 
           <nav className="space-y-2">
