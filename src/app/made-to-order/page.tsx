@@ -1067,10 +1067,13 @@ Merci de me contacter pour finaliser la commande spéciale!`;
       
       {/* Size Chart Modal */}
       <SizeChart 
-        category={selectedProduct?.sizeChartCategory || selectedProduct?.category || 't-shirts'} 
+        category={selectedProduct?.sizeChartCategory || selectedProduct?.size_chart_category || selectedProduct?.category || 't-shirts'} 
         isOpen={showSizeChart} 
         onClose={() => setShowSizeChart(false)}
-        customSizeChart={selectedProduct?.customSizeChart}
+        customSizeChart={selectedProduct?.customSizeChart ? {
+          ...selectedProduct.customSizeChart,
+          category: selectedProduct.sizeChartCategory || selectedProduct.size_chart_category || selectedProduct.category || 't-shirts'
+        } : undefined}
         useCustomSizeChart={selectedProduct?.useCustomSizeChart}
       />
     </div>

@@ -469,10 +469,13 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
               </button>
             </div>
             <SizeChart 
-              category={product.sizeChartCategory || product.category || 'hoodies'}
+              category={product.sizeChartCategory || product.size_chart_category || product.category || 'hoodies'}
               isOpen={showSizeChart}
               onClose={() => setShowSizeChart(false)}
-              customSizeChart={product.customSizeChart}
+              customSizeChart={product.customSizeChart ? {
+                ...product.customSizeChart,
+                category: product.sizeChartCategory || product.size_chart_category || product.category || 'hoodies'
+              } : undefined}
               useCustomSizeChart={product.useCustomSizeChart}
             />
           </div>

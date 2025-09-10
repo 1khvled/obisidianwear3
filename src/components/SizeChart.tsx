@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Ruler, Shirt, Footprints, Watch } from 'lucide-react';
-import { sizeChartService, SizeChartData } from '@/lib/sizeChartService';
+import { sizeChartService, SizeChartData, SizeMeasurement } from '@/lib/sizeChartService';
 
 interface SizeChartProps {
   category: string;
@@ -119,7 +119,7 @@ export default function SizeChart({
   onSave
 }: SizeChartProps) {
   const [selectedCategory, setSelectedCategory] = useState(category);
-  const [editingData, setEditingData] = useState<SizeMeasurement[]>([]);
+  const [editingData, setEditingData] = useState<SizeData[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -164,7 +164,7 @@ export default function SizeChart({
       const newCustomSizeChart: SizeChartData = {
         title: customSizeChart?.title || `${selectedCategory} Size Chart`,
         instructions: customSizeChart?.instructions || `Instructions for measuring ${selectedCategory.toLowerCase()}`,
-        measurements: editingData,
+        measurements: editingData as SizeMeasurement[],
         category: selectedCategory
       };
       await onSave(newCustomSizeChart);
@@ -176,7 +176,7 @@ export default function SizeChart({
     }
   };
 
-  const displayData = isEditing ? editingData : chartData;
+  const displayData = isEditing ? editingData : (chartData as SizeData[]);
 
   // Safety check for custom size chart data
   if (isUsingCustom && (!customSizeChart.measurements || customSizeChart.measurements.length === 0)) {
@@ -275,13 +275,13 @@ export default function SizeChart({
                         {isAdmin && isEditing ? (
                           <input
                             type="number"
-                            value={size[key] || ''}
+                            value={(size as any)[key] || ''}
                             onChange={(e) => handleSizeChange(index, key, e.target.value)}
                             className="w-full px-2 py-1 bg-transparent border border-gray-300 rounded text-gray-700 text-sm focus:outline-none focus:border-black text-center"
                             step="0.1"
                           />
                         ) : (
-                          size[key] || '--'
+                          (size as any)[key] || '--'
                         )}
                       </td>
                     ))}

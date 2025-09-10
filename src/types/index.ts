@@ -186,7 +186,11 @@ export interface MadeToOrderProduct {
   isActive: boolean;
   displayOrder: number;
   customSizeChart?: CustomSizeChart;
+  custom_size_chart?: CustomSizeChart;
   useCustomSizeChart?: boolean;
+  use_custom_size_chart?: boolean;
+  sizeChartCategory?: string;
+  size_chart_category?: string;
   createdAt: Date;
   updatedAt: Date;
 }

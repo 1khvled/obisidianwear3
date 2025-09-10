@@ -470,7 +470,10 @@ export default function ProductDetailPage() {
         category={product.sizeChartCategory || product.category || 't-shirts'} 
         isOpen={showSizeChart} 
         onClose={() => setShowSizeChart(false)}
-        customSizeChart={product.customSizeChart}
+        customSizeChart={product.customSizeChart ? {
+          ...product.customSizeChart,
+          category: product.sizeChartCategory || product.category || 't-shirts'
+        } : undefined}
         useCustomSizeChart={product.useCustomSizeChart}
       />
     </div>

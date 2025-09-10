@@ -1963,14 +1963,20 @@ export default function AdminPage() {
                  (newProduct.sizeChartCategory || newProduct.category || 't-shirts')}
         isOpen={showSizeChartEditor}
         onClose={() => setShowSizeChartEditor(false)}
-        customSizeChart={editingProduct?.customSizeChart || 
+        customSizeChart={editingProduct?.customSizeChart ? {
+                          ...editingProduct.customSizeChart,
+                          category: editingProduct.sizeChartCategory || editingProduct.category || 't-shirts'
+                        } : 
                         (editingMadeToOrderProduct?.custom_size_chart ? {
                           title: editingMadeToOrderProduct.custom_size_chart.title,
                           measurements: editingMadeToOrderProduct.custom_size_chart.measurements,
                           instructions: editingMadeToOrderProduct.custom_size_chart.instructions,
                           category: editingMadeToOrderProduct.size_chart_category || editingMadeToOrderProduct.category || 't-shirts'
-                        } : null) || 
-                        newProduct?.customSizeChart}
+                        } : undefined) || 
+                        (newProduct?.customSizeChart ? {
+                          ...newProduct.customSizeChart,
+                          category: newProduct.sizeChartCategory || newProduct.category || 't-shirts'
+                        } : undefined)}
         useCustomSizeChart={editingProduct?.useCustomSizeChart || editingMadeToOrderProduct?.useCustomSizeChart || newProduct?.useCustomSizeChart}
         isAdmin={true}
         onSave={async (customSizeChart) => {
@@ -2031,7 +2037,7 @@ export default function AdminPage() {
             }
           } catch (error) {
             console.error('Error saving size chart:', error);
-            alert('Error saving size chart: ' + error.message);
+            alert('Error saving size chart: ' + (error instanceof Error ? error.message : String(error)));
           }
         }}
       />
