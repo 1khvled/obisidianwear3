@@ -1,7 +1,7 @@
 'use client';
 
 import { Product } from '@/types';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Package } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
@@ -40,13 +40,55 @@ export default function ProductCard({ product }: ProductCardProps) {
     <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-102">
       <div className="relative overflow-hidden">
         <Link href={`/product/${product.id}`} className="block">
-          <Image
-            src={product.image}
-            alt={product.name}
-            width={400}
-            height={500}
-            className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-          />
+          {(() => {
+            console.log('🖼️ ProductCard: Rendering image for product:', {
+              id: product.id,
+              name: product.name,
+              image: product.image,
+              imageType: typeof product.image,
+              hasImage: !!product.image,
+              imageLength: product.image?.length
+            });
+            
+            // Handle different image types
+            if (!product.image) {
+              return (
+                <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                  <div className="text-center">
+                    <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
+                    <p className="text-gray-500 text-xs">No Image Available</p>
+                    <p className="text-gray-600 text-xs">{product.name}</p>
+                  </div>
+                </div>
+              );
+            }
+            
+            // If it's a data URL (base64), use regular img tag
+            if (product.image.startsWith('data:')) {
+              return (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                  onLoad={() => console.log('✅ Data URL image loaded for:', product.name)}
+                  onError={(e) => console.error('❌ Data URL image failed for:', product.name, e)}
+                />
+              );
+            }
+            
+            // If it's a URL, use Next.js Image
+            return (
+              <Image
+                src={product.image}
+                alt={product.name}
+                width={400}
+                height={500}
+                className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
+                onLoad={() => console.log('✅ Next.js Image loaded for:', product.name)}
+                onError={(e) => console.error('❌ Next.js Image failed for:', product.name, e)}
+              />
+            );
+          })()}
         </Link>
         
         {/* Discount Badge */}

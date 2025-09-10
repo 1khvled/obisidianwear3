@@ -10,7 +10,7 @@ import { useProducts } from '@/context/SmartProductProvider';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import { recentlyViewedService } from '@/lib/recentlyViewed';
-import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler } from 'lucide-react';
+import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Package } from 'lucide-react';
 import SizeChart from '@/components/SizeChart';
 
 export default function ProductDetailPage() {
@@ -154,14 +154,56 @@ export default function ProductDetailPage() {
           {/* Product Images */}
           <div className="space-y-4 sm:space-y-6">
             <div className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden">
-              <Image
-                src={product.image}
-                alt={product.name}
-                width={600}
-                height={600}
-                className="w-full h-full object-cover"
-                priority
-              />
+              {(() => {
+                console.log('🖼️ ProductDetail: Rendering main image for product:', {
+                  id: product.id,
+                  name: product.name,
+                  image: product.image,
+                  imageType: typeof product.image,
+                  hasImage: !!product.image,
+                  imageLength: product.image?.length
+                });
+                
+                // Handle different image types
+                if (!product.image) {
+                  return (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                      <div className="text-center">
+                        <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm">No Image Available</p>
+                        <p className="text-gray-600 text-xs">{product.name}</p>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // If it's a data URL (base64), use regular img tag
+                if (product.image.startsWith('data:')) {
+                  return (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => console.log('✅ Data URL main image loaded for:', product.name)}
+                      onError={(e) => console.error('❌ Data URL main image failed for:', product.name, e)}
+                    />
+                  );
+                }
+                
+                // If it's a URL, use Next.js Image
+                return (
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={600}
+                    height={600}
+                    className="w-full h-full object-cover"
+                    priority
+                    onLoad={() => console.log('✅ Next.js main image loaded for:', product.name)}
+                    onError={(e) => console.error('❌ Next.js main image failed for:', product.name, e)}
+                  />
+                );
+              })()}
             </div>
             
             {/* Additional Images */}
@@ -177,13 +219,42 @@ export default function ProductDetailPage() {
                     className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all touch-target"
                     onClick={() => setSelectedImage(index)}
                   >
-                    <Image
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      width={150}
-                      height={150}
-                      className="w-full h-full object-cover"
-                    />
+                    {(() => {
+                      // Handle different image types for additional images
+                      if (!image) {
+                        return (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-600" />
+                          </div>
+                        );
+                      }
+                      
+                      // If it's a data URL (base64), use regular img tag
+                      if (image.startsWith('data:')) {
+                        return (
+                          <img
+                            src={image}
+                            alt={`${product.name} ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onLoad={() => console.log('✅ Data URL additional image loaded for:', product.name, index)}
+                            onError={(e) => console.error('❌ Data URL additional image failed for:', product.name, index, e)}
+                          />
+                        );
+                      }
+                      
+                      // If it's a URL, use Next.js Image
+                      return (
+                        <Image
+                          src={image}
+                          alt={`${product.name} ${index + 1}`}
+                          width={150}
+                          height={150}
+                          className="w-full h-full object-cover"
+                          onLoad={() => console.log('✅ Next.js additional image loaded for:', product.name, index)}
+                          onError={(e) => console.error('❌ Next.js additional image failed for:', product.name, index, e)}
+                        />
+                      );
+                    })()}
                   </div>
                 ));
               })()}
