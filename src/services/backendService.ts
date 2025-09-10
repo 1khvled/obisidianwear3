@@ -92,7 +92,9 @@ class BackendService {
       
       const response = await fetch(this.getApiUrl('/products'), {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(product)
       });
       
@@ -119,7 +121,9 @@ class BackendService {
     try {
       const response = await fetch(this.getApiUrl(`/products/${id}`), {
         method: 'PUT',
-        headers: this.getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(product)
       });
       
