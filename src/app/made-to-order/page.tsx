@@ -118,35 +118,11 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
-  // Optimized loading strategy - show page as soon as products are available
+  // Show page immediately, no artificial loading delay
   useEffect(() => {
-    if (loading && madeToOrderProducts.length === 0) {
-      setIsPageLoading(true);
-      setLoadingProgress(0);
-      
-      // Simulate loading progress
-      const progressInterval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 90) return prev; // Stop at 90% until data loads
-          return prev + Math.random() * 15;
-        });
-      }, 100);
-
-      return () => clearInterval(progressInterval);
-    } else if (madeToOrderProducts.length > 0) {
-      // Products are available, show the page immediately
-      setLoadingProgress(100);
-      setTimeout(() => {
-        setIsPageLoading(false);
-      }, 200); // Quick transition
-    } else if (!loading) {
-      // All data loaded
-      setLoadingProgress(100);
-      setTimeout(() => {
-        setIsPageLoading(false);
-      }, 300);
-    }
-  }, [loading, madeToOrderProducts.length]);
+    // Show page immediately - no waiting for products
+    setIsPageLoading(false);
+  }, []);
 
   // Debug products state
   useEffect(() => {
@@ -446,10 +422,32 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-3"></div>
-              <p className="text-gray-400 text-sm">Loading products...</p>
+          {loading && madeToOrderProducts.length === 0 ? (
+            <div className="space-y-8">
+              {/* Skeleton loading for category filters */}
+              <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
+                <div className="h-8 w-16 bg-white/10 rounded-full animate-pulse"></div>
+                <div className="h-8 w-20 bg-white/10 rounded-full animate-pulse"></div>
+                <div className="h-8 w-24 bg-white/10 rounded-full animate-pulse"></div>
+              </div>
+              
+              {/* Skeleton loading for products */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {[...Array(6)].map((_, index) => (
+                  <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden animate-pulse">
+                    <div className="w-full h-48 bg-white/10"></div>
+                    <div className="p-3 sm:p-4">
+                      <div className="h-4 bg-white/10 rounded mb-2"></div>
+                      <div className="h-3 bg-white/10 rounded mb-3 w-3/4"></div>
+                      <div className="h-6 bg-white/10 rounded mb-3 w-1/2"></div>
+                      <div className="flex space-x-2">
+                        <div className="h-8 bg-white/10 rounded flex-1"></div>
+                        <div className="h-8 bg-white/10 rounded flex-1"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : madeToOrderProducts.length === 0 ? (
             <div className="text-center py-8">
