@@ -122,13 +122,11 @@ export default function MadeToOrderPage() {
   useEffect(() => {
     if (loading) {
       setIsPageLoading(true);
-    } else if (madeToOrderProducts.length > 0) {
-      // No delay - show products immediately when available
-      setIsPageLoading(false);
     } else {
-      setIsPageLoading(false);
+      // No delay - show products immediately when available
+        setIsPageLoading(false);
     }
-  }, [loading, madeToOrderProducts.length]);
+  }, [loading]);
 
   // Debug products state
   useEffect(() => {
