@@ -125,29 +125,14 @@ export default function MadeToOrderPage() {
     setIsPageLoading(false);
   }, []);
 
-  // Track when made-to-order products are actually loaded
+  // Simple loading logic - show loading only when context is loading AND no products yet
   useEffect(() => {
-    if (madeToOrderProducts.length > 0) {
-      console.log('✅ Made-to-order products loaded, stopping loading state');
-      setIsLoadingProducts(false);
-    } else if (!loading) {
-      // If context is not loading but we have no products, they might have failed to load
-      console.log('⚠️ Context finished loading but no made-to-order products found');
+    if (loading && madeToOrderProducts.length === 0) {
+      setIsLoadingProducts(true);
+    } else {
       setIsLoadingProducts(false);
     }
-  }, [madeToOrderProducts.length, loading]);
-
-  // Timeout fallback - stop loading after 10 seconds
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (isLoadingProducts) {
-        console.log('⏰ Loading timeout reached, stopping loading state');
-        setIsLoadingProducts(false);
-      }
-    }, 10000); // 10 seconds timeout
-
-    return () => clearTimeout(timeout);
-  }, [isLoadingProducts]);
+  }, [loading, madeToOrderProducts.length]);
 
   // Debug products state
   useEffect(() => {
@@ -448,43 +433,10 @@ Merci de me contacter pour finaliser la commande spéciale!`;
           </div>
           
           {isLoadingProducts ? (
-            <div className="space-y-8">
-              {/* Loading indicator */}
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-full mb-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">Loading Products...</h3>
-                <p className="text-gray-400 text-sm">Fetching our latest collection</p>
-                <div className="mt-4 text-xs text-gray-500">
-                  Debug: loading={loading.toString()}, products={madeToOrderProducts.length}
-                </div>
-              </div>
-              
-              {/* Skeleton loading for category filters */}
-              <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
-                <div className="h-8 w-16 bg-white/10 rounded-full animate-pulse"></div>
-                <div className="h-8 w-20 bg-white/10 rounded-full animate-pulse"></div>
-                <div className="h-8 w-24 bg-white/10 rounded-full animate-pulse"></div>
-              </div>
-              
-              {/* Skeleton loading for products */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                {[...Array(6)].map((_, index) => (
-                  <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden animate-pulse">
-                    <div className="w-full h-48 bg-white/10"></div>
-                    <div className="p-3 sm:p-4">
-                      <div className="h-4 bg-white/10 rounded mb-2"></div>
-                      <div className="h-3 bg-white/10 rounded mb-3 w-3/4"></div>
-                      <div className="h-6 bg-white/10 rounded mb-3 w-1/2"></div>
-                      <div className="flex space-x-2">
-                        <div className="h-8 bg-white/10 rounded flex-1"></div>
-                        <div className="h-8 bg-white/10 rounded flex-1"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <h3 className="text-xl font-bold text-white mb-2">Loading Products...</h3>
+              <p className="text-gray-400">Please wait while we fetch our collection</p>
             </div>
           ) : madeToOrderProducts.length === 0 ? (
             <div className="text-center py-8">
