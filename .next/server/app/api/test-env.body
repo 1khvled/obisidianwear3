@@ -1,1 +1,1 @@
-{"message":"Environment variables status","envVars":{"ADMIN_USERNAME":"Set","ADMIN_PASSWORD":"Set","GMAIL_USER":"Set","GMAIL_APP_PASSWORD":"Set","JWT_SECRET":"Not Set","NODE_ENV":"production"},"timestamp":"2025-09-10T15:39:10.108Z"}
+{"message":"Environment variables status","envVars":{"ADMIN_USERNAME":"Set","ADMIN_PASSWORD":"Set","GMAIL_USER":"Set","GMAIL_APP_PASSWORD":"Set","JWT_SECRET":"Not Set","NODE_ENV":"production"},"timestamp":"2025-09-10T17:11:21.343Z"}

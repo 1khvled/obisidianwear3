@@ -46,6 +46,13 @@ export default function MadeToOrderPage() {
   const [showSubLoading, setShowSubLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  
+  // Lazy loading states
+  const [visibleProducts, setVisibleProducts] = useState<MadeToOrderProduct[]>([]);
+  const [currentBatch, setCurrentBatch] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const BATCH_SIZE = 6; // Load 6 products at a time
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -119,13 +126,63 @@ export default function MadeToOrderPage() {
     return null;
   }, []);
 
+  // Get filtered products based on selected category
+  const filteredProducts = useMemo(() => {
+    return selectedCategory === 'All' 
+      ? madeToOrderProducts 
+      : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
+  }, [selectedCategory, madeToOrderProducts]);
+
+  // Lazy loading function
+  const loadNextBatch = useCallback(() => {
+    if (isLoadingMore || !hasMoreProducts) return;
+    
+    setIsLoadingMore(true);
+    
+    // Simulate a small delay for smooth loading experience
+    setTimeout(() => {
+      const startIndex = currentBatch * BATCH_SIZE;
+      const endIndex = startIndex + BATCH_SIZE;
+      const nextBatch = filteredProducts.slice(startIndex, endIndex);
+      
+      setVisibleProducts(prev => [...prev, ...nextBatch]);
+      setCurrentBatch(prev => prev + 1);
+      setHasMoreProducts(endIndex < filteredProducts.length);
+      setIsLoadingMore(false);
+      
+      console.log('📦 Loaded batch:', {
+        batch: currentBatch + 1,
+        loaded: nextBatch.length,
+        total: filteredProducts.length,
+        visible: visibleProducts.length + nextBatch.length
+      });
+    }, 300); // 300ms delay for smooth loading
+  }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts, visibleProducts.length]);
+
+  // Reset lazy loading when category changes
+  useEffect(() => {
+    setVisibleProducts([]);
+    setCurrentBatch(0);
+    setHasMoreProducts(true);
+    setIsLoadingMore(false);
+  }, [selectedCategory]);
+
+  // Update lazy loading when filtered products change
+  useEffect(() => {
+    if (!loading && filteredProducts.length > 0 && visibleProducts.length === 0) {
+      console.log('🚀 Starting lazy loading with', filteredProducts.length, 'filtered products');
+      loadNextBatch();
+    }
+  }, [loading, filteredProducts.length, visibleProducts.length, loadNextBatch]);
+
   // Manage loading states
   useEffect(() => {
     console.log('🔍 Loading states:', { 
       loading, 
       productsLength: madeToOrderProducts.length,
       isPageLoading,
-      showSubLoading
+      showSubLoading,
+      visibleProducts: visibleProducts.length
     });
     
     // If context is loading, show main loading
@@ -135,15 +192,15 @@ export default function MadeToOrderPage() {
     }
     // If context finished loading and we have products, hide main loading
     else if (!loading && madeToOrderProducts.length > 0) {
-      setIsPageLoading(false);
+        setIsPageLoading(false);
       setShowSubLoading(false);
     }
     // If context finished loading but no products yet, show sub-loading
     else if (!loading && madeToOrderProducts.length === 0) {
-      setIsPageLoading(false);
+        setIsPageLoading(false);
       setShowSubLoading(true);
     }
-  }, [loading, madeToOrderProducts.length, isPageLoading, showSubLoading]);
+  }, [loading, madeToOrderProducts.length, isPageLoading, showSubLoading, visibleProducts.length]);
 
   // Debug products state
   useEffect(() => {
@@ -475,12 +532,10 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               {/* Products Display */}
               <div className="space-y-12">
                 {(() => {
-                  // Filter products based on selected category
-                  const filteredProducts = selectedCategory === 'All' 
-                    ? madeToOrderProducts 
-                    : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
+                  // Use visible products (already filtered by category)
+                  const displayProducts = visibleProducts;
 
-                  if (filteredProducts.length === 0) {
+                  if (displayProducts.length === 0 && !isLoadingMore) {
                     return (
                       <div className="text-center py-12">
                         <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
@@ -490,8 +545,8 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     );
                   }
 
-                  // Group filtered products by category
-                  const productsByCategory = filteredProducts.reduce((acc, product) => {
+                  // Group display products by category
+                  const productsByCategory = displayProducts.reduce((acc, product) => {
                     const category = product.category || 'Other';
                     if (!acc[category]) {
                       acc[category] = [];
@@ -666,6 +721,40 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   ));
                 })()}
               </div>
+
+              {/* Load More Button */}
+              {hasMoreProducts && !isLoadingMore && (
+                <div className="text-center py-8">
+                  <button
+                    onClick={loadNextBatch}
+                    className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-lg font-bold flex items-center justify-center mx-auto transition-all duration-300 hover:scale-105 border border-white/20"
+                  >
+                    <Package className="w-5 h-5 mr-2" />
+                    Load More Products
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </button>
+            </div>
+          )}
+
+              {/* Loading More Indicator */}
+              {isLoadingMore && (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        </div>
+                  <p className="text-sm text-gray-400">Loading more products...</p>
+                </div>
+              )}
+
+              {/* No More Products Message */}
+              {!hasMoreProducts && visibleProducts.length > 0 && (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                    <span className="text-gray-400 text-sm">All products loaded</span>
+                  </div>
+                </div>
+              )}
 
             </div>
           )}
