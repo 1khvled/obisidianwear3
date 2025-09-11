@@ -10,7 +10,7 @@ import { useState } from 'react';
 import SizeSelectionModal from './SizeSelectionModal';
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { isMadeToOrder?: boolean };
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -128,9 +128,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
         </Link>
 
-        {/* Rating */}
-        <div className="flex items-center space-x-1 mb-2">
-          <div className="flex items-center">
+        {/* Rating and Made-to-Order Badge */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-1">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
@@ -143,6 +143,11 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
+          {product.isMadeToOrder && (
+            <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
+              Made to Order
+            </span>
+          )}
         </div>
 
         {/* Price */}

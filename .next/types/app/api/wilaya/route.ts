@@ -1,4 +1,4 @@
-// File: C:\Users\HP\Desktop\projectt\src\app\api\wilaya\route.ts
+// File: C:\Users\HP\Desktop\Obsidian wear\projectt\src\app\api\wilaya\route.ts
 import * as entry from '../../../../../src/app/api/wilaya/route.js'
 import type { NextRequest } from 'next/server.js'
 

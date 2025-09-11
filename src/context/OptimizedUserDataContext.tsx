@@ -91,7 +91,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
       // Cache products immediately
       userCache.setAllUserData({
         products,
-        madeToOrderProducts: [],
+        madeToOrderProducts: [], // Will be updated when made-to-order products load
         wilayaTariffs: []
       });
       
@@ -107,11 +107,12 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
         // Update UI with made-to-order products
         setMadeToOrderProducts(madeToOrderProducts);
         
-        // Update cache
+        // Update cache with made-to-order products
         userCache.setAllUserData({
           products,
           madeToOrderProducts,
-          wilayaTariffs: []
+          wilayaTariffs: [],
+          loading: false
         });
       } catch (error) {
         console.error('❌ Made-to-order loading failed:', error);
@@ -131,7 +132,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
           // Update cache with complete data
           userCache.setAllUserData({
             products,
-            madeToOrderProducts: [],
+            madeToOrderProducts: madeToOrderProducts, // Use the actual loaded products
             wilayaTariffs: wilayaData
           });
         } catch (error) {

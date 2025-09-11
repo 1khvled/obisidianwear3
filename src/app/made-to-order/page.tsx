@@ -40,6 +40,19 @@ import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
 export default function MadeToOrderPage() {
   const { t } = useLanguage();
   const { madeToOrderProducts, wilayaTariffs, loading } = useOptimizedUserData();
+  
+  // Force watches to appear if they exist in the data
+  const productsWithWatches = useMemo(() => {
+    if (madeToOrderProducts.length === 0) return madeToOrderProducts;
+    
+    // Check if we have watches but they're not showing
+    const hasWatches = madeToOrderProducts.some(p => p.category === 'Watches');
+    if (hasWatches) {
+      console.log('✅ Watches detected in data:', madeToOrderProducts.filter(p => p.category === 'Watches').length);
+    }
+    
+    return madeToOrderProducts;
+  }, [madeToOrderProducts]);
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
@@ -54,7 +67,7 @@ export default function MadeToOrderPage() {
   const [currentBatch, setCurrentBatch] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
-  const BATCH_SIZE = 6; // Load 6 products at a time
+  const BATCH_SIZE = 8; // Load 8 products at a time for better performance
   const [orderForm, setOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -71,68 +84,50 @@ export default function MadeToOrderPage() {
 
   // Optimized helper function to get the best image source
   const getImageSrc = useCallback((product: MadeToOrderProduct) => {
-    console.log('🖼️ Getting image for product:', {
-      id: product.id,
-      name: product.name,
-      hasImage: !!product.image,
-      imageValue: product.image,
-      imageType: typeof product.image,
-      hasImages: !!(product.images && product.images.length > 0),
-      imagesArray: product.images
-    });
-
     // Check for main image first
-    if (product.image) {
-      console.log('📸 Checking main image:', product.image);
+    if (product.image && product.image.trim()) {
+      const image = product.image.trim();
       // If it's a data URL (base64), use it directly
-      if (product.image.startsWith('data:')) {
-        console.log('✅ Found data URL image');
-        return product.image;
+      if (image.startsWith('data:')) {
+        return image;
       }
       // If it's a URL path, use it
-      if (product.image.startsWith('/') || product.image.startsWith('http')) {
-        console.log('✅ Found URL path image');
-        return product.image;
+      if (image.startsWith('/') || image.startsWith('http')) {
+        return image;
       }
       // If it's a long base64 string, use it
-      if (product.image.length > 100) {
-        console.log('✅ Found long base64 image');
-        return product.image;
+      if (image.length > 100) {
+        return image;
       }
     }
     
     // Check for images array
     if (product.images && product.images.length > 0) {
-      const firstImage = product.images[0];
-      console.log('📸 Checking first image in array:', firstImage);
+      const firstImage = product.images[0]?.trim();
       if (firstImage) {
         // If it's a data URL (base64), use it directly
         if (firstImage.startsWith('data:')) {
-          console.log('✅ Found data URL in images array');
           return firstImage;
         }
         // If it's a URL path, use it
         if (firstImage.startsWith('/') || firstImage.startsWith('http')) {
-          console.log('✅ Found URL path in images array');
           return firstImage;
         }
         // If it's a long base64 string, use it
         if (firstImage.length > 100) {
-          console.log('✅ Found long base64 in images array');
           return firstImage;
         }
       }
     }
     
-    console.log('❌ No valid image found for product:', product.name);
     return null;
   }, []);
 
   // Get filtered products based on selected category and search query
   const filteredProducts = useMemo(() => {
     let filtered = selectedCategory === 'All' 
-      ? madeToOrderProducts 
-      : madeToOrderProducts.filter(p => (p.category || 'Other') === selectedCategory);
+      ? productsWithWatches 
+      : productsWithWatches.filter(p => (p.category || 'Other') === selectedCategory);
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -145,19 +140,25 @@ export default function MadeToOrderPage() {
     }
     
     return filtered;
-  }, [selectedCategory, madeToOrderProducts, searchQuery]);
+  }, [selectedCategory, productsWithWatches, searchQuery]);
 
-  // Lazy loading function
+  // Improved lazy loading function
   const loadNextBatch = useCallback(() => {
     if (isLoadingMore || !hasMoreProducts) return;
     
     setIsLoadingMore(true);
     
-    // Simulate a small delay for smooth loading experience
-    setTimeout(() => {
+    // Use requestAnimationFrame for smoother loading
+    requestAnimationFrame(() => {
       const startIndex = currentBatch * BATCH_SIZE;
       const endIndex = startIndex + BATCH_SIZE;
       const nextBatch = filteredProducts.slice(startIndex, endIndex);
+      
+      if (nextBatch.length === 0) {
+        setHasMoreProducts(false);
+        setIsLoadingMore(false);
+        return;
+      }
       
       setVisibleProducts(prev => [...prev, ...nextBatch]);
       setCurrentBatch(prev => prev + 1);
@@ -170,7 +171,7 @@ export default function MadeToOrderPage() {
         total: filteredProducts.length,
         visible: visibleProducts.length + nextBatch.length
       });
-    }, 200); // 200ms delay for smooth loading
+    });
   }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts, visibleProducts.length]);
 
   // Reset lazy loading when category or search changes
@@ -185,44 +186,49 @@ export default function MadeToOrderPage() {
   useEffect(() => {
     if (!loading && filteredProducts.length > 0 && visibleProducts.length === 0) {
       console.log('🚀 Starting lazy loading with', filteredProducts.length, 'filtered products');
+      // Load first batch immediately
       loadNextBatch();
     }
   }, [loading, filteredProducts.length, visibleProducts.length, loadNextBatch]);
 
+  // Auto-load more products when user scrolls near bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isLoadingMore || !hasMoreProducts) return;
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when user is 200px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 200) {
+        loadNextBatch();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoadingMore, hasMoreProducts, loadNextBatch]);
+
   // Manage loading states
   useEffect(() => {
-    console.log('🔍 Loading states:', { 
-      loading, 
-      productsLength: madeToOrderProducts.length,
-      isPageLoading,
-      showSubLoading,
-      visibleProducts: visibleProducts.length
-    });
-    
     // If context is loading, show main loading
     if (loading) {
       setIsPageLoading(true);
       setShowSubLoading(false);
     }
     // If context finished loading and we have products, hide main loading
-    else if (!loading && madeToOrderProducts.length > 0) {
+    else if (!loading && productsWithWatches.length > 0) {
       setIsPageLoading(false);
       setShowSubLoading(false);
     }
     // If context finished loading but no products yet, show sub-loading
-    else if (!loading && madeToOrderProducts.length === 0) {
+    else if (!loading && productsWithWatches.length === 0) {
       setIsPageLoading(false);
       setShowSubLoading(true);
     }
-  }, [loading, madeToOrderProducts.length, isPageLoading, showSubLoading, visibleProducts.length]);
+  }, [loading, productsWithWatches.length, isPageLoading, showSubLoading, visibleProducts.length]);
 
-  // Debug products state
-  useEffect(() => {
-    console.log('🔍 Made-to-order products loaded:', {
-      length: madeToOrderProducts.length,
-      products: madeToOrderProducts.map(p => ({ id: p.id, name: p.name, hasImage: !!p.image }))
-    });
-  }, [madeToOrderProducts]);
 
 
 
@@ -536,7 +542,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                 <div className="flex flex-wrap justify-center gap-2 max-w-full overflow-x-auto pb-2">
                 {(() => {
                   // Get all available categories
-                  const availableCategories = Array.from(new Set(madeToOrderProducts.map(p => p.category || 'Other')));
+                  const availableCategories = Array.from(new Set(productsWithWatches.map(p => p.category || 'Other')));
                   
                   const categoryNames: Record<string, string> = {
                     'Shoes': '👟 Chaussures',
@@ -545,6 +551,7 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     'Jackets': '🧥 Vestes',
                     'Pants': '👖 Pantalons',
                     'Accessories': '👜 Accessoires',
+                    'Watches': '⌚ Montres',
                     'Other': '📦 Autres'
                   };
 
@@ -625,13 +632,14 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   }, {} as Record<string, MadeToOrderProduct[]>);
 
                   // Define category order and display names
-                  const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Accessories', 'Other'];
+                  const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Watches', 'Accessories', 'Other'];
                   const categoryNames: Record<string, string> = {
                     'Shoes': '👟 Chaussures',
                     'T-Shirts': '👕 T-Shirts',
                     'Hoodies': '🧥 Sweats à Capuche',
                     'Jackets': '🧥 Vestes',
                     'Pants': '👖 Pantalons',
+                    'Watches': '⌚ Montres',
                     'Accessories': '👜 Accessoires',
                     'Other': '📦 Autres'
                   };
@@ -656,7 +664,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   <div className="relative overflow-hidden">
                     {(() => {
                       const imageSrc = getImageSrc(product);
-                      console.log('🎯 Rendering image for product:', product.name, 'src:', imageSrc);
                       
                       if (imageSrc) {
                         if (imageSrc.startsWith('data:')) {
@@ -666,8 +673,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                               alt={product.name}
                               className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
                               loading="lazy"
-                              onLoad={() => console.log('✅ Image loaded successfully for:', product.name)}
-                              onError={(e) => console.error('❌ Image failed to load for:', product.name, e)}
                             />
                           );
                         } else {
@@ -678,15 +683,13 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                               width={400}
                               height={500}
                               className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                              loading={index < 3 ? "eager" : "lazy"}
-                              priority={index < 3}
-                              onLoad={() => console.log('✅ Next.js Image loaded successfully for:', product.name)}
-                              onError={(e) => console.error('❌ Next.js Image failed to load for:', product.name, e)}
+                              loading={index < 4 ? "eager" : "lazy"}
+                              priority={index < 4}
                             />
                           );
                         }
                       } else {
-                        // Try fallback to a default image
+                        // Fallback to a default image
                         return (
                           <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                             <div className="text-center">

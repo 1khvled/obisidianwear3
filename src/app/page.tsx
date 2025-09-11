@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/data/products';
 import { Product } from '@/types';
-import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag, Package, Search, X } from 'lucide-react';
+import { ChevronRight, Star, Truck, Shield, RotateCcw, ShoppingBag, Package, Search, X, CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { MobileProductGridSkeleton, FeatureGridSkeleton, DataLoadingAnimation, CacheLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
 import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
@@ -16,16 +16,26 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearch, setShowSearch] = useState<boolean>(false);
-  const { products, madeToOrderProducts, loading } = useOptimizedUserData();
+  const { products, loading } = useOptimizedUserData();
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  
+  // Lazy loading states
+  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
+  const [currentBatch, setCurrentBatch] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const BATCH_SIZE = 12; // Load 12 products at a time
+  
+  // Use only regular products on the main page
+  const allProducts = useMemo(() => {
+    return products || [];
+  }, [products]);
   const { t } = useLanguage();
 
   useEffect(() => {
-    console.log('🛒 Products state:', { products, loading, isArray: Array.isArray(products), length: products?.length });
-    
-    // Ensure products is an array before filtering
-    if (Array.isArray(products)) {
-      let filtered = products;
+    // Ensure allProducts is an array before filtering
+    if (Array.isArray(allProducts)) {
+      let filtered = allProducts;
       
       // Apply category filter
       if (selectedCategory !== 'All') {
@@ -44,10 +54,68 @@ export default function Home() {
       
       setFilteredProducts(filtered);
     }
-  }, [products, selectedCategory, searchQuery]);
+  }, [allProducts, selectedCategory, searchQuery]);
+
+  // Lazy loading function
+  const loadNextBatch = useCallback(() => {
+    if (isLoadingMore || !hasMoreProducts) return;
+    
+    setIsLoadingMore(true);
+    
+    requestAnimationFrame(() => {
+      const startIndex = currentBatch * BATCH_SIZE;
+      const endIndex = startIndex + BATCH_SIZE;
+      const nextBatch = filteredProducts.slice(startIndex, endIndex);
+      
+      if (nextBatch.length === 0) {
+        setHasMoreProducts(false);
+        setIsLoadingMore(false);
+        return;
+      }
+      
+      setVisibleProducts(prev => [...prev, ...nextBatch]);
+      setCurrentBatch(prev => prev + 1);
+      setHasMoreProducts(endIndex < filteredProducts.length);
+      setIsLoadingMore(false);
+    });
+  }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts, visibleProducts.length]);
+
+  // Reset lazy loading when filtered products change
+  useEffect(() => {
+    setVisibleProducts([]);
+    setCurrentBatch(0);
+    setHasMoreProducts(true);
+    setIsLoadingMore(false);
+  }, [filteredProducts]);
+
+  // Load first batch when filtered products are ready
+  useEffect(() => {
+    if (filteredProducts.length > 0 && visibleProducts.length === 0) {
+      loadNextBatch();
+    }
+  }, [filteredProducts.length, visibleProducts.length, loadNextBatch]);
+
+  // Auto-load more products when user scrolls near bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isLoadingMore || !hasMoreProducts) return;
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when user is 300px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 300) {
+        loadNextBatch();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoadingMore, hasMoreProducts, loadNextBatch]);
 
   // Show loading state only if still loading or no products are available yet
-  if (loading || !Array.isArray(products) || products.length === 0) {
+  if (loading || !Array.isArray(allProducts) || allProducts.length === 0) {
     return (
       <div className="min-h-screen bg-black">
         <Header />
@@ -249,9 +317,9 @@ export default function Home() {
           {/* Products Grid */}
           {loading ? (
             <MobileProductGridSkeleton count={6} />
-          ) : filteredProducts.length > 0 ? (
+          ) : visibleProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {filteredProducts.map((product, index) => (
+              {visibleProducts.map((product, index) => (
                 <div
                   key={product.id}
                   className="animate-fade-in-up"
@@ -276,6 +344,39 @@ export default function Home() {
                   : t('products.empty.desc')
                 }
               </p>
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {hasMoreProducts && !isLoadingMore && visibleProducts.length > 0 && (
+            <div className="text-center py-8">
+              <button
+                onClick={loadNextBatch}
+                className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-lg font-bold flex items-center justify-center mx-auto transition-all duration-300 hover:scale-105 border border-white/20"
+              >
+                <Package className="w-5 h-5 mr-2" />
+                Load More Products
+              </button>
+            </div>
+          )}
+
+          {/* Loading More Indicator */}
+          {isLoadingMore && (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              </div>
+              <p className="text-sm text-gray-400">Loading more products...</p>
+            </div>
+          )}
+
+          {/* No More Products Message */}
+          {!hasMoreProducts && visibleProducts.length > 0 && (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+                <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                <span className="text-gray-400 text-sm">All products loaded</span>
+              </div>
             </div>
           )}
         </div>

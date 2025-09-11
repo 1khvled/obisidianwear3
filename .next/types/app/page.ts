@@ -1,4 +1,4 @@
-// File: C:\Users\HP\Desktop\projectt\src\app\page.tsx
+// File: C:\Users\HP\Desktop\Obsidian wear\projectt\src\app\page.tsx
 import * as entry from '../../../src/app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
