@@ -111,8 +111,7 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
         userCache.setAllUserData({
           products,
           madeToOrderProducts,
-          wilayaTariffs: [],
-          loading: false
+          wilayaTariffs: []
         });
       } catch (error) {
         console.error('❌ Made-to-order loading failed:', error);
