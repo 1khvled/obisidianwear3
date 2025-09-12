@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseDatabase';
 import { MadeToOrderProduct } from '@/types';
 
+// Increase body size limit for large image uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export async function GET() {
   try {
     console.log('🔧 Fetching made-to-order products...');
