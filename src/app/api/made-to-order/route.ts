@@ -66,7 +66,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, image, images, colors, sizes, category, tags, displayOrder, customSizeChart, useCustomSizeChart, sizeChartCategory } = body;
+    const { name, description, price, image, images, colors, sizes, category, tags, displayOrder, customSizeChart, useCustomSizeChart, sizeChartCategory, stock } = body;
 
     // Validate required fields
     if (!name || !price) {
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
         images: processedImages,
         colors: colors || ['Noir'],
         sizes: sizes || ['S', 'M', 'L', 'XL'],
+        stock: stock || {},
         category: category || 'Custom',
         tags: tags || [],
         display_order: displayOrder || 0,

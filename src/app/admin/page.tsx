@@ -322,11 +322,28 @@ export default function AdminPage() {
     
     if (!newMadeToOrderProduct.name.trim()) {
       alert('Product name is required');
-        return;
-      }
+      return;
+    }
+    
+    if (!newMadeToOrderProduct.basePrice || newMadeToOrderProduct.basePrice <= 0) {
+      alert('Product price is required and must be greater than 0');
+      return;
+    }
 
     try {
       setLoading(true);
+      // Generate stock data based on sizes and colors
+      const sizes = newMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'];
+      const colors = newMadeToOrderProduct.colors || ['Noir'];
+      const stock = {};
+      
+      sizes.forEach(size => {
+        stock[size] = {};
+        colors.forEach(color => {
+          stock[size][color] = 10; // Default stock of 10 for each size/color combination
+        });
+      });
+
       const productData = {
         name: newMadeToOrderProduct.name,
         description: newMadeToOrderProduct.description,
@@ -334,8 +351,9 @@ export default function AdminPage() {
         category: newMadeToOrderProduct.category,
         image: newMadeToOrderProduct.image || '',
         images: newMadeToOrderProduct.images || [],
-        colors: newMadeToOrderProduct.colors || ['Noir'],
-        sizes: newMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'],
+        colors: colors,
+        sizes: sizes,
+        stock: stock,
         tags: [],
         displayOrder: 0,
         isActive: newMadeToOrderProduct.isActive,
