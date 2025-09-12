@@ -98,7 +98,7 @@ export default function RootLayout({
             <LanguageProvider>
               <SmartProductProvider>
                 <CartProvider>
-                  <ConsoleBlocker />
+                  {/* <ConsoleBlocker /> */}
                   <StoreStatusChecker />
                   {children}
                 </CartProvider>
