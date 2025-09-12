@@ -13,8 +13,8 @@ export default function Footer() {
               <Logo size="lg" showText={true} />
             </div>
             <p className="text-gray-400 mb-6 max-w-md text-lg">
-              Plus qu'un vêtement, une attitude. Découvrez notre collection exclusive 
-              qui définit votre style unique avec des pièces premium.
+              More than clothing, an attitude. Discover our exclusive collection 
+              that defines your unique style with premium pieces.
             </p>
             <div className="flex space-x-6">
               <a href="https://instagram.com/obsidianwear_dz" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
@@ -34,22 +34,22 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-                  Accueil
+                  HOME
                 </Link>
               </li>
               <li>
                 <Link href="/#products" className="text-gray-400 hover:text-white transition-colors">
-                  Collection
+                  COLLECTION
                 </Link>
               </li>
               <li>
                 <Link href="/#about" className="text-gray-400 hover:text-white transition-colors">
-                  À Propos
+                  ABOUT
                 </Link>
               </li>
               <li>
                 <Link href="/#contact" className="text-gray-400 hover:text-white transition-colors">
-                  Contact
+                  CONTACT
                 </Link>
               </li>
             </ul>
@@ -57,7 +57,7 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-white font-semibold mb-6 text-lg">SUIVEZ-NOUS</h3>
+            <h3 className="text-white font-semibold mb-6 text-lg">FOLLOW US</h3>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Instagram size={20} className="text-gray-400" />
@@ -81,8 +81,8 @@ export default function Footer() {
         <div className="border-t border-gray-900 mt-12 pt-8 text-center">
           <p className="text-gray-400 text-sm">
             © 2025 OBSIDIAN WEAR. All rights reserved. | 
-            <Link href="#" className="hover:text-white transition-colors ml-1">Politique de Confidentialité</Link> | 
-            <Link href="#" className="hover:text-white transition-colors ml-1">Conditions d'Utilisation</Link>
+            <Link href="#" className="hover:text-white transition-colors ml-1">PRIVACY POLICY</Link> | 
+            <Link href="#" className="hover:text-white transition-colors ml-1">TERMS OF USE</Link>
           </p>
         </div>
       </div>
