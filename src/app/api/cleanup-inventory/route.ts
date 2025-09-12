@@ -51,13 +51,13 @@ export async function POST() {
     }
     
     // Create a map of valid product configurations
-    const validConfigurations = new Set();
+    const validConfigurations = new Set<string>();
     products?.forEach(product => {
       const colors = product.colors || [];
       const sizes = product.sizes || [];
       
-      colors.forEach(color => {
-        sizes.forEach(size => {
+      colors.forEach((color: string) => {
+        sizes.forEach((size: string) => {
           validConfigurations.add(`${product.id}-${size}-${color}`);
         });
       });
