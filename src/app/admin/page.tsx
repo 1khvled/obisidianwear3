@@ -233,12 +233,29 @@ export default function AdminPage() {
     setLoading(true);
     
     try {
+      // Generate stock data for normal products
+      const sizes = newProduct.sizes || ['S', 'M', 'L', 'XL'];
+      const colors = newProduct.colors || ['Black'];
+      const stock: { [key: string]: { [key: string]: number } } = {};
+      
+      sizes.forEach((size: string) => {
+        stock[size] = {};
+        colors.forEach((color: string) => {
+          stock[size][color] = 10; // Default stock of 10 for each size/color combination
+        });
+      });
+
       const productData = {
         ...newProduct,
         id: Date.now().toString(), // Simple ID generation
+        stock: stock, // Use generated stock instead of empty object
         createdAt: new Date(),
         updatedAt: new Date()
       };
+      
+      console.log('💾 Adding normal product with data:', productData);
+      console.log('📦 Generated stock:', stock);
+      console.log('📦 Stock keys:', Object.keys(stock));
       
       await addProductContext(productData);
       setShowAddProduct(false);
@@ -322,9 +339,9 @@ export default function AdminPage() {
     
     if (!newMadeToOrderProduct.name.trim()) {
       alert('Product name is required');
-      return;
-    }
-    
+        return;
+      }
+
     if (!newMadeToOrderProduct.basePrice || newMadeToOrderProduct.basePrice <= 0) {
       alert('Product price is required and must be greater than 0');
       return;
@@ -987,6 +1004,7 @@ export default function AdminPage() {
                                 
                                 compressImage(file).then((compressedBase64) => {
                                   console.log('📸 Made-to-order image compressed, size:', compressedBase64.length);
+                                  console.log('📸 Compressed image preview:', compressedBase64.substring(0, 100) + '...');
                                   
                                   // Check if compressed image is still too large (max 1MB base64)
                                   if (compressedBase64.length > 1024 * 1024) {
@@ -994,10 +1012,13 @@ export default function AdminPage() {
                                     return;
                                   }
                                   
+                                  console.log('📸 Setting image to product state...');
                                   if (editingMadeToOrderProduct) {
                                     setEditingMadeToOrderProduct({...editingMadeToOrderProduct, image: compressedBase64});
+                                    console.log('📸 Image set to editingMadeToOrderProduct');
                                   } else {
                                     setNewMadeToOrderProduct({...newMadeToOrderProduct, image: compressedBase64});
+                                    console.log('📸 Image set to newMadeToOrderProduct');
                                   }
                                 }).catch((error) => {
                                   console.error('❌ Error compressing image:', error);

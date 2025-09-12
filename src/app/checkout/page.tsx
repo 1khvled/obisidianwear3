@@ -297,7 +297,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-black">
       <Header />
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
                 <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
                   <User size={20} className="mr-2" />
@@ -470,21 +470,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
-                    <span>{t('checkout.placingOrder')}</span>
-                  </>
-                ) : (
-                  <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
-                )}
-              </button>
 
             </form>
           </div>
@@ -666,6 +651,46 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Submit Button - Always at the bottom on mobile */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 p-4 z-50">
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={isSubmitting}
+            className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
+                <span>{t('checkout.placingOrder')}</span>
+              </>
+            ) : (
+              <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop Submit Button - Inside form */}
+        <div className="hidden lg:block">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+            <button
+              type="submit"
+              form="checkout-form"
+              disabled={isSubmitting}
+              className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
+                  <span>{t('checkout.placingOrder')}</span>
+                </>
+              ) : (
+                <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
+              )}
+            </button>
           </div>
         </div>
       </div>
