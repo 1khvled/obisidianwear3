@@ -35,7 +35,7 @@ import Header from '@/components/Header';
 import { useLanguage } from '@/context/LanguageContext';
 import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ProductGridSkeleton } from '@/components/ProductGridSkeleton';
+import { ProductGridSkeleton } from '@/components/LoadingSkeleton';
 import OptimizedImage from '@/components/OptimizedImage';
 import OrderFormModal from '@/components/OrderFormModal';
 
@@ -466,7 +466,6 @@ export default function MadeToOrderPageRefactored() {
                                   src={product.image || product.images?.[0] || ''}
                               alt={product.name}
                               priority={index < 4}
-                                  loading={index < 4 ? "eager" : "lazy"}
                                 />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4">

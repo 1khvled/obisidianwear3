@@ -22,12 +22,16 @@ interface InventoryManagerProps {
   onClose: () => void;
 }
 
+interface EditingItem extends InventoryRecord {
+  isUpdating?: boolean;
+}
+
 export default function InventoryManager({ onClose }: InventoryManagerProps) {
   const [inventory, setInventory] = useState<InventoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [editingItem, setEditingItem] = useState<InventoryRecord | null>(null);
+  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newQuantity, setNewQuantity] = useState(0);
   const [reason, setReason] = useState('');
@@ -111,8 +115,6 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
               inventoryData.push({
                 id: `INV-${product.id}-${size}-${color}`,
                 product_id: product.id,
-                product_name: product.name,
-                product_image: product.image,
                 size,
                 color,
                 quantity,
@@ -214,7 +216,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       }
     } catch (error) {
       console.error('Error updating inventory:', error);
-      alert(`Error updating inventory: ${error.message}`);
+      alert(`Error updating inventory: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setEditingItem(prev => prev ? { ...prev, isUpdating: false } : null);
     }

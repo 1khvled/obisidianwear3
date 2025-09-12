@@ -201,10 +201,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (quantityDifference === 0) return; // No change needed
 
     try {
-      // Check if this is a made-to-order product (no stock property)
-      const isMadeToOrder = !item.stock;
-      
-      if (!isMadeToOrder) {
+      // For regular products, we'll skip the stock check during quantity updates
+      // since the item is already in the cart and stock was checked during add
         if (quantityDifference > 0) {
           // Increasing quantity - reserve more inventory
           const reserveResponse = await fetch('/api/inventory/reserve', {
@@ -240,9 +238,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             console.error('❌ Failed to restore inventory, but updating quantity anyway');
           }
         }
-      } else {
-        console.log('✅ Skipping inventory operations for made-to-order product');
-      }
 
       // Update the cart
       setItems(prevItems => 
