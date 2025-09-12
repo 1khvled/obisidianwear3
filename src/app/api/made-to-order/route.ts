@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         images: processedImages,
         colors: colors || ['Noir'],
         sizes: sizes || ['S', 'M', 'L', 'XL'],
-        stock: stock || {},
+        // stock: stock || {}, // Temporarily commented out to test
         category: category || 'Custom',
         tags: tags || [],
         display_order: displayOrder || 0,
@@ -108,8 +108,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating made-to-order product:', error);
-      return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+      console.error('❌ Error creating made-to-order product:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      return NextResponse.json({ 
+        error: 'Failed to create product', 
+        details: error.message,
+        code: error.code 
+      }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });

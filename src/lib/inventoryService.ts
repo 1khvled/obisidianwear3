@@ -334,12 +334,15 @@ export async function initializeProductInventory(productId: string): Promise<boo
     const colors = product.colors || [];
     const stock = product.stock || {};
 
+    console.log('🔧 Inventory service: Product data:', { productId, sizes, colors, stock });
+
     // Create inventory records for each size/color combination
     const inventoryRecords = [];
     
     for (const size of sizes) {
       for (const color of colors) {
         const stockQuantity = stock[size]?.[color] || 0;
+        console.log(`🔧 Inventory service: ${size}/${color} = ${stockQuantity} (from stock: ${JSON.stringify(stock[size])})`);
         
         inventoryRecords.push({
           id: `INV-${productId}-${size}-${color}`,

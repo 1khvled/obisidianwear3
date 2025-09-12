@@ -72,6 +72,9 @@ export default function MadeToOrderPageRefactored() {
 
   // Get filtered products based on selected category and search query
   const filteredProducts = useMemo(() => {
+    console.log('🔍 Raw madeToOrderProducts:', madeToOrderProducts.length);
+    console.log('🔍 Raw productsWithWatches:', productsWithWatches.length);
+    
     let filtered = selectedCategory === 'All' 
       ? productsWithWatches 
       : productsWithWatches.filter(p => (p.category || 'Other') === selectedCategory);
@@ -93,7 +96,8 @@ export default function MadeToOrderPageRefactored() {
     console.log('🔍 Filtered products:', { 
       total: filtered.length, 
       unique: uniqueProducts.length, 
-      duplicates: filtered.length - uniqueProducts.length 
+      duplicates: filtered.length - uniqueProducts.length,
+      productIds: uniqueProducts.map(p => p.id)
     });
     
     return uniqueProducts;
@@ -110,13 +114,21 @@ export default function MadeToOrderPageRefactored() {
       const endIndex = startIndex + BATCH_SIZE;
       const nextBatch = filteredProducts.slice(startIndex, endIndex);
       
+      console.log('🔄 Loading next batch:', { startIndex, endIndex, nextBatchLength: nextBatch.length });
+      
       if (nextBatch.length === 0) {
         setHasMoreProducts(false);
         setIsLoadingMore(false);
         return;
       }
       
-      setVisibleProducts(prev => [...prev, ...nextBatch]);
+      // Prevent duplicates by checking if product already exists
+      setVisibleProducts(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newProducts = nextBatch.filter(p => !existingIds.has(p.id));
+        console.log('🔄 Adding new products:', newProducts.length, 'out of', nextBatch.length);
+        return [...prev, ...newProducts];
+      });
       setCurrentBatch(prev => prev + 1);
       setHasMoreProducts(endIndex < filteredProducts.length);
       setIsLoadingMore(false);
@@ -131,21 +143,18 @@ export default function MadeToOrderPageRefactored() {
     setIsLoadingMore(false);
   }, [selectedCategory, searchQuery]);
 
-  // Update lazy loading when filtered products change
+  // Show products immediately when they load
   useEffect(() => {
-    if (!loading && filteredProducts.length > 0 && visibleProducts.length === 0) {
-      // Force immediate load of first batch
-      loadNextBatch();
+    if (!loading && filteredProducts.length > 0) {
+      console.log('🔄 Products loaded, showing immediately...');
+      console.log('🔄 Filtered products count:', filteredProducts.length);
+      // Show first batch immediately
+      const firstBatch = filteredProducts.slice(0, BATCH_SIZE);
+      setVisibleProducts(firstBatch);
+      setCurrentBatch(1);
+      setHasMoreProducts(filteredProducts.length > BATCH_SIZE);
     }
-  }, [loading, filteredProducts.length, visibleProducts.length, loadNextBatch]);
-
-  // Ensure products are displayed immediately when they first load
-  useEffect(() => {
-    if (!loading && madeToOrderProducts.length > 0 && visibleProducts.length === 0) {
-      console.log('🔄 Auto-loading first batch of products...');
-      loadNextBatch();
-    }
-  }, [loading, madeToOrderProducts.length, visibleProducts.length, loadNextBatch]);
+  }, [loading, filteredProducts.length]);
 
   // Auto-load more products when user scrolls near bottom
   useEffect(() => {
@@ -176,6 +185,8 @@ export default function MadeToOrderPageRefactored() {
 
   const handleOrderSubmit = async (orderData: any) => {
     try {
+      console.log('📝 Submitting made-to-order:', orderData);
+      
       const response = await fetch('/api/made-to-order/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,11 +194,46 @@ export default function MadeToOrderPageRefactored() {
       });
 
       if (response.ok) {
-        alert('Commande soumise avec succès! NOUS VOUS CONTACTERONS DANS 24H-48H VIA WHATSAPP.');
+        const result = await response.json();
+        console.log('✅ Order submitted successfully:', result);
+        
+        // Close the modal
         setShowOrderForm(false);
         setSelectedProduct(null);
+        
+        // Create WhatsApp message
+        const whatsappMessage = `Hello! I want to place a special order:
+
+Product: ${orderData.productId}
+Size: ${orderData.selectedSize}
+Color: ${orderData.selectedColor}
+Quantity: ${orderData.quantity}
+Price: ${orderData.unitPrice} DZD
+
+Customer Details:
+Name: ${orderData.customerName}
+Phone: ${orderData.customerPhone}
+Email: ${orderData.customerEmail}
+Address: ${orderData.customerAddress}
+Wilaya: ${orderData.wilayaName}
+
+Notes: ${orderData.notes || 'None'}
+
+Please confirm my order and provide payment details.`;
+
+        // Encode the message for URL
+        const encodedMessage = encodeURIComponent(whatsappMessage);
+        const whatsappUrl = `https://wa.me/213672536920?text=${encodedMessage}`;
+        
+        // Redirect to WhatsApp
+        window.open(whatsappUrl, '_blank');
+        
+        // Show success message
+        alert('Order submitted successfully! Redirecting to WhatsApp for confirmation...');
+        
       } else {
         const errorData = await response.json();
+        console.error('❌ Order submission failed:', errorData);
         throw new Error(errorData.error || 'Failed to submit order');
       }
     } catch (error) {

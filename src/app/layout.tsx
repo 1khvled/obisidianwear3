@@ -97,11 +97,11 @@ export default function RootLayout({
           <AuthProvider>
             <LanguageProvider>
               <SmartProductProvider>
-                <CartProvider>
-                  {/* <ConsoleBlocker /> */}
-                  <StoreStatusChecker />
-                  {children}
-                </CartProvider>
+      <CartProvider>
+        <ConsoleBlocker />
+        <StoreStatusChecker />
+        {children}
+      </CartProvider>
               </SmartProductProvider>
             </LanguageProvider>
           </AuthProvider>
