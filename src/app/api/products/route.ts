@@ -6,15 +6,6 @@ import { ValidationUtils } from '@/lib/validation';
 // Ensure we use Node.js runtime for Supabase compatibility
 export const runtime = 'nodejs';
 
-// Increase body size limit for large image uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
-
 // GET /api/products - Get all products
 export async function GET() {
   try {

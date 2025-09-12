@@ -4,16 +4,6 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
-  // Increase body size limit for large image uploads
-  serverRuntimeConfig: {
-    maxFileSize: '10mb',
-  },
-  // API body size limit
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
   images: {
     domains: ['localhost', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
