@@ -77,31 +77,31 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
 
   return (
     <div id="products-section" className="space-y-8">
-      {/* Search and Filters */}
-      <div className="bg-gray-900 rounded-2xl p-6">
+      {/* Search and Filters - Streetwear Style */}
+      <div className="bg-black border-4 border-white p-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Rechercher des produits..."
+              placeholder="SEARCH PRODUCTS..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
+              className="w-full pl-10 pr-4 py-4 bg-white text-black border-4 border-black font-bold placeholder-gray-600 focus:outline-none focus:border-gray-400 transition-colors uppercase tracking-wide"
             />
           </div>
 
           {/* Category Filter */}
           <div className="flex gap-2">
-            <Filter className="w-5 h-5 text-gray-400 mt-3" />
+            <Filter className="w-5 h-5 text-white mt-4" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+              className="px-4 py-4 bg-white text-black border-4 border-black font-bold focus:outline-none focus:border-gray-400 transition-colors uppercase tracking-wide"
             >
               {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
+                <option key={category} value={category}>{category.toUpperCase()}</option>
               ))}
             </select>
           </div>
@@ -110,12 +110,12 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+            className="px-4 py-4 bg-white text-black border-4 border-black font-bold focus:outline-none focus:border-gray-400 transition-colors uppercase tracking-wide"
           >
-            <option value="name">Nom</option>
-            <option value="price-low">Prix croissant</option>
-            <option value="price-high">Prix décroissant</option>
-            <option value="newest">Plus récent</option>
+            <option value="name">NAME</option>
+            <option value="price-low">PRICE: LOW TO HIGH</option>
+            <option value="price-high">PRICE: HIGH TO LOW</option>
+            <option value="newest">NEWEST</option>
           </select>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="group bg-gray-900 rounded-2xl overflow-hidden hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+            className="group bg-black border-4 border-white overflow-hidden hover:bg-gray-900 transition-all duration-200 hover:scale-105"
           >
             {/* Product Image */}
             <div className="relative aspect-square overflow-hidden">
@@ -149,41 +149,41 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
                 </div>
               </div>
 
-              {/* Category Badge */}
+              {/* Category Badge - Streetwear Style */}
               <div className="absolute top-4 left-4">
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
-                  {product.category}
+                <span className="px-3 py-1 bg-white text-black text-xs font-black uppercase tracking-wide">
+                  {product.category?.toUpperCase()}
                 </span>
               </div>
             </div>
 
-            {/* Product Info */}
+            {/* Product Info - Streetwear Style */}
             <div className="p-6">
-              <h3 className="text-lg font-bold text-white mb-2 group-hover:text-white transition-colors line-clamp-2">
+              <h3 className="text-xl font-black text-white mb-3 group-hover:text-white transition-colors line-clamp-2 uppercase tracking-wide">
                 {product.name}
               </h3>
-              <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+              <p className="text-gray-400 text-sm mb-4 line-clamp-2 font-medium">
                 {product.description}
               </p>
               
               {/* Price and Rating */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-2xl font-black text-white">
+              <div className="flex items-center justify-between mb-6">
+                <div className="text-3xl font-black text-white">
                   {product.price.toFixed(0)} DA
                 </div>
                 <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span className="text-sm text-gray-400">4.8</span>
+                  <Star className="w-4 h-4 text-white fill-current" />
+                  <span className="text-sm text-gray-400 font-bold">4.8</span>
                 </div>
               </div>
 
-              {/* CTA Button */}
+              {/* CTA Button - Streetwear Style */}
               <Link
                 href={`/product/${product.id}`}
-                className="w-full bg-white text-black py-3 rounded-xl font-bold text-center hover:bg-gray-100 transition-colors duration-300 flex items-center justify-center gap-2"
+                className="w-full bg-white text-black py-4 font-black text-center hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 border-4 border-black uppercase tracking-wide text-lg"
               >
-                Voir le produit
-                <ShoppingBag className="w-4 h-4" />
+                VIEW PRODUCT
+                <ShoppingBag className="w-5 h-5" />
               </Link>
             </div>
           </div>
