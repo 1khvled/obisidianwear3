@@ -29,8 +29,8 @@ export default function MultiImageUpload({
         alert(`File ${file.name} is not a valid image`);
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`File ${file.name} is too large. Maximum size: 5MB`);
+      if (file.size > 2 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Maximum size: 2MB`);
         return false;
       }
       return true;
@@ -48,16 +48,38 @@ export default function MultiImageUpload({
     try {
       const newUrls: string[] = [];
       
-      for (const file of validFiles) {
-        const reader = new FileReader();
-        const promise = new Promise<string>((resolve) => {
-          reader.onload = (e) => {
-            resolve(e.target?.result as string);
+      // Compress image function
+      const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+        return new Promise((resolve) => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+          const img = new Image();
+          
+          img.onload = () => {
+            // Calculate new dimensions
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressedDataUrl);
           };
+          
+          img.src = URL.createObjectURL(file);
         });
-        reader.readAsDataURL(file);
-        const url = await promise;
-        newUrls.push(url);
+      };
+      
+      for (const file of validFiles) {
+        const compressedUrl = await compressImage(file);
+        console.log('📸 Image compressed, size:', compressedUrl.length);
+        newUrls.push(compressedUrl);
       }
 
       onChange([...value, ...newUrls]);
@@ -200,7 +222,7 @@ export default function MultiImageUpload({
                 Drag and drop images here, or click to select files
               </p>
               <p className="text-gray-500 text-xs mt-1">
-                {value.length}/{maxImages} images • Max 5MB each
+                {value.length}/{maxImages} images • Max 2MB each
               </p>
             </div>
 

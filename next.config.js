@@ -4,6 +4,10 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  // Increase body size limit for API routes
+  serverRuntimeConfig: {
+    maxFileSize: '10mb',
+  },
   images: {
     domains: ['localhost', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],

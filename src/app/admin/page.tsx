@@ -921,9 +921,9 @@ export default function AdminPage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                // Validate file size (max 5MB)
-                                if (file.size > 5 * 1024 * 1024) {
-                                  alert('Image file is too large. Please choose an image smaller than 5MB.');
+                                // Validate file size (max 2MB to account for base64 encoding)
+                                if (file.size > 2 * 1024 * 1024) {
+                                  alert('Image file is too large. Please choose an image smaller than 2MB.');
                                   return;
                                 }
                                 
@@ -939,26 +939,50 @@ export default function AdminPage() {
                                   type: file.type
                                 });
                                 
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const result = event.target?.result as string;
-                                  console.log('📸 Made-to-order image uploaded, length:', result?.length);
+                                // Compress image before converting to base64
+                                const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+                                  return new Promise((resolve) => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d')!;
+                                    const img = new Image();
+                                    
+                                    img.onload = () => {
+                                      // Calculate new dimensions
+                                      let { width, height } = img;
+                                      if (width > maxWidth) {
+                                        height = (height * maxWidth) / width;
+                                        width = maxWidth;
+                                      }
+                                      
+                                      canvas.width = width;
+                                      canvas.height = height;
+                                      
+                                      // Draw and compress
+                                      ctx.drawImage(img, 0, 0, width, height);
+                                      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                                      resolve(compressedDataUrl);
+                                    };
+                                    
+                                    img.src = URL.createObjectURL(file);
+                                  });
+                                };
+                                
+                                compressImage(file).then((compressedBase64) => {
+                                  console.log('📸 Made-to-order image compressed, size:', compressedBase64.length);
                                   if (editingMadeToOrderProduct) {
-                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, image: result});
+                                    setEditingMadeToOrderProduct({...editingMadeToOrderProduct, image: compressedBase64});
                                   } else {
-                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, image: result});
+                                    setNewMadeToOrderProduct({...newMadeToOrderProduct, image: compressedBase64});
                                   }
-                                };
-                                reader.onerror = () => {
-                                  console.error('❌ Error reading image file');
-                                  alert('Error reading image file. Please try again.');
-                                };
-                                reader.readAsDataURL(file);
+                                }).catch((error) => {
+                                  console.error('❌ Error compressing image:', error);
+                                  alert('Error processing image. Please try again.');
+                                });
                               }
                             }}
                             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
                           />
-                          <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+                          <p className="text-xs text-gray-500 mt-1">Max file size: 2MB. Supported formats: JPG, PNG, GIF, WebP</p>
                         </div>
 
 

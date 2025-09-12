@@ -24,23 +24,51 @@ export default function ImageUpload({ value, onChange, placeholder = "Enter imag
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('L\'image est trop grande. Taille maximum: 5MB');
+    // Validate file size (max 2MB to account for base64 encoding)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image is too large. Maximum size: 2MB');
       return;
     }
 
     setIsUploading(true);
 
-    // For now, we'll create a local URL for the image
-    // In production, you'd upload to a service like Cloudinary, AWS S3, etc.
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      onChange(result);
-      setIsUploading(false);
+    // Compress image before converting to base64
+    const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        const img = new Image();
+        
+        img.onload = () => {
+          // Calculate new dimensions
+          let { width, height } = img;
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedDataUrl);
+        };
+        
+        img.src = URL.createObjectURL(file);
+      });
     };
-    reader.readAsDataURL(file);
+
+    compressImage(file).then((compressedBase64) => {
+      console.log('📸 Image compressed, size:', compressedBase64.length);
+      onChange(compressedBase64);
+      setIsUploading(false);
+    }).catch((error) => {
+      console.error('❌ Error compressing image:', error);
+      alert('Error processing image. Please try again.');
+      setIsUploading(false);
+    });
   };
 
   const handleUrlChange = (url: string) => {
