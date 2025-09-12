@@ -76,7 +76,7 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
   }
 
   return (
-    <div className="space-y-8">
+    <div id="products-section" className="space-y-8">
       {/* Search and Filters */}
       <div className="bg-gray-900 rounded-2xl p-6">
         <div className="flex flex-col lg:flex-row gap-4">

@@ -72,19 +72,24 @@ export default function HeroSection() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href={slides[currentSlide].link}
+              <button
+                onClick={() => {
+                  const productsSection = document.getElementById('products-section');
+                  if (productsSection) {
+                    productsSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
                 className="group bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all duration-300 flex items-center justify-center gap-2"
               >
-                {slides[currentSlide].cta}
+                COMMANDER MAINTENANT
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </button>
               <Link
-                href="/about"
+                href="/made-to-order"
                 className="group border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-black transition-all duration-300 flex items-center justify-center gap-2"
               >
-                En savoir plus
-                <MessageCircle className="w-5 h-5" />
+                ARTICLE SUR COMMANDE
+                <Package className="w-5 h-5" />
               </Link>
             </div>
 
