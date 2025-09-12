@@ -335,11 +335,11 @@ export default function AdminPage() {
       // Generate stock data based on sizes and colors
       const sizes = newMadeToOrderProduct.sizes || ['S', 'M', 'L', 'XL'];
       const colors = newMadeToOrderProduct.colors || ['Noir'];
-      const stock = {};
+      const stock: { [key: string]: { [key: string]: number } } = {};
       
-      sizes.forEach(size => {
+      sizes.forEach((size: string) => {
         stock[size] = {};
-        colors.forEach(color => {
+        colors.forEach((color: string) => {
           stock[size][color] = 10; // Default stock of 10 for each size/color combination
         });
       });
