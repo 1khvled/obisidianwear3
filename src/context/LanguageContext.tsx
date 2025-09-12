@@ -14,6 +14,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 // Translation keys - English only
 const translations = {
+  en: {
     // Navigation
     'nav.home': 'Home',
     'nav.collection': 'Collection',
