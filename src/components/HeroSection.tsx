@@ -47,31 +47,28 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
-      </div>
+    <section className="relative min-h-screen bg-black overflow-hidden">
+      {/* Minimalist background - no patterns */}
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
           {/* Left Content */}
           <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-5xl lg:text-7xl font-black text-white leading-tight">
+            <div className="space-y-6">
+              <h1 className="text-6xl lg:text-8xl font-black text-white leading-none tracking-tight">
                 {slides[currentSlide].title}
               </h1>
-              <h2 className="text-2xl lg:text-3xl font-light text-gray-300">
+              <h2 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
                 {slides[currentSlide].subtitle}
               </h2>
-              <p className="text-lg text-gray-400 leading-relaxed max-w-lg">
+              <p className="text-xl text-gray-400 leading-relaxed max-w-lg font-medium">
                 {slides[currentSlide].description}
               </p>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* CTA Buttons - Streetwear Style */}
+            <div className="flex flex-col sm:flex-row gap-6">
               <button
                 onClick={() => {
                   const productsSection = document.getElementById('products-section');
@@ -79,44 +76,52 @@ export default function HeroSection() {
                     productsSection.scrollIntoView({ behavior: 'smooth' });
                   }
                 }}
-                className="group bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all duration-300 flex items-center justify-center gap-2"
+                className="group bg-white text-black px-12 py-6 font-black text-2xl uppercase tracking-wider hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-3 border-4 border-black"
               >
-                COMMANDER MAINTENANT
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                SHOP NOW
+                <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </button>
               <Link
                 href="/made-to-order"
-                className="group border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-black transition-all duration-300 flex items-center justify-center gap-2"
+                className="group border-4 border-white text-white px-12 py-6 font-black text-2xl uppercase tracking-wider hover:bg-white hover:text-black transition-all duration-200 flex items-center justify-center gap-3"
               >
-                ARTICLE SUR COMMANDE
-                <Package className="w-5 h-5" />
+                CUSTOM ORDERS
+                <Package className="w-6 h-6" />
               </Link>
             </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-2 gap-4 pt-8">
-              <div className="flex items-center gap-3 text-gray-300">
-                <Star className="w-5 h-5 text-yellow-400" />
-                <span className="text-sm">Qualité Premium</span>
+            {/* Features - Streetwear Style */}
+            <div className="grid grid-cols-2 gap-6 pt-12">
+              <div className="flex items-center gap-4 text-gray-300">
+                <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                  <Star className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-lg font-bold uppercase tracking-wide">Premium Quality</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-300">
-                <Package className="w-5 h-5 text-blue-400" />
-                <span className="text-sm">Made to Order</span>
+              <div className="flex items-center gap-4 text-gray-300">
+                <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                  <Package className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-lg font-bold uppercase tracking-wide">Custom Made</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-300">
-                <Clock className="w-5 h-5 text-green-400" />
-                <span className="text-sm">Livraison Rapide</span>
+              <div className="flex items-center gap-4 text-gray-300">
+                <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-lg font-bold uppercase tracking-wide">Fast Delivery</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-300">
-                <CreditCard className="w-5 h-5 text-purple-400" />
-                <span className="text-sm">Paiement Sécurisé</span>
+              <div className="flex items-center gap-4 text-gray-300">
+                <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-lg font-bold uppercase tracking-wide">Secure Payment</span>
               </div>
             </div>
           </div>
 
-          {/* Right Content - Image */}
+          {/* Right Content - Image - Minimalist */}
           <div className="relative">
-            <div className="relative w-full h-96 lg:h-[500px] rounded-2xl overflow-hidden bg-gray-800">
+            <div className="relative w-full h-96 lg:h-[500px] border-4 border-white overflow-hidden bg-gray-900">
               <Image
                 src={slides[currentSlide].image}
                 alt={slides[currentSlide].title}
@@ -125,23 +130,19 @@ export default function HeroSection() {
                 priority
               />
             </div>
-            
-            {/* Floating Elements */}
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
-            <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-green-500 to-blue-600 rounded-full opacity-20 animate-pulse delay-1000"></div>
           </div>
         </div>
 
-        {/* Slide Navigation */}
-        <div className="flex justify-center gap-4 mt-12">
+        {/* Slide Navigation - Streetwear Style */}
+        <div className="flex justify-center gap-6 mt-16">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-4 h-4 border-2 border-white transition-all duration-200 ${
                 currentSlide === index
-                  ? 'bg-white scale-125'
-                  : 'bg-gray-600 hover:bg-gray-400'
+                  ? 'bg-white scale-110'
+                  : 'bg-transparent hover:bg-gray-800'
               }`}
             />
           ))}
