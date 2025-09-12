@@ -3,14 +3,11 @@
 import { ShoppingBag, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '@/context/LanguageContext';
 import { useCart } from '@/context/CartContext';
-import LanguageSwitcher from './LanguageSwitcher';
 import Logo from './Logo';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { t } = useLanguage();
   const { getTotalItems } = useCart();
 
   return (
@@ -30,19 +27,19 @@ export default function Header() {
                 window.location.href = '/';
               }}
             >
-              {t('nav.home')}
+              HOME
             </Link>
             <Link 
               href="/#products" 
               className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium"
             >
-              {t('nav.collection')}
+              COLLECTION
             </Link>
             <Link 
               href="/made-to-order" 
               className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white px-4 py-2 rounded-lg font-bold text-sm xl:text-base transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-white/20 border border-white/30"
             >
-              ✨ {t('nav.madeToOrder')} ✨
+              ✨ SPECIAL ORDER ✨
             </Link>
             <Link href="/cart" className="text-white hover:text-gray-300 transition-colors text-sm xl:text-base font-medium">
               Cart
@@ -51,9 +48,6 @@ export default function Header() {
 
           {/* Cart, Language Switcher and Mobile Menu Button */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="hidden sm:block">
-              <LanguageSwitcher />
-            </div>
             <div className="flex flex-col items-end">
               <Link 
                 href="/cart"
@@ -90,32 +84,29 @@ export default function Header() {
                   window.location.href = '/';
                 }}
               >
-                {t('nav.home')}
+                HOME
               </button>
               <Link 
                 href="/#products"
                 className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('nav.collection')}
+                COLLECTION
               </Link>
               <Link 
                 href="/made-to-order"
                 className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white font-bold py-3 px-4 rounded-lg text-left block touch-target transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-white/20 border border-white/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                ✨ {t('nav.madeToOrder')} ✨
+                ✨ SPECIAL ORDER ✨
               </Link>
               <Link 
                 href="/cart"
                 className="text-white hover:text-gray-300 hover:bg-gray-800/50 transition-all py-3 px-4 rounded-lg font-medium text-left block touch-target"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Cart
+                CART
               </Link>
-              <div className="sm:hidden pt-2 mt-2 border-t border-gray-800/50">
-                <LanguageSwitcher />
-              </div>
             </nav>
           </div>
         )}

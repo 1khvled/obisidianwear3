@@ -12,28 +12,28 @@ export default function HeroSection() {
     {
       id: 1,
       title: "OBSIDIAN WEAR",
-      subtitle: "Plus qu'un vêtement, une attitude",
-      description: "Découvrez notre collection exclusive de vêtements premium. Style unique, qualité exceptionnelle.",
+      subtitle: "More than clothing, it's an attitude",
+      description: "Discover our exclusive collection of premium clothing. Unique style, exceptional quality.",
       image: "/Logo Obsidian Wear sur fond noir.png",
-      cta: "Découvrir la collection",
+      cta: "Discover the collection",
       link: "/made-to-order"
     },
     {
       id: 2,
       title: "MADE TO ORDER",
-      subtitle: "Créé spécialement pour vous",
-      description: "Des pièces uniques créées selon vos spécifications. Personnalisez chaque détail.",
+      subtitle: "Created especially for you",
+      description: "Unique pieces created according to your specifications. Customize every detail.",
       image: "/Logo Obsidian Wear sur fond noir.png",
-      cta: "Commander maintenant",
+      cta: "Order now",
       link: "/made-to-order"
     },
     {
       id: 3,
-      title: "QUALITÉ PREMIUM",
-      subtitle: "Excellence dans chaque couture",
-      description: "Matériaux de haute qualité, finitions impeccables. L'excellence à chaque détail.",
+      title: "PREMIUM QUALITY",
+      subtitle: "Excellence in every stitch",
+      description: "High-quality materials, impeccable finishes. Excellence in every detail.",
       image: "/Logo Obsidian Wear sur fond noir.png",
-      cta: "Voir les produits",
+      cta: "View products",
       link: "/made-to-order"
     }
   ];
