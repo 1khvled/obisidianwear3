@@ -455,7 +455,7 @@ export default function MadeToOrderPageRefactored() {
                         <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         {productsByCategory[category].map((product, index) => (
                 <div 
                   key={`${product.id}-${category}-${index}`} 

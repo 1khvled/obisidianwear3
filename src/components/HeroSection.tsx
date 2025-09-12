@@ -121,7 +121,7 @@ export default function HeroSection() {
 
           {/* Right Content - Image - Minimalist */}
           <div className="relative">
-            <div className="relative w-full h-96 lg:h-[500px] border-4 border-white overflow-hidden bg-gray-900">
+            <div className="relative w-full h-96 lg:h-[500px] border-4 border-white overflow-hidden bg-black">
               <Image
                 src={slides[currentSlide].image}
                 alt={slides[currentSlide].title}
