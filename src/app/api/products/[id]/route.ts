@@ -30,40 +30,34 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Fetch REAL-TIME inventory data from inventory table
-    console.log('🔍 Fetching REAL-TIME inventory data for product:', productId);
-    const { data: inventoryData, error: inventoryError } = await supabase
-      .from('inventory')
-      .select('size, color, available_quantity')
-      .eq('product_id', productId);
+    // Use the product's stock data directly (this is the real-time data)
+    console.log('📦 Using product stock data directly:', product.stock);
+    
+    // Ensure the product has proper stock structure
+    const stockData = product.stock || {};
+    const inStock = product.in_stock !== false && (
+      Object.keys(stockData).length > 0 
+        ? Object.values(stockData).some((sizeStock: any) => 
+            Object.values(sizeStock).some((quantity: any) => quantity > 0)
+          )
+        : false
+    );
 
-    if (inventoryError) {
-      console.error('❌ Error fetching inventory:', inventoryError);
-      // Fall back to product stock if inventory table fails
-      console.log('📦 Using product stock as fallback:', product.stock);
-      return NextResponse.json(product);
-    }
-
-    // Convert inventory data to stock format
-    const realTimeStock: any = {};
-    if (inventoryData && inventoryData.length > 0) {
-      inventoryData.forEach((item: any) => {
-        if (!realTimeStock[item.size]) {
-          realTimeStock[item.size] = {};
-        }
-        realTimeStock[item.size][item.color] = item.available_quantity;
-      });
-    }
-
-    console.log('✅ REAL-TIME inventory data:', realTimeStock);
-
-    // Update product with real-time stock data
-    const productWithRealTimeStock = {
+    // Update product with proper stock status
+    const productWithStock = {
       ...product,
-      stock: realTimeStock
+      stock: stockData,
+      inStock: inStock
     };
 
-    return NextResponse.json(productWithRealTimeStock);
+    console.log('✅ Product with stock data:', {
+      id: product.id,
+      name: product.name,
+      stock: stockData,
+      inStock: inStock
+    });
+
+    return NextResponse.json(productWithStock);
   } catch (error) {
     console.error('❌ Error in product API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -88,6 +82,63 @@ export async function PUT(
       useCustomSizeChart: body.useCustomSizeChart,
       sizeChartCategory: body.sizeChartCategory
     });
+
+    // Get current product data to compare colors and sizes
+    const { data: currentProduct, error: currentError } = await supabase
+      .from('products')
+      .select('colors, sizes, stock')
+      .eq('id', productId)
+      .single();
+
+    if (currentError) {
+      console.error('❌ Error fetching current product:', currentError);
+      return NextResponse.json({ error: 'Failed to fetch current product' }, { status: 500 });
+    }
+
+    // Clean up inventory records for removed colors and sizes
+    if (currentProduct) {
+      const currentColors = currentProduct.colors || [];
+      const newColors = body.colors || [];
+      const currentSizes = currentProduct.sizes || [];
+      const newSizes = body.sizes || [];
+      
+      const removedColors = currentColors.filter((color: string) => !newColors.includes(color));
+      const removedSizes = currentSizes.filter((size: string) => !newSizes.includes(size));
+      
+      if (removedColors.length > 0 || removedSizes.length > 0) {
+        console.log('🧹 Cleaning up inventory for removed colors/sizes:', { removedColors, removedSizes });
+        
+        // Delete inventory records for removed colors
+        for (const color of removedColors) {
+          const { error: colorError } = await supabase
+            .from('inventory')
+            .delete()
+            .eq('product_id', productId)
+            .eq('color', color);
+          
+          if (colorError) {
+            console.error(`❌ Error deleting inventory for color ${color}:`, colorError);
+          } else {
+            console.log(`✅ Deleted inventory records for color: ${color}`);
+          }
+        }
+        
+        // Delete inventory records for removed sizes
+        for (const size of removedSizes) {
+          const { error: sizeError } = await supabase
+            .from('inventory')
+            .delete()
+            .eq('product_id', productId)
+            .eq('size', size);
+          
+          if (sizeError) {
+            console.error(`❌ Error deleting inventory for size ${size}:`, sizeError);
+          } else {
+            console.log(`✅ Deleted inventory records for size: ${size}`);
+          }
+        }
+      }
+    }
 
     // Update product in database
     const { data: updatedProduct, error } = await supabase

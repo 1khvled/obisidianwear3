@@ -39,7 +39,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-102">
       <div className="relative overflow-hidden">
-        <Link href={`/product/${product.id}`} className="block">
+        <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`} className="block">
           {(() => {
             console.log('🖼️ ProductCard: Rendering image for product:', {
               id: product.id,
@@ -122,7 +122,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <div className="p-4">
-        <Link href={`/product/${product.id}`}>
+        <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`}>
           <h3 className="text-base font-bold text-white mb-2 group-hover:text-white transition-colors line-clamp-2">
             {product.name}
           </h3>
@@ -162,7 +162,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Buy Button */}
         <div className="space-y-2">
-          <Link href={`/product/${product.id}`}>
+          <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`}>
             <button 
               className="w-full bg-white/10 border border-white/20 text-white py-2 px-3 rounded-lg font-semibold hover:bg-white/20 transition-colors text-xs touch-target"
             >

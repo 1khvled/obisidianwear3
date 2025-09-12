@@ -1,9 +1,13 @@
 {
-  "/made-to-order/page": "app/made-to-order/page.js",
+  "/admin/page": "app/admin/page.js",
   "/api/products/route": "app/api/products/route.js",
   "/api/made-to-order/route": "app/api/made-to-order/route.js",
   "/api/wilaya/route": "app/api/wilaya/route.js",
+  "/product/[id]/page": "app/product/[id]/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/order-success/page": "app/order-success/page.js",
+  "/page": "app/page.js",
+  "/api/products/[id]/route": "app/api/products/[id]/route.js",
   "/not-found": "app/not-found.js",
-  "/api/maintenance/route": "app/api/maintenance/route.js",
-  "/page": "app/page.js"
+  "/api/maintenance/route": "app/api/maintenance/route.js"
 }

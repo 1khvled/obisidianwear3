@@ -65,44 +65,30 @@ class OrderService {
   // Create new order
   async createOrder(orderData: CreateOrderData, product: Product): Promise<{ success: boolean; orderId?: string; error?: string }> {
     try {
-      // First, validate and reserve inventory
-      const availableStock = product.stock?.[orderData.selectedSize]?.[orderData.selectedColor] || 0;
+      // Check if this is a made-to-order product (no stock property)
+      const isMadeToOrder = !product.stock;
       
-      if (availableStock < orderData.quantity) {
-        console.error('❌ Insufficient stock for order:', { 
-          available: availableStock, 
-          requested: orderData.quantity,
-          size: orderData.selectedSize,
-          color: orderData.selectedColor
-        });
-        return { 
-          success: false, 
-          error: `Not enough stock available. Only ${availableStock} items available in ${orderData.selectedSize} ${orderData.selectedColor}.` 
-        };
+      if (!isMadeToOrder) {
+        // Only validate and reserve inventory for regular products
+        const availableStock = product.stock?.[orderData.selectedSize]?.[orderData.selectedColor] || 0;
+        
+        if (availableStock < orderData.quantity) {
+          console.error('❌ Insufficient stock for order:', { 
+            available: availableStock, 
+            requested: orderData.quantity,
+            size: orderData.selectedSize,
+            color: orderData.selectedColor
+          });
+          return { 
+            success: false, 
+            error: `Not enough stock available. Only ${availableStock} items available in ${orderData.selectedSize} ${orderData.selectedColor}.` 
+          };
+        }
+
+        console.log('✅ Stock validation passed for order');
+      } else {
+        console.log('✅ Skipping inventory reservation for made-to-order product');
       }
-
-      // Reserve inventory by calling the inventory API
-      const reserveResponse = await fetch('/api/inventory/reserve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: orderData.productId,
-          size: orderData.selectedSize,
-          color: orderData.selectedColor,
-          quantity: orderData.quantity
-        })
-      });
-
-      if (!reserveResponse.ok) {
-        const errorData = await reserveResponse.json();
-        console.error('❌ Failed to reserve inventory:', errorData);
-        return { 
-          success: false, 
-          error: `Inventory reservation failed: ${errorData.error || 'Unknown error'}` 
-        };
-      }
-
-      console.log('✅ Inventory reserved successfully for order');
 
       const orderId = this.generateOrderId();
       const now = new Date();
@@ -141,8 +127,32 @@ class OrderService {
       await backendService.addOrder(order);
       this.orders.unshift(order); // Add to beginning for newest first
 
+      // Deduct stock after successful order (simple version)
+      if (!isMadeToOrder) {
+        try {
+          const deductResponse = await fetch('/api/inventory/deduct', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: orderData.productId,
+              size: orderData.selectedSize,
+              color: orderData.selectedColor,
+              quantity: orderData.quantity
+            })
+          });
+
+          if (deductResponse.ok) {
+            console.log('✅ Stock deducted successfully after order');
+          } else {
+            console.log('⚠️ Stock deduction failed, but order was created');
+          }
+        } catch (error) {
+          console.log('⚠️ Stock deduction error, but order was created:', error);
+        }
+      }
+
       // Email notifications are now handled automatically in the API routes
-      console.log('✅ Order created successfully with inventory reserved, email will be sent via API');
+      console.log('✅ Order created successfully, email will be sent via API');
 
       return { success: true, orderId };
     } catch (error) {

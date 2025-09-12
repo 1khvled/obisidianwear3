@@ -49,6 +49,16 @@ export default function CheckoutPage() {
           const productData = JSON.parse(decodeURIComponent(productDataParam));
           setProduct(productData);
           
+          
+          // Check if this is a made-to-order product (no stock property or empty stock)
+          const isMadeToOrder = !productData.stock || (typeof productData.stock === 'object' && Object.keys(productData.stock).length === 0);
+          if (isMadeToOrder) {
+            console.log('🚨 Made-to-order product detected during loading, redirecting to made-to-order page');
+            // Redirect made-to-order products to the made-to-order page
+            router.push(`/made-to-order/${productId}`);
+            return;
+          }
+          
           // Check if the selected size/color combination is in stock
           if (selectedSize && selectedColor) {
             const availableStock = productData.stock?.[selectedSize]?.[selectedColor] || 0;
@@ -68,6 +78,16 @@ export default function CheckoutPage() {
         // Fallback to product lookup
         const foundProduct = getProduct(productId);
         setProduct(foundProduct || null);
+        
+        // Check if this is a made-to-order product (no stock property)
+        
+        const isMadeToOrder = foundProduct && (!foundProduct.stock || (typeof foundProduct.stock === 'object' && Object.keys(foundProduct.stock).length === 0));
+        if (isMadeToOrder) {
+          console.log('🚨 Made-to-order product detected during fallback loading, redirecting to made-to-order page');
+          // Redirect made-to-order products to the made-to-order page
+          router.push(`/made-to-order/${productId}`);
+          return;
+        }
         
         // Check stock for found product
         if (foundProduct && selectedSize && selectedColor) {
@@ -146,6 +166,14 @@ export default function CheckoutPage() {
     if (!product) {
       setOrderStatus('error');
       setOrderMessage('Product information is missing');
+      return;
+    }
+    
+    // Final safety check: if this is a made-to-order product, redirect to made-to-order page
+    const isMadeToOrder = !product.stock || (typeof product.stock === 'object' && Object.keys(product.stock).length === 0);
+    
+    if (isMadeToOrder) {
+      router.push(`/made-to-order/${product.id}`);
       return;
     }
 

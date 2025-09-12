@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { withAuth } from '@/lib/authMiddleware';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -11,7 +10,97 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// GET /api/inventory/[id] - Get inventory by product ID
+// PUT /api/inventory/[id] - Update inventory record
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const { quantity } = await request.json();
+
+    console.log(`🔄 Updating inventory record ${id} with quantity ${quantity}`);
+
+    // Parse the inventory ID to extract product info
+    // Format: INV-{productId}-{size}-{color}
+    const parts = id.replace('INV-', '').split('-');
+    if (parts.length < 3) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid inventory ID format' },
+        { status: 400 }
+      );
+    }
+
+    const productId = parts[0];
+    const size = parts[1];
+    const color = parts[2];
+
+    // Get the current product
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (productError || !product) {
+      console.error('❌ Product not found:', productError);
+      return NextResponse.json(
+        { success: false, error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the stock data in the product
+    const currentStock = product.stock || {};
+    if (!currentStock[size]) {
+      currentStock[size] = {};
+    }
+    currentStock[size][color] = quantity;
+
+    // Update the product with new stock data
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ 
+        stock: currentStock,
+        in_stock: Object.values(currentStock).some((sizeStock: any) => 
+          Object.values(sizeStock).some((qty: any) => qty > 0)
+        )
+      })
+      .eq('id', productId);
+
+    if (updateError) {
+      console.error('❌ Error updating product stock:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to update product stock' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ Successfully updated stock for ${product.name} - ${size} ${color}: ${quantity}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Inventory updated successfully',
+      data: {
+        id,
+        product_id: productId,
+        size,
+        color,
+        quantity,
+        product_name: product.name
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating inventory:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET /api/inventory/[id] - Get inventory record
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -19,153 +108,55 @@ export async function GET(
   try {
     const { id } = params;
 
-    const { data: inventory, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        products (
-          id,
-          name,
-          image,
-          price
-        )
-      `)
-      .eq('product_id', id)
-      .order('size', { ascending: true });
-
-    if (error) {
-      console.error('Inventory API: GET error:', error);
+    // Parse the inventory ID to extract product info
+    const parts = id.replace('INV-', '').split('-');
+    if (parts.length < 3) {
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch inventory' },
-        { status: 500 }
+        { success: false, error: 'Invalid inventory ID format' },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: inventory,
-      message: 'Inventory fetched successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Inventory API: GET error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch inventory' },
-      { status: 500 }
-    );
-  }
-}
+    const productId = parts[0];
+    const size = parts[1];
+    const color = parts[2];
 
-// PUT /api/inventory/[id] - Update inventory (PROTECTED)
-export const PUT = withAuth(async (
-  request: Request,
-  { params }: { params: { id: string } }
-) => {
-  try {
-    const { id } = params;
-    const updateData = await request.json();
-
-    // Get current inventory record
-    const { data: currentRecord, error: fetchError } = await supabase
-      .from('inventory')
+    // Get the product
+    const { data: product, error: productError } = await supabase
+      .from('products')
       .select('*')
-      .eq('id', id)
+      .eq('id', productId)
       .single();
 
-    if (fetchError || !currentRecord) {
+    if (productError || !product) {
       return NextResponse.json(
-        { success: false, error: 'Inventory record not found' },
+        { success: false, error: 'Product not found' },
         { status: 404 }
       );
     }
 
-    // Update inventory (available_quantity is auto-calculated)
-    const { data, error } = await supabase
-      .from('inventory')
-      .update({
-        quantity: updateData.quantity,
-        reserved_quantity: updateData.reservedQuantity || currentRecord.reserved_quantity,
-        min_stock_level: updateData.minStockLevel || currentRecord.min_stock_level,
-        max_stock_level: updateData.maxStockLevel || currentRecord.max_stock_level,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Inventory API: PUT error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to update inventory' },
-        { status: 500 }
-      );
-    }
-
-    // Log transaction
-    const quantityChange = updateData.quantity - currentRecord.quantity;
-    if (quantityChange !== 0) {
-      await supabase
-        .from('inventory_transactions')
-        .insert([{
-          id: `TXN-${Date.now()}-${id}`,
-          product_id: currentRecord.product_id,
-          size: currentRecord.size,
-          color: currentRecord.color,
-          transaction_type: 'adjustment',
-          quantity_change: quantityChange,
-          previous_quantity: currentRecord.quantity,
-          new_quantity: updateData.quantity,
-          reason: updateData.reason || 'Manual adjustment',
-          created_by: updateData.createdBy || 'admin'
-        }]);
-    }
+    // Get the stock quantity for this size/color combination
+    const stock = product.stock || {};
+    const quantity = stock[size]?.[color] || 0;
 
     return NextResponse.json({
       success: true,
-      data,
-      message: 'Inventory updated successfully',
-      timestamp: Date.now()
+      data: {
+        id,
+        product_id: productId,
+        size,
+        color,
+        quantity,
+        product_name: product.name,
+        product_image: product.image
+      }
     });
+
   } catch (error) {
-    console.error('Inventory API: PUT error:', error);
+    console.error('❌ Error getting inventory record:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update inventory' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
-});
-
-// DELETE /api/inventory/[id] - Delete inventory record (PROTECTED)
-export const DELETE = withAuth(async (
-  request: Request,
-  { params }: { params: { id: string } }
-) => {
-  try {
-    const { id } = params;
-
-    const { error } = await supabase
-      .from('inventory')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Inventory API: DELETE error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to delete inventory record' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Inventory record deleted successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Inventory API: DELETE error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete inventory record' },
-      { status: 500 }
-    );
-  }
-});
+}

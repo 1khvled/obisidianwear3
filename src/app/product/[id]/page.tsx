@@ -10,7 +10,7 @@ import { useProducts } from '@/context/SmartProductProvider';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import { recentlyViewedService } from '@/lib/recentlyViewed';
-import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Package } from 'lucide-react';
+import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Package, RefreshCw } from 'lucide-react';
 import SizeChart from '@/components/SizeChart';
 
 export default function ProductDetailPage() {
@@ -36,11 +36,20 @@ export default function ProductDetailPage() {
     setStockLoading(true);
     try {
       console.log('🔄 Fetching REAL-TIME stock data for product:', productId);
-      const response = await fetch(`/api/products/${productId}`);
+      const response = await fetch(`/api/products/${productId}?t=${Date.now()}`, {
+        cache: 'no-store' // Ensure we get fresh data
+      });
       if (response.ok) {
         const productData = await response.json();
         console.log('✅ REAL-TIME stock data:', productData.stock);
         setRealTimeStock(productData.stock);
+        
+        // Update the product state with fresh data
+        setProduct(prev => prev ? {
+          ...prev,
+          stock: productData.stock,
+          inStock: productData.inStock
+        } : prev);
       } else {
         console.error('❌ Failed to fetch real-time stock data');
       }
@@ -119,6 +128,15 @@ export default function ProductDetailPage() {
       alert('Please select size and color');
       return;
     }
+    
+    // Check if this is a made-to-order product (no stock property)
+    if (!product.stock) {
+      // Redirect made-to-order products to the made-to-order page
+      router.push(`/made-to-order/${product.id}`);
+      return;
+    }
+    
+    // Regular products go to checkout
     router.push(`/checkout?productId=${product.id}&size=${selectedSize}&color=${selectedColor}&quantity=${quantity}`);
   };
 
@@ -131,6 +149,13 @@ export default function ProductDetailPage() {
       alert('Please select size and color');
       return;
     }
+    
+    // Check if this is a made-to-order product (no stock property)
+    if (!product.stock) {
+      alert('Made-to-order products cannot be added to cart. Please use the "Order Now" button to place your order.');
+      return;
+    }
+    
     console.log('Adding to cart:', { product, selectedSize, selectedColor, quantity });
     addToCart(product, selectedSize, selectedColor, quantity);
     alert('Added to cart!');
@@ -349,8 +374,10 @@ export default function ProductDetailPage() {
               </div>
               
               {selectedColor && (() => {
+                // Use real-time stock data if available, otherwise fall back to cached data
+                const stockData = realTimeStock || product.stock;
                 const availableSizes = product.sizes.filter(size => {
-                  const stock = product.stock?.[size]?.[selectedColor] || 0;
+                  const stock = stockData?.[size]?.[selectedColor] || 0;
                   return stock > 0;
                 });
                 
@@ -363,7 +390,7 @@ export default function ProductDetailPage() {
                 }
                 
                 const outOfStockSizes = product.sizes.filter(size => {
-                  const stock = product.stock?.[size]?.[selectedColor] || 0;
+                  const stock = stockData?.[size]?.[selectedColor] || 0;
                   return stock === 0;
                 });
                 

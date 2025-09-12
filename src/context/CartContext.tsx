@@ -91,15 +91,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const cartItemId = `${product.id}-${selectedSize}-${selectedColor}`;
     
     try {
-      // First, check and reserve inventory
-      const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+      // Check if this is a made-to-order product (no stock property)
+      const isMadeToOrder = !product.stock;
       
-      if (!product.stock) {
-        if (!product.inStock) {
-          alert('❌ This product is out of stock!');
-          return;
-        }
-      } else {
+      if (isMadeToOrder) {
+        alert('Made-to-order products cannot be added to cart. Please use the "Order Now" button to place your order.');
+        return;
+      }
+      
+      if (!isMadeToOrder) {
+        // Simple stock check - no reservation, just check if available
+        const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
+        
         // Check if the specific size/color combination is available
         if (availableStock === 0) {
           alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
@@ -108,30 +111,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         // Check if requested quantity exceeds available stock
         if (quantity > availableStock) {
-          alert(`❌ Not enough stock available in ${selectedSize} ${selectedColor}!`);
+          alert(`❌ Not enough stock available in ${selectedSize} ${selectedColor}! Only ${availableStock} available.`);
           return;
         }
+
+        console.log('✅ Stock check passed - adding to cart');
+      } else {
+        console.log('✅ Made-to-order product - no stock check needed');
       }
 
-      // Reserve inventory by updating the database
-      const reserveResponse = await fetch('/api/inventory/reserve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product.id,
-          size: selectedSize,
-          color: selectedColor,
-          quantity: quantity
-        })
-      });
-
-      if (!reserveResponse.ok) {
-        const errorData = await reserveResponse.json();
-        alert(`❌ Inventory reservation failed: ${errorData.error || 'Unknown error'}`);
-        return;
-      }
-
-      // If inventory reservation successful, add to cart
+      // If inventory reservation successful (or skipped for made-to-order), add to cart
       setItems(prevItems => {
         const existingItem = prevItems.find(item => item.id === cartItemId);
         
@@ -212,40 +201,47 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (quantityDifference === 0) return; // No change needed
 
     try {
-      if (quantityDifference > 0) {
-        // Increasing quantity - reserve more inventory
-        const reserveResponse = await fetch('/api/inventory/reserve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: item.productId,
-            size: item.selectedSize,
-            color: item.selectedColor,
-            quantity: quantityDifference
-          })
-        });
+      // Check if this is a made-to-order product (no stock property)
+      const isMadeToOrder = !item.stock;
+      
+      if (!isMadeToOrder) {
+        if (quantityDifference > 0) {
+          // Increasing quantity - reserve more inventory
+          const reserveResponse = await fetch('/api/inventory/reserve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: item.productId,
+              size: item.selectedSize,
+              color: item.selectedColor,
+              quantity: quantityDifference
+            })
+          });
 
-        if (!reserveResponse.ok) {
-          const errorData = await reserveResponse.json();
-          alert(`❌ Cannot increase quantity: ${errorData.error || 'Unknown error'}`);
-          return;
+          if (!reserveResponse.ok) {
+            const errorData = await reserveResponse.json();
+            alert(`❌ Cannot increase quantity: ${errorData.error || 'Unknown error'}`);
+            return;
+          }
+        } else {
+          // Decreasing quantity - restore some inventory
+          const restoreResponse = await fetch('/api/inventory/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: item.productId,
+              size: item.selectedSize,
+              color: item.selectedColor,
+              quantity: Math.abs(quantityDifference)
+            })
+          });
+
+          if (!restoreResponse.ok) {
+            console.error('❌ Failed to restore inventory, but updating quantity anyway');
+          }
         }
       } else {
-        // Decreasing quantity - restore some inventory
-        const restoreResponse = await fetch('/api/inventory/restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: item.productId,
-            size: item.selectedSize,
-            color: item.selectedColor,
-            quantity: Math.abs(quantityDifference)
-          })
-        });
-
-        if (!restoreResponse.ok) {
-          console.error('❌ Failed to restore inventory, but updating quantity anyway');
-        }
+        console.log('✅ Skipping inventory operations for made-to-order product');
       }
 
       // Update the cart

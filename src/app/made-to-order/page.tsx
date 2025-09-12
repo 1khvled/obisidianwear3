@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import Image from 'next/image';
 import { 
   Palette, 
   Ruler, 
@@ -30,34 +29,24 @@ import {
   Search
 } from 'lucide-react';
 import { MadeToOrderProduct } from '@/types';
-import SizeChart from '@/components/SizeChart';
 import { sortedWilayas } from '@/data/wilayas';
 import { backendService } from '@/services/backendService';
 import Header from '@/components/Header';
 import { useLanguage } from '@/context/LanguageContext';
 import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { ProductGridSkeleton } from '@/components/ProductGridSkeleton';
+import OptimizedImage from '@/components/OptimizedImage';
+import OrderFormModal from '@/components/OrderFormModal';
 
-export default function MadeToOrderPage() {
+export default function MadeToOrderPageRefactored() {
   const { t } = useLanguage();
   const { madeToOrderProducts, wilayaTariffs, loading } = useOptimizedUserData();
   
-  // Force watches to appear if they exist in the data
-  const productsWithWatches = useMemo(() => {
-    if (madeToOrderProducts.length === 0) return madeToOrderProducts;
-    
-    // Check if we have watches but they're not showing
-    const hasWatches = madeToOrderProducts.some(p => p.category === 'Watches');
-    if (hasWatches) {
-      console.log('✅ Watches detected in data:', madeToOrderProducts.filter(p => p.category === 'Watches').length);
-    }
-    
-    return madeToOrderProducts;
-  }, [madeToOrderProducts]);
   const [selectedProduct, setSelectedProduct] = useState<MadeToOrderProduct | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [showSubLoading, setShowSubLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearch, setShowSearch] = useState<boolean>(false);
@@ -67,61 +56,19 @@ export default function MadeToOrderPage() {
   const [currentBatch, setCurrentBatch] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
-  const BATCH_SIZE = 8; // Load 8 products at a time for better performance
-  const [orderForm, setOrderForm] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerEmail: '',
-    customerAddress: '',
-    wilayaId: 0,
-    wilayaName: '',
-    selectedSize: '',
-    selectedColor: '',
-    quantity: 1,
-    notes: '',
-    shippingType: 'homeDelivery' as 'homeDelivery' | 'stopDesk'
-  });
+  const BATCH_SIZE = 8;
 
-  // Optimized helper function to get the best image source
-  const getImageSrc = useCallback((product: MadeToOrderProduct) => {
-    // Check for main image first
-    if (product.image && product.image.trim()) {
-      const image = product.image.trim();
-      // If it's a data URL (base64), use it directly
-      if (image.startsWith('data:')) {
-        return image;
-      }
-      // If it's a URL path, use it
-      if (image.startsWith('/') || image.startsWith('http')) {
-        return image;
-      }
-      // If it's a long base64 string, use it
-      if (image.length > 100) {
-        return image;
-      }
+  // Force watches to appear if they exist in the data
+  const productsWithWatches = useMemo(() => {
+    if (madeToOrderProducts.length === 0) return madeToOrderProducts;
+    
+    const hasWatches = madeToOrderProducts.some(p => p.category === 'Watches');
+    if (hasWatches) {
+      console.log('✅ Watches detected in data:', madeToOrderProducts.filter(p => p.category === 'Watches').length);
     }
     
-    // Check for images array
-    if (product.images && product.images.length > 0) {
-      const firstImage = product.images[0]?.trim();
-      if (firstImage) {
-        // If it's a data URL (base64), use it directly
-        if (firstImage.startsWith('data:')) {
-          return firstImage;
-        }
-        // If it's a URL path, use it
-        if (firstImage.startsWith('/') || firstImage.startsWith('http')) {
-          return firstImage;
-        }
-        // If it's a long base64 string, use it
-        if (firstImage.length > 100) {
-          return firstImage;
-        }
-      }
-    }
-    
-    return null;
-  }, []);
+    return madeToOrderProducts;
+  }, [madeToOrderProducts]);
 
   // Get filtered products based on selected category and search query
   const filteredProducts = useMemo(() => {
@@ -129,7 +76,6 @@ export default function MadeToOrderPage() {
       ? productsWithWatches 
       : productsWithWatches.filter(p => (p.category || 'Other') === selectedCategory);
     
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p => 
@@ -139,7 +85,18 @@ export default function MadeToOrderPage() {
       );
     }
     
-    return filtered;
+    // Remove duplicates based on product ID
+    const uniqueProducts = filtered.filter((product, index, self) => 
+      index === self.findIndex(p => p.id === product.id)
+    );
+    
+    console.log('🔍 Filtered products:', { 
+      total: filtered.length, 
+      unique: uniqueProducts.length, 
+      duplicates: filtered.length - uniqueProducts.length 
+    });
+    
+    return uniqueProducts;
   }, [selectedCategory, productsWithWatches, searchQuery]);
 
   // Improved lazy loading function
@@ -148,7 +105,6 @@ export default function MadeToOrderPage() {
     
     setIsLoadingMore(true);
     
-    // Use requestAnimationFrame for smoother loading
     requestAnimationFrame(() => {
       const startIndex = currentBatch * BATCH_SIZE;
       const endIndex = startIndex + BATCH_SIZE;
@@ -164,15 +120,8 @@ export default function MadeToOrderPage() {
       setCurrentBatch(prev => prev + 1);
       setHasMoreProducts(endIndex < filteredProducts.length);
       setIsLoadingMore(false);
-      
-      console.log('📦 Loaded batch:', {
-        batch: currentBatch + 1,
-        loaded: nextBatch.length,
-        total: filteredProducts.length,
-        visible: visibleProducts.length + nextBatch.length
-      });
     });
-  }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts, visibleProducts.length]);
+  }, [currentBatch, filteredProducts, isLoadingMore, hasMoreProducts]);
 
   // Reset lazy loading when category or search changes
   useEffect(() => {
@@ -185,11 +134,18 @@ export default function MadeToOrderPage() {
   // Update lazy loading when filtered products change
   useEffect(() => {
     if (!loading && filteredProducts.length > 0 && visibleProducts.length === 0) {
-      console.log('🚀 Starting lazy loading with', filteredProducts.length, 'filtered products');
-      // Load first batch immediately
+      // Force immediate load of first batch
       loadNextBatch();
     }
   }, [loading, filteredProducts.length, visibleProducts.length, loadNextBatch]);
+
+  // Ensure products are displayed immediately when they first load
+  useEffect(() => {
+    if (!loading && madeToOrderProducts.length > 0 && visibleProducts.length === 0) {
+      console.log('🔄 Auto-loading first batch of products...');
+      loadNextBatch();
+    }
+  }, [loading, madeToOrderProducts.length, visibleProducts.length, loadNextBatch]);
 
   // Auto-load more products when user scrolls near bottom
   useEffect(() => {
@@ -200,7 +156,6 @@ export default function MadeToOrderPage() {
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
       
-      // Load more when user is 200px from bottom
       if (scrollTop + windowHeight >= documentHeight - 200) {
         loadNextBatch();
       }
@@ -212,77 +167,15 @@ export default function MadeToOrderPage() {
 
   // Manage loading states
   useEffect(() => {
-    // If context is loading, show main loading
     if (loading) {
       setIsPageLoading(true);
-      setShowSubLoading(false);
-    }
-    // If context finished loading and we have products, hide main loading
-    else if (!loading && productsWithWatches.length > 0) {
+    } else if (!loading && productsWithWatches.length > 0) {
       setIsPageLoading(false);
-      setShowSubLoading(false);
     }
-    // If context finished loading but no products yet, show sub-loading
-    else if (!loading && productsWithWatches.length === 0) {
-      setIsPageLoading(false);
-      setShowSubLoading(true);
-    }
-  }, [loading, productsWithWatches.length, isPageLoading, showSubLoading, visibleProducts.length]);
+  }, [loading, productsWithWatches.length]);
 
-
-
-
-  const handleOrderSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedProduct) return;
-
-    // Validate phone number (must start with 0, then 7/6/5, total 10 digits)
-    const phoneRegex = /^0[567][0-9]{8}$/;
-    if (!phoneRegex.test(orderForm.customerPhone)) {
-      alert('Le numéro de téléphone doit commencer par 0, suivi de 7, 6 ou 5, et contenir exactement 10 chiffres (ex: 0555123456)');
-      return;
-    }
-    
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(orderForm.customerEmail)) {
-      alert('Veuillez entrer une adresse email valide');
-      return;
-    }
-    
-    // Validate required fields
-    if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.customerEmail || !orderForm.customerAddress || !orderForm.wilayaId || !orderForm.selectedSize || !orderForm.selectedColor) {
-      alert('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-
-    // Additional validation for wilaya selection
-    if (orderForm.wilayaId === 0) {
-      alert('Veuillez sélectionner une wilaya');
-      return;
-    }
-
+  const handleOrderSubmit = async (orderData: any) => {
     try {
-      const orderData = {
-        productId: selectedProduct.id,
-        customerName: orderForm.customerName,
-        customerPhone: orderForm.customerPhone,
-        customerEmail: orderForm.customerEmail || '',
-        customerAddress: orderForm.customerAddress,
-        customerCity: orderForm.customerAddress.split(',')[0] || orderForm.customerAddress, // Extract city from address
-        wilayaId: orderForm.wilayaId,
-        wilayaName: orderForm.wilayaName,
-        selectedSize: orderForm.selectedSize,
-        selectedColor: orderForm.selectedColor,
-        quantity: orderForm.quantity,
-        unitPrice: selectedProduct.price,
-        whatsappContact: '+213123456789', // Default WhatsApp number
-        notes: orderForm.notes || ''
-      };
-
-      console.log('Submitting order with data:', orderData);
-
       const response = await fetch('/api/made-to-order/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,26 +183,11 @@ export default function MadeToOrderPage() {
       });
 
       if (response.ok) {
-        const orderData = await response.json();
         alert('Commande soumise avec succès! NOUS VOUS CONTACTERONS DANS 24H-48H VIA WHATSAPP.');
         setShowOrderForm(false);
         setSelectedProduct(null);
-        setOrderForm({
-          customerName: '',
-          customerPhone: '',
-          customerEmail: '',
-          customerAddress: '',
-          wilayaId: 0,
-          wilayaName: '',
-          selectedSize: '',
-          selectedColor: '',
-          quantity: 1,
-          notes: '',
-          shippingType: 'homeDelivery' as const
-        });
       } else {
         const errorData = await response.json();
-        console.error('Order submission error:', errorData);
         throw new Error(errorData.error || 'Failed to submit order');
       }
     } catch (error) {
@@ -319,68 +197,17 @@ export default function MadeToOrderPage() {
     }
   };
 
-  const getShippingCost = useMemo(() => {
-    if (!orderForm.wilayaId || !wilayaTariffs || wilayaTariffs.length === 0) {
-      return 0;
-    }
-    
-    const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
-    
-    if (!wilaya) {
-      return 0;
-    }
-    
-    return orderForm.shippingType === 'homeDelivery' 
-      ? (wilaya.domicile_ecommerce || wilaya.domicileEcommerce || wilaya.home_delivery || wilaya.homeDelivery || 0)
-      : (wilaya.stop_desk_ecommerce || wilaya.stopDeskEcommerce || wilaya.stop_desk || wilaya.stopDesk || 0);
-  }, [orderForm.wilayaId, orderForm.shippingType, wilayaTariffs]);
-
-  const openWhatsApp = () => {
-    const message = t('madeToOrder.whatsappMessage');
-    const phoneNumber = '+213123456789'; // Replace with your WhatsApp number
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  };
-
-  const openWhatsAppWithOrder = () => {
-    if (!selectedProduct) return;
-    
-    const shippingCost = getShippingCost;
-    const totalPrice = selectedProduct.price * orderForm.quantity;
-    const depositAmount = totalPrice * 0.5;
-    
-    const message = `Bonjour! Je souhaite passer une commande spéciale:
-
-Produit: ${selectedProduct.name}
-Taille: ${orderForm.selectedSize}
-Couleur: ${orderForm.selectedColor}
-Quantité: ${orderForm.quantity}
-
-Prix unitaire: ${selectedProduct.price} DZD
-Total: ${totalPrice} DZD
-Acompte (50%): ${depositAmount.toFixed(0)} DZD
-
-Livraison: ${orderForm.shippingType === 'homeDelivery' ? 'Domicile' : 'Stop Desk'}
-Coût livraison: ${shippingCost} DZD
-
-Mes informations:
-Nom: ${orderForm.customerName}
-Téléphone: ${orderForm.customerPhone}
-Adresse: ${orderForm.customerAddress}
-Wilaya: ${orderForm.wilayaName}
-
-Notes: ${orderForm.notes || 'Aucune'}
-
-Merci de me contacter pour finaliser la commande spéciale!`;
-    
-    const phoneNumber = '+213123456789'; // Replace with your WhatsApp number
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  };
-
-  // Removed isPageLoading check - page loads immediately
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Header />
+        <ProductGridSkeleton count={8} />
+      </div>
+    );
+  }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-black text-white">
       <Header />
 
@@ -405,10 +232,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
           
           <p className="text-sm text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
             Large choix de modèles tendance • Livraison estimée entre 18 et 20 jours • Des produits choisis pour leur style et leur qualité
-          </p>
-          
-          <p className="text-sm text-gray-500 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Apportez une touche unique à votre garde-robe avec nos articles soigneusement sélectionnés.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
@@ -437,13 +260,11 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </div>
           </div>
           
-          {/* Scroll to Products Button */}
           <div className="mt-8">
             <button
               onClick={() => {
                 const productsSection = document.getElementById('products');
                 if (productsSection) {
-                  // Scroll to center the products section in viewport
                   productsSection.scrollIntoView({ 
                     behavior: 'smooth',
                     block: 'center',
@@ -477,33 +298,16 @@ Merci de me contacter pour finaliser la commande spéciale!`;
             </p>
           </div>
           
-          {isPageLoading ? (
-            <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Loading Products...</h3>
-              <p className="text-gray-400 text-sm">Please wait while we load our collection</p>
-            </div>
-          ) : showSubLoading ? (
-            <div className="text-center py-4">
-              <div className="inline-flex items-center justify-center w-6 h-6 bg-white/10 rounded-full mb-2">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-              </div>
-              <p className="text-sm text-gray-400">Loading products...</p>
-            </div>
-          ) : madeToOrderProducts.length === 0 ? (
+            {madeToOrderProducts.length === 0 ? (
             <div className="text-center py-8">
               <Package className="w-12 h-12 text-gray-600 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-2">{t('madeToOrder.noProducts')}</h3>
               <p className="text-gray-400 text-sm">{t('madeToOrder.noProductsDesc')}</p>
-              <p className="text-gray-500 text-xs mt-2">Debug: products.length = {madeToOrderProducts.length}</p>
             </div>
           ) : (
             <div className="space-y-8">
               {/* Search and Filter Controls */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 px-4">
-                {/* Search Button */}
                 <button
                   onClick={() => setShowSearch(!showSearch)}
                   className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 border border-white/20"
@@ -512,7 +316,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   {showSearch ? 'Hide Search' : 'Search Products'}
                 </button>
                 
-                {/* Search Input */}
                 {showSearch && (
                   <div className="flex items-center gap-2 w-full max-w-md">
                     <div className="relative flex-1">
@@ -541,7 +344,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
                 <div className="flex flex-wrap justify-center gap-2 max-w-full overflow-x-auto pb-2">
                 {(() => {
-                  // Get all available categories
                   const availableCategories = Array.from(new Set(productsWithWatches.map(p => p.category || 'Other')));
                   
                   const categoryNames: Record<string, string> = {
@@ -601,7 +403,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
               {/* Products Display */}
               <div className="space-y-12">
                 {(() => {
-                  // Use visible products (already filtered by category)
                   const displayProducts = visibleProducts;
 
                   if (displayProducts.length === 0 && !isLoadingMore) {
@@ -631,7 +432,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                     return acc;
                   }, {} as Record<string, MadeToOrderProduct[]>);
 
-                  // Define category order and display names
                   const categoryOrder = ['Shoes', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Watches', 'Accessories', 'Other'];
                   const categoryNames: Record<string, string> = {
                     'Shoes': '👟 Chaussures',
@@ -658,49 +458,16 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                         {productsByCategory[category].map((product, index) => (
                 <div 
-                  key={product.id} 
+                  key={`${product.id}-${category}-${index}`} 
                   className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-101"
                 >
                   <div className="relative overflow-hidden">
-                    {(() => {
-                      const imageSrc = getImageSrc(product);
-                      
-                      if (imageSrc) {
-                        if (imageSrc.startsWith('data:')) {
-                          return (
-                            <img
-                              src={imageSrc}
+                                <OptimizedImage
+                                  src={product.image || product.images?.[0] || ''}
                               alt={product.name}
-                              className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                              loading="lazy"
-                            />
-                          );
-                        } else {
-                          return (
-                            <Image
-                              src={imageSrc}
-                              alt={product.name}
-                              width={400}
-                              height={500}
-                              className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                              loading={index < 4 ? "eager" : "lazy"}
                               priority={index < 4}
-                            />
-                          );
-                        }
-                      } else {
-                        // Fallback to a default image
-                        return (
-                          <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                            <div className="text-center">
-                              <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
-                              <p className="text-gray-500 text-xs">No Image Available</p>
-                              <p className="text-gray-600 text-xs">{product.name}</p>
-                            </div>
-                          </div>
-                        );
-                      }
-                    })()}
+                                  loading={index < 4 ? "eager" : "lazy"}
+                                />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 right-4">
                         <span className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-3 py-1 rounded-full text-xs font-semibold">
@@ -771,11 +538,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                       <button
                         onClick={() => {
                           setSelectedProduct(product);
-                          setOrderForm(prev => ({
-                            ...prev,
-                            selectedSize: (product.sizes || [])[0] || '',
-                            selectedColor: (product.colors || [])[0] || ''
-                          }));
                           setShowOrderForm(true);
                         }}
                         className="flex-1 bg-white hover:bg-gray-100 text-black py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-300 hover:scale-102"
@@ -827,7 +589,6 @@ Merci de me contacter pour finaliser la commande spéciale!`;
                   </div>
                 </div>
               )}
-
             </div>
           )}
         </div>
@@ -1013,317 +774,17 @@ Merci de me contacter pour finaliser la commande spéciale!`;
       </div>
 
       {/* Order Form Modal */}
-      {showOrderForm && selectedProduct && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-black rounded-lg border border-gray-800 w-full max-w-2xl max-h-[95vh] overflow-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="text-lg font-bold text-white truncate pr-2">Commander: {selectedProduct.name}</h3>
-              <button
-                onClick={() => setShowOrderForm(false)}
-                className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleOrderSubmit} className="p-4 space-y-4">
-              {/* Product Info */}
-              <div className="bg-gray-800 rounded-xl p-4">
-                <div className="flex items-center space-x-4">
-                  {selectedProduct.image && (
-                    <img
-                      src={selectedProduct.image}
-                      alt={selectedProduct.name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                  )}
-                  <div>
-                    <h4 className="text-white font-semibold">{selectedProduct.name}</h4>
-                    <p className="text-gray-400 text-sm">{selectedProduct.price} DZD</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-white font-medium mb-2">Nom complet *</label>
-                  <input
-                    type="text"
-                    required
-                    value={orderForm.customerName}
-                    onChange={(e) => setOrderForm({ ...orderForm, customerName: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                    placeholder="Votre nom complet"
-                  />
-                </div>
-                <div>
-                  <label className="block text-white font-medium mb-2">Téléphone * (10 chiffres)</label>
-                  <input
-                    type="tel"
-                    required
-                    value={orderForm.customerPhone}
-                    onChange={(e) => setOrderForm({ ...orderForm, customerPhone: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                    placeholder="0555123456"
-                    pattern="0[567][0-9]{8}"
-                    minLength={10}
-                    maxLength={10}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={orderForm.customerEmail}
-                  onChange={(e) => setOrderForm({ ...orderForm, customerEmail: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                  placeholder="votre@email.com"
+        <OrderFormModal
+          product={selectedProduct!}
+          isOpen={showOrderForm}
+          onClose={() => {
+            setShowOrderForm(false);
+            setSelectedProduct(null);
+          }}
+          onSubmit={handleOrderSubmit}
+          wilayaTariffs={wilayaTariffs || []}
                 />
               </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2">Adresse complète *</label>
-                <textarea
-                  required
-                  value={orderForm.customerAddress}
-                  onChange={(e) => setOrderForm({ ...orderForm, customerAddress: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                  rows={3}
-                  placeholder="Votre adresse complète"
-                />
-              </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2">Wilaya *</label>
-                <select
-                  required
-                  value={orderForm.wilayaId}
-                  onChange={(e) => {
-                    const wilaya = wilayaTariffs.find(w => w.id === e.target.value || w.wilaya_id === parseInt(e.target.value));
-                    setOrderForm({ 
-                      ...orderForm, 
-                      wilayaId: parseInt(e.target.value),
-                      wilayaName: wilaya?.name || ''
-                    });
-                  }}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                >
-                  <option value="">Sélectionnez votre wilaya</option>
-                  {wilayaTariffs.map((wilaya) => (
-                    <option key={wilaya.id || wilaya.wilaya_id} value={wilaya.id || wilaya.wilaya_id}>
-                      {wilaya.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Shipping Type Selection */}
-              {orderForm.wilayaId > 0 && (
-                <div>
-                  <label className="block text-white font-medium mb-2">Type de livraison *</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setOrderForm({ ...orderForm, shippingType: 'homeDelivery' })}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        orderForm.shippingType === 'homeDelivery'
-                          ? 'border-green-500 bg-green-500/20 text-green-400'
-                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <Truck className="w-8 h-8 mx-auto mb-2" />
-                        <div className="font-semibold">Domicile</div>
-                        <div className="text-sm">
-                          {(() => {
-                            const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
-                            const cost = wilaya?.domicile_ecommerce || wilaya?.domicileEcommerce || wilaya?.home_delivery || wilaya?.homeDelivery || 0;
-                            return `${cost} DZD`;
-                          })()}
-                        </div>
-                      </div>
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setOrderForm({ ...orderForm, shippingType: 'stopDesk' })}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        orderForm.shippingType === 'stopDesk'
-                          ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <Package className="w-8 h-8 mx-auto mb-2" />
-                        <div className="font-semibold">Stop Desk</div>
-                        <div className="text-sm">
-                          {(() => {
-                            const wilaya = wilayaTariffs.find(w => w.id === String(orderForm.wilayaId) || w.wilaya_id === orderForm.wilayaId);
-                            const cost = wilaya?.stop_desk_ecommerce || wilaya?.stopDeskEcommerce || wilaya?.stop_desk || wilaya?.stopDesk || 0;
-                            return `${cost} DZD`;
-                          })()}
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Product Customization */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-white font-medium mb-2">Taille *</label>
-                  <select
-                    required
-                    value={orderForm.selectedSize}
-                    onChange={(e) => setOrderForm({ ...orderForm, selectedSize: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                  >
-                    <option value="">Sélectionnez une taille</option>
-                    {(selectedProduct.sizes || []).map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  {/* Size Chart Button */}
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowSizeChart(true)}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
-                    >
-                      <Ruler className="w-4 h-4" />
-                      Voir le guide des tailles
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-white font-medium mb-2">Couleur *</label>
-                  <select
-                    required
-                    value={orderForm.selectedColor}
-                    onChange={(e) => setOrderForm({ ...orderForm, selectedColor: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                  >
-                    <option value="">Sélectionnez une couleur</option>
-                    {(selectedProduct.colors || []).map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2">Quantité</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={orderForm.quantity}
-                  onChange={(e) => setOrderForm({ ...orderForm, quantity: parseInt(e.target.value) || 1 })}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2">Notes spéciales</label>
-                <textarea
-                  value={orderForm.notes}
-                  onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-white"
-                  rows={3}
-                  placeholder="Des instructions spéciales ou des détails sur votre commande..."
-                />
-              </div>
-
-              {/* Order Summary */}
-              <div className="bg-gray-800 rounded-xl p-4">
-                <h4 className="text-white font-semibold mb-3">Résumé de la commande</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Produit:</span>
-                    <span className="text-white">{selectedProduct.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Prix unitaire:</span>
-                    <span className="text-white">{selectedProduct.price} DZD</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Quantité:</span>
-                    <span className="text-white">{orderForm.quantity}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Sous-total:</span>
-                    <span className="text-white">{selectedProduct.price * orderForm.quantity} DZD</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Livraison ({orderForm.shippingType === 'homeDelivery' ? 'Domicile' : 'Stop Desk'}):</span>
-                    <span className="text-white">{getShippingCost} DZD</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-2">
-                    <span className="text-white font-semibold">Total:</span>
-                    <span className="text-white font-bold">{(selectedProduct.price * orderForm.quantity) + getShippingCost} DZD</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-2">
-                    <span className="text-white">Acompte (50%):</span>
-                    <span className="text-white font-bold">{((selectedProduct.price * orderForm.quantity + getShippingCost) * 0.50).toFixed(0)} DZD</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Important Notes */}
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-                <h4 className="text-white font-semibold mb-2 flex items-center">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  Informations importantes
-                </h4>
-                <ul className="text-gray-300 text-sm space-y-1">
-                  <li>• Vous devez payer 50% du prix total comme acompte</li>
-                  <li>• Le délai de production est de 20-18 jours</li>
-                  <li>• <strong className="text-green-400">NOUS VOUS CONTACTERONS DANS 24H-48H VIA WHATSAPP</strong></li>
-                  <li>• Le solde restant sera payé à la livraison</li>
-                </ul>
-              </div>
-
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowOrderForm(false)}
-                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                  {t('madeToOrder.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="bg-white hover:bg-gray-200 text-black px-4 py-2 rounded-lg font-medium flex items-center justify-center text-sm"
-                >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  {t('madeToOrder.submitOrder')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      
-      {/* Size Chart Modal */}
-      <SizeChart 
-        category={selectedProduct?.sizeChartCategory || selectedProduct?.size_chart_category || selectedProduct?.category || 't-shirts'} 
-        isOpen={showSizeChart} 
-        onClose={() => setShowSizeChart(false)}
-        customSizeChart={selectedProduct?.customSizeChart ? {
-          ...selectedProduct.customSizeChart,
-          category: selectedProduct.sizeChartCategory || selectedProduct.size_chart_category || selectedProduct.category || 't-shirts'
-        } : undefined}
-        useCustomSizeChart={selectedProduct?.useCustomSizeChart}
-      />
-    </div>
+    </ErrorBoundary>
   );
 }

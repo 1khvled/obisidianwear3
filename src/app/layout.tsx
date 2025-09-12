@@ -7,6 +7,7 @@ import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
+import ConsoleBlocker from '@/components/ConsoleBlocker'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -97,6 +98,7 @@ export default function RootLayout({
             <LanguageProvider>
               <SmartProductProvider>
                 <CartProvider>
+                  <ConsoleBlocker />
                   <StoreStatusChecker />
                   {children}
                 </CartProvider>

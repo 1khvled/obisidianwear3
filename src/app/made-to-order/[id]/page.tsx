@@ -94,8 +94,8 @@ export default function MadeToOrderProductDetailPage() {
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedSize || !selectedColor) {
-      alert('Veuillez sélectionner une taille et une couleur');
+    if (!selectedSize.trim() || !selectedColor) {
+      alert('Veuillez entrer votre taille et sélectionner une couleur');
       return;
     }
 
@@ -254,24 +254,20 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
 
             {/* Size Selection */}
             <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Tailles</h3>
-              <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
-                      selectedSize === size
-                        ? 'border-white bg-white text-black'
-                        : !selectedColor
-                          ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
-                          : 'border-gray-600 text-white hover:border-gray-400'
-                    }`}
-                  >
-                    {size}
-                    {!selectedColor && ' (Sélectionner une couleur)'}
-                  </button>
-                ))}
+              <h3 className="text-white font-semibold text-lg mb-4">Taille *</h3>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value)}
+                  placeholder="Entrez votre taille (ex: S, M, L, XL, 42, 44, etc.)"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                {!selectedColor && (
+                  <p className="text-yellow-400 text-sm mt-2">
+                    ⚠️ Veuillez d'abord sélectionner une couleur
+                  </p>
+                )}
               </div>
               
               {selectedColor && (
@@ -315,8 +311,7 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
             {/* Order Button */}
             <button
               onClick={() => setShowOrderModal(true)}
-              disabled={!selectedSize || !selectedColor}
-              className="w-full bg-white text-black py-5 px-8 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
+              className="w-full bg-white text-black py-5 px-8 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3"
             >
               <ShoppingCart size={20} />
               <span>Commander maintenant</span>
@@ -420,6 +415,60 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Taille *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Entrez votre taille (ex: S, M, L, XL, 42, 44, etc.)"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSizeChart(true)}
+                  className="mt-2 text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                >
+                  <Ruler size={16} className="mr-2" />
+                  Voir le guide des tailles
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Couleur *
+                </label>
+                <select
+                  required
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sélectionner une couleur</option>
+                  {product.colors.map((color) => (
+                    <option key={color} value={color}>
+                      {color}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Quantité
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={1}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                />
               </div>
 
               <div>
