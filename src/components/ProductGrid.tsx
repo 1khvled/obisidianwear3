@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Product } from '@/types';
-import { Search, Filter, Star, ShoppingBag, Eye } from 'lucide-react';
+import { Search, Filter, Star, ShoppingBag, Eye, Loader2 } from 'lucide-react';
 
 interface ProductGridProps {
   products: Product[];
@@ -12,9 +13,17 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ products, loading = false }: ProductGridProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('name');
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  // Handle immediate navigation with loading state
+  const handleProductClick = (productId: string) => {
+    setNavigatingTo(productId);
+    router.push(`/product/${productId}`);
+  };
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -178,14 +187,23 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
               </div>
 
               {/* CTA Button - Streetwear Style */}
-              <Link
-                href={`/product/${product.id}`}
-                prefetch={true}
-                className="w-full bg-white text-black py-4 font-black text-center hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2 border-4 border-black uppercase tracking-wide text-lg hover:scale-105 active:scale-95"
+              <button
+                onClick={() => handleProductClick(product.id)}
+                disabled={navigatingTo === product.id}
+                className="w-full bg-white text-black py-4 font-black text-center hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2 border-4 border-black uppercase tracking-wide text-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                VIEW PRODUCT
-                <ShoppingBag className="w-5 h-5" />
-              </Link>
+                {navigatingTo === product.id ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    LOADING...
+                  </>
+                ) : (
+                  <>
+                    VIEW PRODUCT
+                    <ShoppingBag className="w-5 h-5" />
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ))}

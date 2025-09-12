@@ -82,8 +82,12 @@ export default function ProductDetailPage() {
   // Separate effect for stock fetching to not block initial render
   useEffect(() => {
     if (params.id && product) {
-      // Fetch stock data in background without blocking UI
-      fetchRealTimeStock(params.id as string);
+      // Fetch stock data in background without blocking UI - delay it slightly
+      const timer = setTimeout(() => {
+        fetchRealTimeStock(params.id as string);
+      }, 100); // Small delay to let page render first
+      
+      return () => clearTimeout(timer);
     }
   }, [params.id, product?.id]); // Only fetch when product changes
 
@@ -105,7 +109,11 @@ export default function ProductDetailPage() {
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Product Not Found</h1>
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-800 rounded w-64 mx-auto mb-4"></div>
+              <div className="h-4 bg-gray-800 rounded w-32 mx-auto mb-6"></div>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-4">Loading Product...</h1>
             <Link href="/" className="text-white hover:text-gray-300">
               ← Back to Home
             </Link>
