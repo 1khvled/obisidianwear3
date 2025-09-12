@@ -59,10 +59,10 @@ export default function HeroSection() {
               <h1 className="text-6xl lg:text-8xl font-black text-white leading-none tracking-tight">
                 {slides[currentSlide].title}
               </h1>
-               <h2 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
+               <h2 className="text-xl lg:text-2xl font-bold text-gray-300 leading-tight">
                  {slides[currentSlide].subtitle}
                </h2>
-               <h3 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
+               <h3 className="text-xl lg:text-2xl font-bold text-gray-300 leading-tight">
                  {slides[currentSlide].description}
                </h3>
             </div>
