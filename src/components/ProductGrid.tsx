@@ -180,7 +180,8 @@ export default function ProductGrid({ products, loading = false }: ProductGridPr
               {/* CTA Button - Streetwear Style */}
               <Link
                 href={`/product/${product.id}`}
-                className="w-full bg-white text-black py-4 font-black text-center hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 border-4 border-black uppercase tracking-wide text-lg"
+                prefetch={true}
+                className="w-full bg-white text-black py-4 font-black text-center hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2 border-4 border-black uppercase tracking-wide text-lg hover:scale-105 active:scale-95"
               >
                 VIEW PRODUCT
                 <ShoppingBag className="w-5 h-5" />

@@ -65,9 +65,6 @@ export default function ProductDetailPage() {
       const foundProduct = getProduct(params.id as string);
       setProduct(foundProduct);
       
-      // Fetch REAL-TIME stock data from database
-      fetchRealTimeStock(params.id as string);
-      
       // Add to recently viewed
       if (foundProduct) {
         recentlyViewedService.addProduct(foundProduct);
@@ -78,17 +75,17 @@ export default function ProductDetailPage() {
         setSelectedColor(foundProduct.colors[0]);
       }
       
-      // Clear selected size if it's out of stock for the selected color
-      if (foundProduct && selectedSize && selectedColor) {
-        const sizeStock = foundProduct.stock?.[selectedSize]?.[selectedColor] || 0;
-        if (sizeStock === 0) {
-          setSelectedSize('');
-        }
-      }
-      
       console.log('Product detail page updated:', foundProduct?.name);
     }
-  }, [params.id, getProduct, products, selectedColor, selectedSize]); // Added selectedSize as dependency
+  }, [params.id, getProduct]); // Removed unnecessary dependencies
+
+  // Separate effect for stock fetching to not block initial render
+  useEffect(() => {
+    if (params.id && product) {
+      // Fetch stock data in background without blocking UI
+      fetchRealTimeStock(params.id as string);
+    }
+  }, [params.id, product?.id]); // Only fetch when product changes
 
   // Clear selected size if it becomes out of stock when color changes
   useEffect(() => {
@@ -178,111 +175,65 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Product Images */}
           <div className="space-y-4 sm:space-y-6">
-            <div className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden">
-              {(() => {
-                console.log('🖼️ ProductDetail: Rendering main image for product:', {
-                  id: product.id,
-                  name: product.name,
-                  image: product.image,
-                  imageType: typeof product.image,
-                  hasImage: !!product.image,
-                  imageLength: product.image?.length
-                });
-                
-                // Handle different image types
-                if (!product.image) {
-                  return (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                      <div className="text-center">
-                        <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">No Image Available</p>
-                        <p className="text-gray-600 text-xs">{product.name}</p>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                // If it's a data URL (base64), use regular img tag
-                if (product.image.startsWith('data:')) {
-                  return (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      onLoad={() => console.log('✅ Data URL main image loaded for:', product.name)}
-                      onError={(e) => console.error('❌ Data URL main image failed for:', product.name, e)}
-                    />
-                  );
-                }
-                
-                // If it's a URL, use Next.js Image
-                return (
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={600}
-                    height={600}
-                    className="w-full h-full object-cover"
-                    priority
-                    onLoad={() => console.log('✅ Next.js main image loaded for:', product.name)}
-                    onError={(e) => console.error('❌ Next.js main image failed for:', product.name, e)}
-                  />
-                );
-              })()}
+            <div className="aspect-square bg-black border-4 border-white overflow-hidden">
+              {!product.image ? (
+                <div className="w-full h-full bg-black flex items-center justify-center">
+                  <div className="text-center">
+                    <Package className="w-16 h-16 text-white mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm font-bold uppercase">NO IMAGE</p>
+                    <p className="text-gray-500 text-xs">{product.name}</p>
+                  </div>
+                </div>
+              ) : product.image.startsWith('data:') ? (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  width={600}
+                  height={600}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              )}
             </div>
             
             {/* Additional Images */}
             <div className="grid grid-cols-4 gap-3 sm:gap-6">
-              {(() => {
-                // Create array of unique images
-                const allImages = [product.image, ...(product.images || [])];
-                const uniqueImages = Array.from(new Set(allImages.filter(img => img && img.trim() !== '')));
-                
-                return uniqueImages.slice(0, 4).map((image, index) => (
+              {[product.image, ...(product.images || [])]
+                .filter(img => img && img.trim() !== '')
+                .slice(0, 4)
+                .map((image, index) => (
                   <div
                     key={index}
-                    className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all touch-target"
+                    className="aspect-square bg-black border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-all"
                     onClick={() => setSelectedImage(index)}
                   >
-                    {(() => {
-                      // Handle different image types for additional images
-                      if (!image) {
-                        return (
-                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-600" />
-                          </div>
-                        );
-                      }
-                      
-                      // If it's a data URL (base64), use regular img tag
-                      if (image.startsWith('data:')) {
-                        return (
-                          <img
-                            src={image}
-                            alt={`${product.name} ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onLoad={() => console.log('✅ Data URL additional image loaded for:', product.name, index)}
-                            onError={(e) => console.error('❌ Data URL additional image failed for:', product.name, index, e)}
-                          />
-                        );
-                      }
-                      
-                      // If it's a URL, use Next.js Image
-                      return (
-                        <Image
-                          src={image}
-                          alt={`${product.name} ${index + 1}`}
-                          width={150}
-                          height={150}
-                          className="w-full h-full object-cover"
-                          onLoad={() => console.log('✅ Next.js additional image loaded for:', product.name, index)}
-                          onError={(e) => console.error('❌ Next.js additional image failed for:', product.name, index, e)}
-                        />
-                      );
-                    })()}
+                    {!image ? (
+                      <div className="w-full h-full bg-black flex items-center justify-center">
+                        <Package className="w-8 h-8 text-white" />
+                      </div>
+                    ) : image.startsWith('data:') ? (
+                      <img
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        width={150}
+                        height={150}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
-                ));
-              })()}
+                ))}
             </div>
           </div>
 
