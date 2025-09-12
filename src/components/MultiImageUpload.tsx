@@ -49,7 +49,7 @@ export default function MultiImageUpload({
       const newUrls: string[] = [];
       
       // Compress image function
-      const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+      const compressImage = (file: File, maxWidth: number = 600, quality: number = 0.5): Promise<string> => {
         return new Promise((resolve) => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d')!;
@@ -79,6 +79,13 @@ export default function MultiImageUpload({
       for (const file of validFiles) {
         const compressedUrl = await compressImage(file);
         console.log('📸 Image compressed, size:', compressedUrl.length);
+        
+        // Check if compressed image is still too large (max 1MB base64)
+        if (compressedUrl.length > 1024 * 1024) {
+          alert(`Image ${file.name} is still too large after compression. Please choose a smaller image.`);
+          continue;
+        }
+        
         newUrls.push(compressedUrl);
       }
 

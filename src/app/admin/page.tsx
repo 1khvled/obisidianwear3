@@ -330,7 +330,7 @@ export default function AdminPage() {
       const productData = {
         name: newMadeToOrderProduct.name,
         description: newMadeToOrderProduct.description,
-        price: newMadeToOrderProduct.basePrice,
+        price: newMadeToOrderProduct.basePrice || newMadeToOrderProduct.price,
         category: newMadeToOrderProduct.category,
         image: newMadeToOrderProduct.image || '',
         images: newMadeToOrderProduct.images || [],
@@ -940,7 +940,7 @@ export default function AdminPage() {
                                 });
                                 
                                 // Compress image before converting to base64
-                                const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+                                const compressImage = (file: File, maxWidth: number = 600, quality: number = 0.5): Promise<string> => {
                                   return new Promise((resolve) => {
                                     const canvas = document.createElement('canvas');
                                     const ctx = canvas.getContext('2d')!;
@@ -969,6 +969,13 @@ export default function AdminPage() {
                                 
                                 compressImage(file).then((compressedBase64) => {
                                   console.log('📸 Made-to-order image compressed, size:', compressedBase64.length);
+                                  
+                                  // Check if compressed image is still too large (max 1MB base64)
+                                  if (compressedBase64.length > 1024 * 1024) {
+                                    alert('Image is still too large after compression. Please choose a smaller image.');
+                                    return;
+                                  }
+                                  
                                   if (editingMadeToOrderProduct) {
                                     setEditingMadeToOrderProduct({...editingMadeToOrderProduct, image: compressedBase64});
                                   } else {

@@ -33,7 +33,7 @@ export default function ImageUpload({ value, onChange, placeholder = "Enter imag
     setIsUploading(true);
 
     // Compress image before converting to base64
-    const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+    const compressImage = (file: File, maxWidth: number = 600, quality: number = 0.5): Promise<string> => {
       return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
@@ -62,6 +62,14 @@ export default function ImageUpload({ value, onChange, placeholder = "Enter imag
 
     compressImage(file).then((compressedBase64) => {
       console.log('📸 Image compressed, size:', compressedBase64.length);
+      
+      // Check if compressed image is still too large (max 1MB base64)
+      if (compressedBase64.length > 1024 * 1024) {
+        alert('Image is still too large after compression. Please choose a smaller image.');
+        setIsUploading(false);
+        return;
+      }
+      
       onChange(compressedBase64);
       setIsUploading(false);
     }).catch((error) => {
