@@ -59,12 +59,12 @@ export default function HeroSection() {
               <h1 className="text-6xl lg:text-8xl font-black text-white leading-none tracking-tight">
                 {slides[currentSlide].title}
               </h1>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
-                {slides[currentSlide].subtitle}
-              </h2>
-              <p className="text-xl text-gray-400 leading-relaxed max-w-lg font-medium">
-                {slides[currentSlide].description}
-              </p>
+               <h2 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
+                 {slides[currentSlide].subtitle}
+               </h2>
+               <h3 className="text-3xl lg:text-4xl font-bold text-gray-300 leading-tight">
+                 {slides[currentSlide].description}
+               </h3>
             </div>
 
             {/* CTA Buttons - Streetwear Style */}
@@ -119,18 +119,18 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* Right Content - Image - Minimalist */}
-          <div className="relative">
-            <div className="relative w-full h-96 lg:h-[500px] border-4 border-white overflow-hidden bg-black">
-              <Image
-                src={slides[currentSlide].image}
-                alt={slides[currentSlide].title}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
+           {/* Right Content - Image - Minimalist */}
+           <div className="relative">
+             <div className="relative w-full h-96 lg:h-[500px] overflow-hidden bg-black">
+               <Image
+                 src={slides[currentSlide].image}
+                 alt={slides[currentSlide].title}
+                 fill
+                 className="object-contain"
+                 priority
+               />
+             </div>
+           </div>
         </div>
 
         {/* Slide Navigation - Streetwear Style */}
