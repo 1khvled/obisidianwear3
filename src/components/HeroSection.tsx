@@ -11,9 +11,9 @@ export default function HeroSection() {
   const slides = [
     {
       id: 1,
-      title: "OBSIDIAN WEAR",
-      subtitle: "More than clothing, it's an attitude",
-      description: "Discover our exclusive collection of premium clothing. Unique style, exceptional quality.",
+      title: "DRIP WITHOUT LIMITS.",
+      subtitle: "From streetwear classics to iconic luxury looks,",
+      description: "we bring you the style you want at the price you need.",
       image: "/Logo Obsidian Wear sur fond noir.png",
       cta: "Discover the collection",
       link: "/made-to-order"
