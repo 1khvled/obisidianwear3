@@ -30,16 +30,20 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setLoading(true);
       console.log('🔄 Loading inventory...');
       
-      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}`, {
+      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
           'X-Cache-Bust': Date.now().toString(),
           'X-No-Cache': 'true',
-          'X-Random': Math.random().toString()
+          'X-Random': Math.random().toString(),
+          'X-Vercel-Cache': 'MISS',
+          'X-Vercel-Id': Math.random().toString(36),
+          'CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
         }
       });
       
@@ -78,17 +82,21 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setSaving(true);
       console.log('🔄 Updating quantity for', itemId, 'to', newQuantity);
       
-      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}`, {
+      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
           'X-Cache-Bust': Date.now().toString(),
           'X-No-Cache': 'true',
-          'X-Random': Math.random().toString()
+          'X-Random': Math.random().toString(),
+          'X-Vercel-Cache': 'MISS',
+          'X-Vercel-Id': Math.random().toString(36),
+          'CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
         },
         body: JSON.stringify({
           quantity: newQuantity,
@@ -118,6 +126,9 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
         // Force a complete refresh from server to ensure consistency
         console.log('🔄 Forcing immediate server refresh to ensure consistency...');
         // Small delay to ensure database transaction is committed
+        await new Promise(resolve => setTimeout(resolve, 200));
+        // Force multiple refreshes to bypass Vercel caching
+        await loadInventory();
         await new Promise(resolve => setTimeout(resolve, 100));
         await loadInventory();
         console.log('✅ Server refresh completed');

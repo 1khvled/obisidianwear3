@@ -1,0 +1,5 @@
+Order ID,Customer Name,Customer Phone,Customer Email,Customer Address,Customer City,Wilaya,Product Name,Product Price,Quantity,Selected Size,Selected Color,Subtotal,Shipping Cost,Total,Shipping Type,Payment Method,Payment Status,Order Status,Tracking Number,Order Date,Created At
+order_1757864926694_pp4xri8a2,"",,,"",,,"",4000,1,M,Black,4000,400,4400,domicile,cod,pending,pending,,2025-09-14T15:48:46.694Z,2025-09-14T15:48:46.694Z
+order_1757864924939_c9r6z7u9s,"",,,"",,,"",0,1,M,Black,0,400,400,domicile,cod,pending,pending,,2025-09-14T15:48:44.939Z,2025-09-14T15:48:44.939Z
+order_1757864918380_kdzaoz0en,"",,,"",,,"",4000,1,M,Black,4000,400,4400,domicile,cod,pending,pending,,2025-09-14T15:48:38.380Z,2025-09-14T15:48:38.380Z
+order_1757864909285_k3amig2st,"",,,"",,,"",222,1,M,Black,222,400,622,domicile,cod,pending,pending,,2025-09-14T15:48:29.285Z,2025-09-14T15:48:29.285Z

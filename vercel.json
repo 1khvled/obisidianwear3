@@ -17,6 +17,14 @@
     "app/api/made-to-order/route.ts": {
       "maxDuration": 15,
       "memory": 768
+    },
+    "app/api/inventory/route.ts": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "app/api/inventory/[id]/route.ts": {
+      "maxDuration": 10,
+      "memory": 512
     }
   },
   "headers": [
@@ -42,7 +50,36 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/api/inventory/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "X-Vercel-Cache",
+          "value": "MISS"
         }
       ]
     },
