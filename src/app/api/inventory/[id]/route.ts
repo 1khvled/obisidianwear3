@@ -158,8 +158,8 @@ export async function PUT(
       success: true,
       message: 'Inventory updated successfully',
       data: {
-        id: item.id,
-        quantity: newQuantity,
+        id: id,
+        quantity: quantity,
         productId,
         size,
         color
