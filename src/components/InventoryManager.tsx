@@ -61,12 +61,13 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       console.log('🔄 DEBUG: Starting loadInventory at', new Date().toISOString(), 'timestamp:', timestamp);
       
       // Add cache-busting parameter to ensure fresh data
-      const response = await fetch(`/api/inventory?t=${timestamp}`, {
+      const response = await fetch(`/api/inventory?t=${timestamp}&_cb=${Math.random()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
       console.log('🔄 DEBUG: Fetch response status:', response.status, 'ok:', response.ok);
@@ -297,10 +298,14 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         reason: reason || 'Manual adjustment'
       });
       
-      const response = await fetch(`/api/inventory/${item.id}`, {
+      const response = await fetch(`/api/inventory/${item.id}?t=${Date.now()}&_cb=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
           quantity: newQuantity,

@@ -153,6 +153,24 @@ export async function PUT(
     
     console.log('✅ Database update successful');
 
+    // Create response with no-cache headers
+    const response = NextResponse.json({
+      success: true,
+      message: 'Inventory updated successfully',
+      data: {
+        id: item.id,
+        quantity: newQuantity,
+        productId,
+        size,
+        color
+      }
+    });
+
+    // Disable caching for real-time updates
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
     // Verify the update by fetching the product again
     console.log('🔄 DEBUG API: Verifying update by fetching product again...');
     const { data: updatedProduct, error: verifyError } = await supabase
@@ -182,19 +200,7 @@ export async function PUT(
 
     console.log(`✅ Successfully updated stock for ${product.name} - ${size} ${color}: ${quantity}`);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Inventory updated successfully',
-      data: {
-        id,
-        product_id: productId,
-        size,
-        color,
-        quantity,
-        product_name: product.name,
-        verified_stock: updatedProduct?.stock?.[size]?.[color]
-      }
-    });
+    return response;
 
   } catch (error) {
     console.error('❌ Error updating inventory:', error);

@@ -84,12 +84,19 @@ export async function GET() {
       }))
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: inventoryData,
       message: 'Inventory fetched successfully from products',
       timestamp: Date.now()
     });
+
+    // Disable caching for real-time updates
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error) {
     console.error('Inventory API: GET error:', error);
     return NextResponse.json(

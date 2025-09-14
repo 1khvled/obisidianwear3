@@ -30,11 +30,13 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setLoading(true);
       console.log('🔄 Loading inventory...');
       
-      const response = await fetch(`/api/inventory?t=${Date.now()}`, {
+      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
       
@@ -73,10 +75,14 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setSaving(true);
       console.log('🔄 Updating quantity for', itemId, 'to', newQuantity);
       
-      const response = await fetch(`/api/inventory/${itemId}`, {
+      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
           quantity: newQuantity,
