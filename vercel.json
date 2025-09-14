@@ -19,12 +19,6 @@
       "memory": 768
     }
   },
-  "crons": [
-    {
-      "path": "/api/cleanup-cache",
-      "schedule": "0 */6 * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
