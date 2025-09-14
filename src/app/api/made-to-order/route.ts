@@ -62,10 +62,10 @@ export async function GET() {
       data: activeProducts 
     });
     
-    // Add enhanced caching headers for performance optimization
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-    response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
-    response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=300');
+    // Disable caching for real-time updates
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     

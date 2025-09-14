@@ -28,8 +28,9 @@ export async function GET() {
     const response = NextResponse.json(data);
     
     // Add caching headers for performance
-    response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
-    response.headers.set('CDN-Cache-Control', 'public, s-maxage=30');
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     
     return response;
   } catch (error) {

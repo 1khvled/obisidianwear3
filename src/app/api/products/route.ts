@@ -19,10 +19,10 @@ export async function GET() {
       timestamp: Date.now()
     });
     
-    // Add caching headers for better performance
-    response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
-    response.headers.set('CDN-Cache-Control', 'public, s-maxage=120');
-    response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=120');
+    // Disable caching for real-time updates
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     
     return response;
   } catch (error) {
