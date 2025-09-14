@@ -174,7 +174,7 @@ export default function Analytics({ products, orders, customers }: AnalyticsProp
       processing: '#3b82f6',
       shipped: '#8b5cf6',
       delivered: '#10b981',
-      cancelled: '#ef4444'
+      cancelled: '#8b5cf6'
     };
     return colors[status as keyof typeof colors] || '#6b7280';
   }

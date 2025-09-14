@@ -1,15 +1,12 @@
+# *
 User-agent: *
 Allow: /
-
-# Sitemap
-Sitemap: https://obsidian-wear.vercel.app/sitemap.xml
-
-# Disallow admin area
-Disallow: /admin
+Disallow: /admin/
 Disallow: /api/
+Disallow: /test-*
 
-# Allow important pages
-Allow: /
-Allow: /cart
-Allow: /checkout
-Allow: /order-success
+# Host
+Host: https://obsidian-wear.vercel.app
+
+# Sitemaps
+Sitemap: https://obsidian-wear.vercel.app/sitemap.xml

@@ -1,185 +1,438 @@
 'use client';
 
-import { Product } from '@/types';
-import { Star, ShoppingCart, Package } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useCart } from '@/context/CartContext';
-import { useLanguage } from '@/context/LanguageContext';
 import { useState } from 'react';
+import Image from 'next/image';
+import { 
+  ShoppingBag, 
+  Heart, 
+  Eye, 
+  Star,
+  Zap,
+  Crown,
+  Flame,
+  Package
+} from 'lucide-react';
+import { Product } from '@/types';
+import { useCart } from '@/context/CartContext';
+import { useDesign } from '@/context/DesignContext';
 import SizeSelectionModal from './SizeSelectionModal';
 
 interface ProductCardProps {
-  product: Product & { isMadeToOrder?: boolean };
+  product: Product;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, priority = false }: ProductCardProps) {
+  const { isStreetwear } = useDesign();
   const { addToCart } = useCart();
-  const { t } = useLanguage();
   const [showSizeModal, setShowSizeModal] = useState(false);
-  const [modalActionType, setModalActionType] = useState<'addToCart'>('addToCart');
-  
-  const discountPercentage = product.originalPrice 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0;
+  const [isLiked, setIsLiked] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isViewLoading, setIsViewLoading] = useState(false);
+  const [isCartLoading, setIsCartLoading] = useState(false);
+  const [isBuyNowLoading, setIsBuyNowLoading] = useState(false);
 
-  const handleAddToCartClick = () => {
-    if (product.inStock) {
-      setModalActionType('addToCart');
-      setShowSizeModal(true);
-    }
+  const handleAddToCart = (size: string, color: string, quantity: number) => {
+    addToCart(product, size, color, quantity);
+    setShowSizeModal(false);
   };
 
-
-  const handleModalAction = (size: string, color: string, quantity: number) => {
-    // This will be handled by the modal itself
-    console.log('Modal action clicked:', { size, color, quantity, actionType: modalActionType });
-  };
-
-  return (
-    <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 hover:border-white/20 transition-all duration-500 hover:scale-102">
-      <div className="relative overflow-hidden">
-        <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`} className="block">
-          {(() => {
-            console.log('🖼️ ProductCard: Rendering image for product:', {
-              id: product.id,
-              name: product.name,
-              image: product.image,
-              imageType: typeof product.image,
-              hasImage: !!product.image,
-              imageLength: product.image?.length
-            });
+  if (isStreetwear) {
+    return (
+      <>
+        <div className="group relative bg-black border-2 border-white/30 overflow-hidden hover:border-purple-500 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
+          {/* Image */}
+          <div className="relative aspect-square overflow-hidden">
+            <Image
+              src={product.images?.[0] || '/placeholder-product.jpg'}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
+              priority={priority}
+              onLoad={() => setImageLoaded(true)}
+            />
+            {!imageLoaded && (
+              <div className="absolute inset-0 bg-gray-800 animate-pulse"></div>
+            )}
             
-            // Handle different image types
-            if (!product.image) {
-              return (
-                <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                  <div className="text-center">
-                    <Package className="w-16 h-16 text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-500 text-xs">No Image Available</p>
-                    <p className="text-gray-600 text-xs">{product.name}</p>
-                  </div>
-                </div>
-              );
-            }
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
             
-            // If it's a data URL (base64), use regular img tag
-            if (product.image.startsWith('data:')) {
-              return (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                  onLoad={() => console.log('✅ Data URL image loaded for:', product.name)}
-                  onError={(e) => console.error('❌ Data URL image failed for:', product.name, e)}
-                />
-              );
-            }
-            
-            // If it's a URL, use Next.js Image
-            return (
-              <Image
-                src={product.image}
-                alt={product.name}
-                width={400}
-                height={500}
-                className="w-full h-48 object-cover group-hover:scale-102 transition-transform duration-500"
-                onLoad={() => console.log('✅ Next.js Image loaded for:', product.name)}
-                onError={(e) => console.error('❌ Next.js Image failed for:', product.name, e)}
-              />
-            );
-          })()}
-        </Link>
-        
-        {/* Discount Badge */}
-        {discountPercentage > 0 && (
-          <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-xs font-semibold px-3 py-1 rounded-full">
-            -{discountPercentage}%
-          </div>
-        )}
-
-        {/* Stock Status */}
-        {!product.inStock && (
-          <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-xs font-semibold px-3 py-1 rounded-full">
-            Out of Stock
-          </div>
-        )}
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-
-        {/* Add to Cart Button - Hidden on mobile for better UX */}
-        <div className="hidden sm:flex absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 items-center justify-center opacity-0 group-hover:opacity-100">
-          <button 
-            onClick={handleAddToCartClick}
-            className="bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-100 transition-colors flex items-center space-x-2 text-sm shadow-lg"
-            disabled={!product.inStock}
-          >
-            <ShoppingCart size={16} />
-            <span>{t('products.addToCart')}</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`}>
-          <h3 className="text-base font-bold text-white mb-2 group-hover:text-white transition-colors line-clamp-2">
-            {product.name}
-          </h3>
-        </Link>
-
-        {/* Rating and Made-to-Order Badge */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-1">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={12}
-                className={`${
-                  i < Math.floor(product.rating)
-                    ? 'text-yellow-400 fill-current'
-                    : 'text-gray-600'
+            {/* Top badges */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+              <div className="bg-purple-500 text-black px-3 py-1 text-xs font-black uppercase tracking-wider border border-white">
+                NEW DROP
+              </div>
+              <button
+                onClick={() => setIsLiked(!isLiked)}
+                className={`p-2 border border-white/20 transition-all duration-300 ${
+                  isLiked 
+                    ? 'bg-purple-500 text-white border-purple-500' 
+                    : 'bg-black/40 text-gray-300 hover:text-purple-400 hover:bg-purple-500/20'
                 }`}
-              />
-            ))}
-          </div>
-          {product.isMadeToOrder && (
-            <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
-              Made to Order
-            </span>
-          )}
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-xl font-black text-white">{Number(product.price).toFixed(0)} DA</div>
-          {product.originalPrice && (
-            <div className="text-xs text-gray-400 line-through">
-              {Number(product.originalPrice).toFixed(0)} DA
+              >
+                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+              </button>
             </div>
-          )}
+
+            {/* Bottom info */}
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="flex items-center justify-between">
+                <div className="bg-black border border-white px-3 py-1">
+                  <span className="text-white text-xs font-bold uppercase tracking-wider">
+                    {product.category || 'STREETWEAR'}
+                  </span>
+                </div>
+                {product.inStock === false && (
+                  <div className="bg-purple-500 text-black px-3 py-1 border border-white">
+                    <span className="text-black text-xs font-black uppercase">LOW STOCK</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+              <div className="flex gap-3">
+                <button className="bg-white/20 border border-white hover:bg-white hover:text-black text-white p-3 transition-all duration-300 hover:scale-110">
+                  <Eye className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowSizeModal(true)}
+                  className="bg-purple-500 hover:bg-purple-600 text-black p-3 transition-all duration-300 hover:scale-110 border border-white"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Product info */}
+          <div className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="text-lg font-black text-white uppercase tracking-wide line-clamp-1 flex-1">
+                {product.name}
+              </h3>
+              <div className="text-right ml-3">
+                <div className="text-2xl font-black text-purple-500 font-mono">
+                  {product.price?.toFixed(0)}
+                </div>
+                <div className="text-xs text-gray-400 font-mono uppercase">DZD</div>
+              </div>
+            </div>
+            
+            <p className="text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+              {product.description}
+            </p>
+
+            {/* Size indicators */}
+            <div className="flex items-center gap-1 mb-4">
+              <span className="text-xs text-gray-500">SIZES:</span>
+              <div className="flex gap-1 flex-wrap">
+                {product.sizes?.slice(0, 4).map((size) => (
+                  <span key={size} className="bg-black border border-white text-white px-2 py-1 text-xs font-bold uppercase">
+                    {size}
+                  </span>
+                ))}
+                {product.sizes && product.sizes.length > 4 && (
+                  <span className="bg-purple-500 text-black px-2 py-1 text-xs font-black border border-white">
+                    +{product.sizes.length - 4}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={async () => {
+                  console.log('🔄 BUY NOW button clicked - setting loading state');
+                  setIsBuyNowLoading(true);
+                  try {
+                    // Simulate buy now action
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    setShowSizeModal(true);
+                  } finally {
+                    console.log('✅ BUY NOW loading complete');
+                    setIsBuyNowLoading(false);
+                  }
+                }}
+                disabled={isViewLoading || isCartLoading || isBuyNowLoading}
+                className="group w-full bg-purple-500 hover:bg-purple-600 text-black py-3 px-4 text-sm font-black uppercase tracking-wider transition-all duration-300 border-2 border-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+              >
+                {isBuyNowLoading ? (
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Package className="w-4 h-4 group-hover:animate-pulse" />
+                    {/* Hover loading effect */}
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-3 h-3 border border-black/50 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {isBuyNowLoading ? 'Loading...' : 'BUY NOW'}
+              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={async () => {
+                    console.log('🔄 CART button clicked - setting loading state');
+                    setIsCartLoading(true);
+                    try {
+                      // Simulate cart action - you can replace this with actual cart logic
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                      // Add to cart logic here
+                    } finally {
+                      console.log('✅ CART loading complete');
+                      setIsCartLoading(false);
+                    }
+                  }}
+                  disabled={isViewLoading || isCartLoading || isBuyNowLoading}
+                  className="group flex-1 bg-black border-2 border-white text-white hover:bg-white hover:text-black py-2 px-3 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+                >
+                  {isCartLoading ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-3 h-3 group-hover:animate-pulse" />
+                      {/* Hover loading effect */}
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                          <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {isCartLoading ? 'Loading...' : 'CART'}
+                </button>
+                <button 
+                  onClick={async () => {
+                    console.log('🔄 VIEW button clicked - setting loading state');
+                    setIsViewLoading(true);
+                    try {
+                      // Simulate view action - you can replace this with actual view logic
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                      // Navigate to product page or open modal
+                    } finally {
+                      console.log('✅ VIEW loading complete');
+                      setIsViewLoading(false);
+                    }
+                  }}
+                  disabled={isViewLoading || isCartLoading || isBuyNowLoading}
+                  className="group flex-1 bg-black border-2 border-white text-white hover:bg-white hover:text-black py-2 px-3 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+                >
+                  {isViewLoading ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3 group-hover:animate-pulse" />
+                      {/* Hover loading effect */}
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                          <div className="w-2 h-2 border border-white/50 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {isViewLoading ? 'Loading...' : 'VIEW'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Buy Button */}
-        <div className="space-y-2">
-          <Link href={!product.stock ? `/made-to-order/${product.id}` : `/product/${product.id}`}>
-            <button 
-              className="w-full bg-white/10 border border-white/20 text-white py-2 px-3 rounded-lg font-semibold hover:bg-white/20 transition-colors text-xs touch-target"
+        <SizeSelectionModal
+          isOpen={showSizeModal}
+          onClose={() => setShowSizeModal(false)}
+          onBuy={handleAddToCart}
+          product={product}
+        />
+      </>
+    );
+  }
+
+  // Classic design
+  return (
+    <>
+      <div className="group relative bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden hover:from-gray-800/50 hover:to-gray-700/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
+        {/* Image */}
+        <div className="relative aspect-square overflow-hidden">
+          <Image
+            src={product.images?.[0] || '/placeholder-product.jpg'}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            priority={priority}
+            onLoad={() => setImageLoaded(true)}
+          />
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-gray-800 animate-pulse rounded-t-2xl"></div>
+          )}
+          
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-transparent to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          
+          {/* Top badges */}
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+            <div className="bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20">
+              <Zap className="w-3 h-3 inline mr-1" />
+              New
+            </div>
+            <button
+              onClick={() => setIsLiked(!isLiked)}
+              className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 border border-white/20 ${
+                isLiked 
+                  ? 'bg-purple-500/80 text-white' 
+                  : 'bg-black/40 text-gray-300 hover:text-purple-400 hover:bg-purple-500/20'
+              }`}
             >
-              {t('products.viewProduct')}
+              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
             </button>
-          </Link>
+          </div>
+
+          {/* Bottom info */}
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="flex items-center justify-between">
+              <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                <Star className="w-4 h-4 text-yellow-400 inline mr-1" />
+                <span className="text-white text-sm font-medium">{product.category}</span>
+              </div>
+              {product.inStock === false && (
+                <div className="bg-purple-500/90 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                  <span className="text-white text-xs font-bold">Low Stock</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+            <div className="flex gap-3">
+              <button 
+                onClick={async () => {
+                  console.log('🔄 Classic VIEW button clicked - setting loading state');
+                  setIsViewLoading(true);
+                  try {
+                    // Simulate view action - you can replace this with actual view logic
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    // Navigate to product page or open modal
+                  } finally {
+                    console.log('✅ Classic VIEW loading complete');
+                    setIsViewLoading(false);
+                  }
+                }}
+                disabled={isViewLoading || isCartLoading || isBuyNowLoading}
+                className="group bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 relative overflow-hidden"
+              >
+                {isViewLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Eye className="w-5 h-5 group-hover:animate-pulse" />
+                    {/* Hover loading effect */}
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-3 h-3 border border-white/70 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={async () => {
+                  console.log('🔄 Classic CART button clicked - setting loading state');
+                  setIsCartLoading(true);
+                  try {
+                    // Simulate cart action - you can replace this with actual cart logic
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    setShowSizeModal(true);
+                  } finally {
+                    console.log('✅ Classic CART loading complete');
+                    setIsCartLoading(false);
+                  }
+                }}
+                disabled={isViewLoading || isCartLoading || isBuyNowLoading}
+                className="group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 relative overflow-hidden"
+              >
+                {isCartLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingBag className="w-5 h-5 group-hover:animate-pulse" />
+                    {/* Hover loading effect */}
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-3 h-3 border border-white/70 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Product info */}
+        <div className="p-5">
+          <div className="flex items-start justify-between mb-3">
+            <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1 flex-1">
+              {product.name}
+            </h3>
+            <div className="text-right ml-3">
+              <div className="text-2xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                {product.price?.toFixed(0)}
+              </div>
+              <div className="text-xs text-gray-400">DZD</div>
+            </div>
+          </div>
+          
+          <p className="text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+            {product.description}
+          </p>
+
+          {/* Size badges */}
+          <div className="flex items-center gap-1 mb-4">
+            <span className="text-xs text-gray-500">Sizes:</span>
+            <div className="flex gap-1 flex-wrap">
+              {product.sizes?.slice(0, 4).map((size) => (
+                <span key={size} className="bg-gradient-to-r from-gray-700 to-gray-600 text-white px-2 py-1 rounded-md text-xs font-medium border border-gray-600">
+                  {size}
+                </span>
+              ))}
+              {product.sizes && product.sizes.length > 4 && (
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2 py-1 rounded-md text-xs font-bold">
+                  +{product.sizes.length - 4}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button className="flex-1 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 border border-gray-600 flex items-center justify-center gap-2">
+              <Eye className="w-4 h-4" />
+              Details
+            </button>
+            <button
+              onClick={() => setShowSizeModal(true)}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Add to Cart
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Size Selection Modal */}
       <SizeSelectionModal
-        product={product}
         isOpen={showSizeModal}
         onClose={() => setShowSizeModal(false)}
-        onBuy={handleModalAction}
-        actionType={modalActionType}
+        onBuy={handleAddToCart}
+        product={product}
       />
-    </div>
+    </>
   );
 }

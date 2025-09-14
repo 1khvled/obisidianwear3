@@ -4,13 +4,27 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "regions": ["iad1"],
+  "regions": ["iad1", "fra1"],
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30,
       "memory": 1024
+    },
+    "app/api/products/route.ts": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "app/api/made-to-order/route.ts": {
+      "maxDuration": 15,
+      "memory": 768
     }
   },
+  "crons": [
+    {
+      "path": "/api/cleanup-cache",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

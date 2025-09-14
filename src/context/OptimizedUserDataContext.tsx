@@ -49,11 +49,12 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
           setTimeUntilRefresh(userCache.getTimeUntilExpiry());
           setLoading(false);
           
-          // Update cache with fresh data in background (no loading state)
-          console.log('🔄 Updating cache in background...');
-          loadDataProgressively().catch(error => {
-            console.error('❌ Background cache update failed:', error);
-          });
+          // Update cache with fresh data in background (no loading state) - reduced frequency
+          setTimeout(() => {
+            loadDataProgressively().catch(error => {
+              console.error('❌ Background cache update failed:', error);
+            });
+          }, 30000); // Delay background update by 30 seconds
           return;
         }
       }
@@ -98,11 +99,24 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
       // STEP 2: Load made-to-order products in background (immediately, no delay)
       try {
         console.log('🎨 Step 2: Loading made-to-order products...');
-        const madeToOrderResponse = await fetch('/api/made-to-order');
+        const madeToOrderResponse = await fetch('/api/made-to-order', {
+          cache: 'no-store', // Force fresh data
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
         const madeToOrderData = await madeToOrderResponse.json();
-        const madeToOrderProducts = Array.isArray(madeToOrderData) ? madeToOrderData : [];
+        
+        // Handle both array response and object with data property
+        let madeToOrderProducts = [];
+        if (Array.isArray(madeToOrderData)) {
+          madeToOrderProducts = madeToOrderData;
+        } else if (madeToOrderData && Array.isArray(madeToOrderData.data)) {
+          madeToOrderProducts = madeToOrderData.data;
+        }
         
         console.log('✅ Made-to-order products loaded:', madeToOrderProducts.length);
+        console.log('🔧 Made-to-order products data:', madeToOrderProducts);
         
         // Update UI with made-to-order products
         setMadeToOrderProducts(madeToOrderProducts);
@@ -161,22 +175,22 @@ export const OptimizedUserDataProvider = ({ children }: { children: ReactNode })
     return madeToOrderProducts.find(product => product.id === id);
   };
 
-  // Auto-refresh every minute
+  // Auto-refresh every 10 minutes (reduced from 1 minute)
   useEffect(() => {
     // Initial load
     loadAllUserData();
 
-    // Set up auto-refresh timer
+    // Set up auto-refresh timer - increased to 10 minutes for better performance
     const interval = setInterval(() => {
       console.log('⏰ OptimizedUserDataContext: Auto-refreshing all data...');
-      loadAllUserData(true); // Force refresh every minute
-    }, 60000); // 60 seconds
+      loadAllUserData(true); // Force refresh every 10 minutes
+    }, 600000); // 600 seconds = 10 minutes
 
-    // Update countdown every second
+    // Update countdown every 10 seconds (reduced frequency)
     const countdownInterval = setInterval(() => {
       const remaining = userCache.getTimeUntilExpiry();
       setTimeUntilRefresh(remaining);
-    }, 1000);
+    }, 10000);
 
     return () => {
       clearInterval(interval);

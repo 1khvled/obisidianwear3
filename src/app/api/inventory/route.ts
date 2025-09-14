@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { withAuth } from '@/lib/authMiddleware';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -14,31 +13,81 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // GET /api/inventory - Get all inventory
 export async function GET() {
   try {
-    const { data: inventory, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        products (
-          id,
-          name,
-          image,
-          price
-        )
-      `)
+    console.log('🔄 DEBUG API: Starting GET /api/inventory at', new Date().toISOString());
+    
+    // Always read from products table since inventory table updates are failing
+    console.log('📦 DEBUG API: Reading from products table (inventory table updates are failing)');
+      
+    // Read from products table
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Inventory API: GET error:', error);
+    if (productsError) {
+      console.error('Inventory API: Products error:', productsError);
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch inventory' },
+        { success: false, error: 'Failed to fetch inventory data' },
         { status: 500 }
       );
     }
 
+    // Transform products data to inventory format
+    console.log('🔄 DEBUG API: Transforming products data to inventory format...');
+    const inventoryData: any[] = [];
+    products.forEach((product: any) => {
+      const defaultColors = ['Black', 'White', 'Red', 'Blue', 'Green'];
+      const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+      
+      const colors = product.colors && product.colors.length > 0 ? product.colors : defaultColors;
+      const sizes = product.sizes && product.sizes.length > 0 ? product.sizes : defaultSizes;
+      
+      console.log(`🔍 DEBUG API: Processing product ${product.name} (${product.id}):`, {
+        stock: product.stock,
+        colors,
+        sizes
+      });
+      
+      sizes.forEach((size: string) => {
+        colors.forEach((color: string) => {
+          const quantity = product.stock?.[size]?.[color] || 0;
+          inventoryData.push({
+            id: `INV-${product.id}-${size}-${color}`,
+            product_id: product.id,
+            size,
+            color,
+            quantity,
+            reserved_quantity: 0,
+            available_quantity: quantity,
+            min_stock_level: 5,
+            max_stock_level: 100,
+            last_updated: new Date().toISOString(),
+            created_at: product.created_at || new Date().toISOString(),
+            updated_at: product.updated_at || new Date().toISOString(),
+            products: {
+              id: product.id,
+              name: product.name,
+              image: product.image,
+              price: product.price
+            }
+          });
+        });
+      });
+    });
+    
+    console.log('✅ DEBUG API: Transformed inventory data:', {
+      totalItems: inventoryData.length,
+      firstItem: inventoryData[0],
+      sampleQuantities: inventoryData.slice(0, 3).map(item => ({
+        id: item.id,
+        quantity: item.quantity
+      }))
+    });
+
     return NextResponse.json({
       success: true,
-      data: inventory,
-      message: 'Inventory fetched successfully',
+      data: inventoryData,
+      message: 'Inventory fetched successfully from products',
       timestamp: Date.now()
     });
   } catch (error) {
@@ -50,55 +99,5 @@ export async function GET() {
   }
 }
 
-// POST /api/inventory - Create or update inventory
-export const POST = withAuth(async (request: Request) => {
-  try {
-    const inventoryData = await request.json();
-    
-    // Validate required fields
-    if (!inventoryData.productId || !inventoryData.size || !inventoryData.color) {
-      return NextResponse.json(
-        { success: false, error: 'Product ID, size, and color are required' },
-        { status: 400 }
-      );
-    }
-
-    const inventoryRecord = {
-      id: `INV-${inventoryData.productId}-${inventoryData.size}-${inventoryData.color}`,
-      product_id: inventoryData.productId,
-      size: inventoryData.size,
-      color: inventoryData.color,
-      quantity: inventoryData.quantity || 0,
-      reserved_quantity: inventoryData.reservedQuantity || 0,
-      min_stock_level: inventoryData.minStockLevel || 5,
-      max_stock_level: inventoryData.maxStockLevel || 100
-    };
-
-    const { data, error } = await supabase
-      .from('inventory')
-      .upsert([inventoryRecord])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Inventory API: POST error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to create/update inventory' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data,
-      message: 'Inventory updated successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Inventory API: POST error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create/update inventory' },
-      { status: 500 }
-    );
-  }
-});
+// POST /api/inventory - Not needed since we only use products table
+// All inventory updates go through PUT /api/inventory/[id] which updates products table

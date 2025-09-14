@@ -11,12 +11,20 @@ export async function GET() {
   try {
     const products = await getProducts();
     console.log('Products API: GET request - returning', products.length, 'products');
-    return NextResponse.json({
+    
+    const response = NextResponse.json({
       success: true,
       data: products,
       count: products.length,
       timestamp: Date.now()
     });
+    
+    // Add caching headers for better performance
+    response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=120');
+    response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=120');
+    
+    return response;
   } catch (error) {
     console.error('Products API: GET error:', error);
     return NextResponse.json(

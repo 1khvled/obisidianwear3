@@ -19,12 +19,20 @@ import {
   MoreVertical,
   Download,
   RefreshCw,
-  X
+  X,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  MapPin,
+  Phone,
+  Mail
 } from 'lucide-react';
 import { Order } from '@/types';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 import { orderService } from '@/services/orderService';
+import { backendService } from '@/services/backendService';
 
 interface EnhancedOrderManagerProps {
   orders?: Order[];
@@ -49,6 +57,50 @@ export default function EnhancedOrderManager({
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | 'All'>('All');
   const [sortBy, setSortBy] = useState('orderDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [ordersData, setOrdersData] = useState<Order[]>(orders);
+  const [madeToOrderOrders, setMadeToOrderOrders] = useState<any[]>([]);
+  const [showMadeToOrderTab, setShowMadeToOrderTab] = useState(false);
+
+  // Load orders data
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const savedOrders = await backendService.getOrders();
+      setOrdersData(savedOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load made-to-order orders
+  const loadMadeToOrderOrders = async () => {
+    try {
+      const response = await fetch('/api/made-to-order/orders');
+      const data = await response.json();
+      setMadeToOrderOrders(data?.orders || []);
+    } catch (error) {
+      console.error('Error loading made-to-order orders:', error);
+    }
+  };
+
+  // Refresh all data
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadOrders(), loadMadeToOrderOrders()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+    loadMadeToOrderOrders();
+  }, []);
 
   // Helper function to get the best image source for orders
   const getOrderImageSrc = (order: Order) => {
@@ -66,16 +118,17 @@ export default function EnhancedOrderManager({
   // Export orders to CSV
   const handleExportOrders = () => {
     try {
-      console.log('Starting export with orders:', orders.length);
+      const currentOrders = showMadeToOrderTab ? madeToOrderOrders : ordersData;
+      console.log('Starting export with orders:', currentOrders.length);
       
       // Check if we have orders to export
-      if (!orders || orders.length === 0) {
+      if (!currentOrders || currentOrders.length === 0) {
         alert('No orders to export.');
         return;
       }
       
       // Update orderService with current orders
-      orderService.setOrders(orders);
+      orderService.setOrders(currentOrders);
       
       // Generate CSV content
       const csvContent = orderService.exportOrdersCSV();
@@ -91,7 +144,8 @@ export default function EnhancedOrderManager({
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `orders-export-${new Date().toISOString().split('T')[0]}.csv`);
+      const orderType = showMadeToOrderTab ? 'made-to-order' : 'collection';
+      link.setAttribute('download', `${orderType}-orders-export-${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -107,17 +161,14 @@ export default function EnhancedOrderManager({
     }
   };
 
-  // Refresh orders
-  const handleRefresh = () => {
-    window.location.reload();
-  };
 
   // Filter and sort orders
-  const filteredOrders = (orders || [])
+  const currentOrders = showMadeToOrderTab ? madeToOrderOrders : ordersData;
+  const filteredOrders = (currentOrders || [])
     .filter(order => {
       const matchesSearch = 
-        (order.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (order.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.customerName || order.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.productName || order.product_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (order.id || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
@@ -203,20 +254,110 @@ export default function EnhancedOrderManager({
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (orderToDelete) {
-      onDeleteOrder(orderToDelete.id);
-      setShowDeleteModal(false);
-      setOrderToDelete(null);
+      try {
+        setLoading(true);
+        
+        // Delete from database
+        const response = await fetch(`/api/orders/${orderToDelete.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          // Remove from local state
+          setOrdersData(prev => prev.filter(order => order.id !== orderToDelete.id));
+          setMadeToOrderOrders(prev => prev.filter(order => order.id !== orderToDelete.id));
+          
+          // Call the prop function if provided
+          onDeleteOrder(orderToDelete.id);
+          
+          console.log('Order deleted successfully');
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to delete order:', errorData.error);
+          alert(`Failed to delete order: ${errorData.error}`);
+        }
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Failed to delete order. Please try again.');
+      } finally {
+        setLoading(false);
+        setShowDeleteModal(false);
+        setOrderToDelete(null);
+      }
     }
   };
 
-  const handleStatusUpdate = (orderId: string, status: OrderStatus) => {
-    onUpdateOrder(orderId, { status });
+  const handleStatusUpdate = async (orderId: string, status: OrderStatus) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setOrdersData(prev => prev.map(order => 
+          order.id === orderId ? { ...order, status } : order
+        ));
+        setMadeToOrderOrders(prev => prev.map(order => 
+          order.id === orderId ? { ...order, status } : order
+        ));
+        
+        // Call the prop function if provided
+        onUpdateOrder(orderId, { status });
+        
+        console.log('Order status updated successfully');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update order status:', errorData.error);
+        alert(`Failed to update order status: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Failed to update order status. Please try again.');
+    }
   };
 
-  const handlePaymentStatusUpdate = (orderId: string, paymentStatus: PaymentStatus) => {
-    onUpdateOrder(orderId, { paymentStatus });
+  const handlePaymentStatusUpdate = async (orderId: string, paymentStatus: PaymentStatus) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentStatus }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setOrdersData(prev => prev.map(order => 
+          order.id === orderId ? { ...order, paymentStatus } : order
+        ));
+        setMadeToOrderOrders(prev => prev.map(order => 
+          order.id === orderId ? { ...order, paymentStatus } : order
+        ));
+        
+        // Call the prop function if provided
+        onUpdateOrder(orderId, { paymentStatus });
+        
+        console.log('Order payment status updated successfully');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update payment status:', errorData.error);
+        alert(`Failed to update payment status: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      alert('Failed to update payment status. Please try again.');
+    }
   };
 
   const handleViewOrder = (order: Order) => {
@@ -229,15 +370,15 @@ export default function EnhancedOrderManager({
   }, [selectedOrders]);
 
   // Calculate statistics
-  const ordersArray = orders || [];
+  const allOrders = [...ordersData, ...madeToOrderOrders];
   const stats = {
-    total: ordersArray.length,
-    pending: ordersArray.filter(o => o.status === 'pending').length,
-    processing: ordersArray.filter(o => o.status === 'processing').length,
-    shipped: ordersArray.filter(o => o.status === 'shipped').length,
-    delivered: ordersArray.filter(o => o.status === 'delivered').length,
-    totalRevenue: ordersArray.reduce((sum, order) => sum + (order.total || 0), 0),
-    averageOrderValue: ordersArray.length > 0 ? ordersArray.reduce((sum, order) => sum + (order.total || 0), 0) / ordersArray.length : 0
+    total: allOrders.length,
+    pending: allOrders.filter(o => o.status === 'pending').length,
+    processing: allOrders.filter(o => o.status === 'processing' || o.status === 'in_production').length,
+    shipped: allOrders.filter(o => o.status === 'shipped').length,
+    delivered: allOrders.filter(o => o.status === 'delivered').length,
+    totalRevenue: allOrders.reduce((sum, order) => sum + (order.total || order.total_price || 0), 0),
+    averageOrderValue: allOrders.length > 0 ? allOrders.reduce((sum, order) => sum + (order.total || order.total_price || 0), 0) / allOrders.length : 0
   };
 
   return (
@@ -245,7 +386,7 @@ export default function EnhancedOrderManager({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Orders</h2>
+          <h2 className="text-2xl font-bold text-white">Orders Management</h2>
           <p className="text-gray-400">Manage customer orders and track fulfillment</p>
         </div>
         <div className="flex gap-2">
@@ -260,11 +401,36 @@ export default function EnhancedOrderManager({
           <Button 
             className="flex items-center gap-2"
             onClick={handleRefresh}
+            disabled={refreshing}
           >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
+      </div>
+
+      {/* Order Type Tabs */}
+      <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
+        <button
+          onClick={() => setShowMadeToOrderTab(false)}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            !showMadeToOrderTab
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-300 hover:text-white'
+          }`}
+        >
+          Collection Orders ({ordersData.length})
+        </button>
+        <button
+          onClick={() => setShowMadeToOrderTab(true)}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            showMadeToOrderTab
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-300 hover:text-white'
+          }`}
+        >
+          Made-to-Order ({madeToOrderOrders.length})
+        </button>
       </div>
 
       {/* Statistics Cards */}
@@ -420,17 +586,24 @@ export default function EnhancedOrderManager({
                     <div className="text-white font-mono text-sm">#{order.id.slice(-8)}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{order.customerName || 'Unknown Customer'}</div>
-                    <div className="text-gray-400 text-sm">{order.customerPhone || 'No phone'}</div>
-                    <div className="text-gray-400 text-xs">{order.customerEmail || 'No email'}</div>
-                    {order.customerCity && (
-                      <div className="text-gray-500 text-xs mt-1">
-                        🏙️ {order.customerCity}
+                    <div className="text-white font-medium">{order.customerName || order.customer_name || 'Unknown Customer'}</div>
+                    <div className="text-gray-400 text-sm flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {order.customerPhone || order.customer_phone || 'No phone'}
+                    </div>
+                    <div className="text-gray-400 text-xs flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      {order.customerEmail || order.customer_email || 'No email'}
+                    </div>
+                    {(order.customerCity || order.wilaya_name) && (
+                      <div className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {order.customerCity || order.wilaya_name}
                       </div>
                     )}
-                    {order.customerAddress && (
-                      <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]" title={order.customerAddress}>
-                        📍 {order.customerAddress}
+                    {(order.customerAddress || order.customer_address) && (
+                      <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]" title={order.customerAddress || order.customer_address}>
+                        📍 {order.customerAddress || order.customer_address}
                       </div>
                     )}
                   </td>
@@ -460,11 +633,16 @@ export default function EnhancedOrderManager({
                         </div>
                       )}
                       <div>
-                        <div className="text-white font-medium">{order.productName || 'Unknown Product'}</div>
+                        <div className="text-white font-medium">{order.productName || order.product_name || 'Unknown Product'}</div>
                         <div className="text-gray-400 text-sm">
-                          {order.selectedSize || 'N/A'} • {order.selectedColor || 'N/A'}
+                          {order.selectedSize || order.selected_size || 'N/A'} • {order.selectedColor || order.selected_color || 'N/A'}
                         </div>
-                        <div className="text-gray-400 text-xs">Qty: {order.quantity || 0}</div>
+                        <div className="text-gray-400 text-xs">Qty: {order.quantity || 1}</div>
+                        {showMadeToOrderTab && order.deposit_amount && (
+                          <div className="text-yellow-400 text-xs">
+                            Deposit: {order.deposit_amount} DA
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -472,8 +650,8 @@ export default function EnhancedOrderManager({
                     <div className="text-white text-sm">
                       {order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
                     </div>
-                    <div className="text-gray-400 text-xs">{order.wilayaName || 'Unknown Wilaya'}</div>
-                    <div className="text-gray-400 text-xs">{order.shippingCost || 0} DA</div>
+                    <div className="text-gray-400 text-xs">{order.wilayaName || order.wilaya_name || 'Unknown Wilaya'}</div>
+                    <div className="text-gray-400 text-xs">{order.shippingCost || order.shipping_cost || 0} DA</div>
                   </td>
                   <td className="px-4 py-3">
                     <select
@@ -500,12 +678,22 @@ export default function EnhancedOrderManager({
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-white font-semibold">{(order.total || 0).toLocaleString()} DA</div>
+                    <div className="text-white font-semibold">{(order.total || order.total_price || 0).toLocaleString()} DA</div>
+                    {showMadeToOrderTab && order.remaining_amount && (
+                      <div className="text-yellow-400 text-xs">
+                        Remaining: {order.remaining_amount} DA
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-gray-300 text-sm">
-                      {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Unknown Date'}
+                      {order.orderDate || order.order_date ? new Date(order.orderDate || order.order_date).toLocaleDateString() : 'Unknown Date'}
                     </div>
+                    {showMadeToOrderTab && order.estimated_completion_date && (
+                      <div className="text-blue-400 text-xs">
+                        Est: {new Date(order.estimated_completion_date).toLocaleDateString()}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">

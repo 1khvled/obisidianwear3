@@ -949,3 +949,79 @@ export async function addCustomer(customerData: Omit<Customer, 'id' | 'createdAt
     throw error;
   }
 }
+
+// Made-to-Order Products Functions
+export async function getMadeToOrderProducts(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('made_to_order_products')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase getMadeToOrderProducts error:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Supabase getMadeToOrderProducts error:', error);
+    return [];
+  }
+}
+
+export async function addMadeToOrderProduct(productData: any): Promise<any> {
+  try {
+    const now = new Date().toISOString();
+    const product = {
+      id: productData.id || `mto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: productData.name,
+      base_price: productData.price,
+      description: productData.description || '',
+      category: productData.category || '',
+      image: productData.image || '',
+      images: productData.images || [],
+      colors: productData.colors || [],
+      sizes: productData.sizes || [],
+      is_active: true,
+      created_at: now,
+      updated_at: now
+    };
+
+    const { data, error } = await supabase
+      .from('made_to_order_products')
+      .insert([product])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase addMadeToOrderProduct error:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Supabase addMadeToOrderProduct error:', error);
+    throw error;
+  }
+}
+
+export async function deleteMadeToOrderProduct(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('made_to_order_products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase deleteMadeToOrderProduct error:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Supabase deleteMadeToOrderProduct error:', error);
+    return false;
+  }
+}

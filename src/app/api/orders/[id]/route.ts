@@ -1,143 +1,148 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Order } from '@/types';
-import { getOrder, updateOrder, deleteOrder } from '@/lib/supabaseDatabase';
-import { withAuth } from '@/lib/authMiddleware';
+import { supabase } from '@/lib/supabaseDatabase';
 
-// Ensure we use Node.js runtime for Supabase compatibility
-export const runtime = 'nodejs';
-
-// GET /api/orders/[id] - Get single order
-export async function GET(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Orders API: Missing Supabase environment variables');
+    const orderId = params.id;
+
+    if (!orderId) {
       return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
-    const order = await getOrder(id);
-    
-    if (!order) {
-      return NextResponse.json(
-        { success: false, error: 'Order not found' },
-        { status: 404 }
+        { success: false, error: 'Order ID is required' },
+        { status: 400 }
       );
     }
 
-    console.log('Orders API: GET single order:', id);
-    
-    return NextResponse.json({
-      success: true,
-      data: order,
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Orders API: GET single error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch order' },
-      { status: 500 }
-    );
-  }
-}
+    console.log('🗑️ Deleting order:', orderId);
 
-// PUT /api/orders/[id] - Update order (PROTECTED)
-export const PUT = withAuth(async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
-  try {
-    const { id } = params;
-    const updateData = await request.json();
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Orders API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
-    const updatedOrder = await updateOrder(id, updateData);
-    
-    if (!updatedOrder) {
-      return NextResponse.json(
-        { success: false, error: 'Order not found' },
-        { status: 404 }
-      );
-    }
-    
-    console.log('Orders API: PUT request - updated order:', id);
-    
-    return NextResponse.json({
-      success: true,
-      data: updatedOrder,
-      message: 'Order updated successfully',
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Orders API: PUT error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update order' },
-      { status: 500 }
-    );
-  }
-});
+    // Delete the order from database
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
 
-// DELETE /api/orders/[id] - Delete order (PROTECTED)
-export const DELETE = withAuth(async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
-  try {
-    const { id } = params;
-    
-    // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Orders API: Missing Supabase environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Database configuration missing' },
-        { status: 500 }
-      );
-    }
-    
-    const deletedOrder = await getOrder(id);
-    if (!deletedOrder) {
-      return NextResponse.json(
-        { success: false, error: 'Order not found' },
-        { status: 404 }
-      );
-    }
-
-    const success = await deleteOrder(id);
-    if (!success) {
+    if (error) {
+      console.error('❌ Error deleting order:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to delete order' },
         { status: 500 }
       );
     }
-    
-    console.log('Orders API: DELETE request - deleted order:', id);
-    
+
+    console.log('✅ Order deleted successfully:', orderId);
+
     return NextResponse.json({
       success: true,
-      data: deletedOrder,
-      message: 'Order deleted successfully',
-      timestamp: Date.now()
+      message: 'Order deleted successfully'
     });
+
   } catch (error) {
-    console.error('Orders API: DELETE error:', error);
+    console.error('❌ Error in delete order API:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete order' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
-});
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const orderId = params.id;
+    const updates = await request.json();
+
+    if (!orderId) {
+      return NextResponse.json(
+        { success: false, error: 'Order ID is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🔄 Updating order:', orderId, updates);
+
+    // Update the order in database
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error updating order:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to update order' },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Order updated successfully:', data);
+
+    return NextResponse.json({
+      success: true,
+      order: data,
+      message: 'Order updated successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error in update order API:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const orderId = params.id;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { success: false, error: 'Order ID is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🔍 Fetching order:', orderId);
+
+    // Get the order from database
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error('❌ Error fetching order:', error);
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    console.log('✅ Order fetched successfully:', data);
+
+    return NextResponse.json({
+      success: true,
+      order: data
+    });
+
+  } catch (error) {
+    console.error('❌ Error in get order API:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

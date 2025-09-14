@@ -25,7 +25,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    const response = NextResponse.json(data);
+    
+    // Add caching headers for performance
+    response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=30');
+    
+    return response;
   } catch (error) {
     console.error('Error in made-to-order orders GET:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

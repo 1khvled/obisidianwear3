@@ -57,7 +57,15 @@ export async function GET(
       inStock: inStock
     });
 
-    return NextResponse.json(productWithStock);
+    const response = NextResponse.json({
+      success: true,
+      data: productWithStock
+    });
+
+    // Add caching headers for better performance
+    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    
+    return response;
   } catch (error) {
     console.error('❌ Error in product API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

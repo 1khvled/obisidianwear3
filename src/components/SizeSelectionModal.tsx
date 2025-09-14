@@ -112,15 +112,20 @@ export default function SizeSelectionModal({ product, isOpen, onClose, onBuy, ac
                     key={size}
                     onClick={() => isAvailable && setSelectedSize(size)}
                     disabled={!isAvailable}
-                    className={`py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    className={`py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 relative ${
                       !isAvailable
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-600'
+                        ? 'bg-red-900/50 text-red-400 cursor-not-allowed border border-red-500 opacity-75'
                         : isSelected
                         ? 'bg-white text-black'
                         : 'bg-gray-800 text-white hover:bg-gray-700 border border-gray-700'
                     }`}
                   >
                     {size}
+                    {!isAvailable && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">×</span>
+                      </div>
+                    )}
                   </button>
                 );
               })}

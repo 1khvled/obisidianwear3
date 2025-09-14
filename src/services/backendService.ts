@@ -210,7 +210,7 @@ class BackendService {
       
       if (result.success) {
         console.log('BackendService: Fetched', result.count, 'orders');
-        return result.data || [];
+        return result.orders || result.data || [];
       } else {
         console.error('BackendService: Failed to fetch orders:', result.error);
         return [];

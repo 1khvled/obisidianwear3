@@ -7,7 +7,7 @@ import { MadeToOrderProduct } from '@/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ChevronRight, Star, ShoppingBag, Package, Clock, CreditCard, MessageCircle, ArrowLeft } from 'lucide-react';
-import { DataLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
+import { ProductGridSkeleton } from '@/components/LoadingSkeleton';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function MadeToOrderCollectionPage() {
@@ -88,7 +88,7 @@ export default function MadeToOrderCollectionPage() {
       <div className="min-h-screen bg-black">
         <Header />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <DataLoadingAnimation message="Loading made-to-order products..." />
+          <ProductGridSkeleton />
         </div>
         <Footer />
       </div>

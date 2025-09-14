@@ -7,7 +7,7 @@ export interface EmailData {
   html: string;
 }
 
-export async function sendOrderConfirmationEmail(order: Order): Promise<boolean> {
+export async function sendOrderConfirmationEmail(order: any): Promise<boolean> {
   try {
     const emailData: EmailData = {
       to: order.customerEmail,
@@ -52,7 +52,7 @@ export async function sendOrderConfirmationEmail(order: Order): Promise<boolean>
   }
 }
 
-function generateOrderConfirmationText(order: Order): string {
+function generateOrderConfirmationText(order: any): string {
   return `
 Order Confirmation - OBSIDIAN WEAR
 
@@ -62,21 +62,20 @@ Thank you for your order! Your order has been confirmed and we'll start processi
 
 Order Details:
 - Order ID: #${order.id}
-- Date: ${new Date(order.orderDate).toLocaleDateString()}
-- Product: ${order.productName}
-- Size: ${order.selectedSize}
-- Color: ${order.selectedColor}
-- Quantity: ${order.quantity}
-- Total: ${order.total.toLocaleString()} DA
+- Date: ${order.orderDate}
+- Product: ${order.product.name}
+- Size: ${order.product.selectedSize}
+- Color: ${order.product.selectedColor}
+- Quantity: ${order.product.quantity}
+- Total: ${order.total.toLocaleString()} DZD
 
 Shipping Information:
-- Shipping Type: ${order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}
-- Wilaya: ${order.wilayaName}
-- City: ${order.customerCity}
+- Shipping Type: ${order.delivery.option === 'domicile' ? 'Home Delivery' : 'Stop Desk'}
+- Wilaya: ${order.wilaya}
 - Address: ${order.customerAddress}
-- Shipping Cost: ${order.shippingCost.toLocaleString()} DA
+- Shipping Cost: ${order.delivery.cost.toLocaleString()} DZD
 
-Payment Method: ${order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}
+Payment Method: Cash on Delivery
 
 We will contact you soon to confirm the delivery details.
 
@@ -85,7 +84,7 @@ OBSIDIAN WEAR Team
   `.trim();
 }
 
-function generateOrderConfirmationHTML(order: Order): string {
+function generateOrderConfirmationHTML(order: any): string {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -191,23 +190,23 @@ function generateOrderConfirmationHTML(order: Order): string {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Date:</span>
-                    <span>${new Date(order.orderDate).toLocaleDateString()}</span>
+                    <span>${order.orderDate}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Product:</span>
-                    <span>${order.productName}</span>
+                    <span>${order.product.name}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Size:</span>
-                    <span>${order.selectedSize}</span>
+                    <span>${order.product.selectedSize}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Color:</span>
-                    <span>${order.selectedColor}</span>
+                    <span>${order.product.selectedColor}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Quantity:</span>
-                    <span>${order.quantity}</span>
+                    <span>${order.product.quantity}</span>
                 </div>
             </div>
         </div>
@@ -217,15 +216,11 @@ function generateOrderConfirmationHTML(order: Order): string {
             <div class="order-details">
                 <div class="detail-row">
                     <span class="detail-label">Shipping Type:</span>
-                    <span>${order.shippingType === 'homeDelivery' ? 'Home Delivery' : 'Stop Desk'}</span>
+                    <span>${order.delivery.option === 'domicile' ? 'Home Delivery' : 'Stop Desk'}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Wilaya:</span>
-                    <span>${order.wilayaName}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">City:</span>
-                    <span>${order.customerCity}</span>
+                    <span>${order.wilaya}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Address:</span>
@@ -233,7 +228,7 @@ function generateOrderConfirmationHTML(order: Order): string {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Shipping Cost:</span>
-                    <span>${order.shippingCost.toLocaleString()} DA</span>
+                    <span>${order.delivery.cost.toLocaleString()} DZD</span>
                 </div>
             </div>
         </div>
@@ -243,17 +238,17 @@ function generateOrderConfirmationHTML(order: Order): string {
             <div class="order-details">
                 <div class="detail-row">
                     <span class="detail-label">Payment Method:</span>
-                    <span>${order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}</span>
+                    <span>Cash on Delivery</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Subtotal:</span>
-                    <span>${order.subtotal.toLocaleString()} DA</span>
+                    <span>${(order.product.price * order.product.quantity).toLocaleString()} DZD</span>
                 </div>
             </div>
         </div>
 
         <div class="total">
-            Total: ${order.total.toLocaleString()} DA
+            Total: ${order.total.toLocaleString()} DZD
         </div>
 
         <p>We will contact you soon to confirm the delivery details.</p>

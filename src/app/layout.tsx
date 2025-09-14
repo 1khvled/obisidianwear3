@@ -4,10 +4,14 @@ import './globals.css'
 import { SmartProductProvider } from '@/context/SmartProductProvider'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
+import { DesignProvider } from '@/context/DesignContext'
 import { CartProvider } from '@/context/CartContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
-import ConsoleBlocker from '@/components/ConsoleBlocker'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+// import ConsoleBlocker from '@/components/ConsoleBlocker' // Disabled for debugging
+// import Footer from '@/components/Footer'
+// import PerformanceMonitor from '@/components/PerformanceMonitor'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -93,19 +97,24 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        <ThemeProvider>
-          <AuthProvider>
-            <LanguageProvider>
-              <SmartProductProvider>
-      <CartProvider>
-        <ConsoleBlocker />
-        <StoreStatusChecker />
-        {children}
-      </CartProvider>
-              </SmartProductProvider>
-            </LanguageProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <AuthProvider>
+              <LanguageProvider>
+                <DesignProvider>
+                          <SmartProductProvider>
+                            <CartProvider>
+                              {/* <ConsoleBlocker /> */} {/* Disabled for debugging */}
+                              <StoreStatusChecker />
+                      {/* <PerformanceMonitor /> */}
+                      {children}
+                    </CartProvider>
+                  </SmartProductProvider>
+                </DesignProvider>
+              </LanguageProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

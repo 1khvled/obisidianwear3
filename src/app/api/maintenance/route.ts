@@ -12,7 +12,14 @@ export async function GET() {
     });
     
     const settings = await getMaintenanceSettings();
-    return NextResponse.json(settings);
+    
+    // Add caching headers for better performance
+    const response = NextResponse.json(settings);
+    response.headers.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', new Date(Date.now() + 30000).toUTCString());
+    
+    return response;
   } catch (error) {
     console.error('API GET maintenance settings error:', error);
     return NextResponse.json(

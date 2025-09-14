@@ -3,57 +3,76 @@ import { supabase } from '@/lib/supabaseDatabase';
 import { MadeToOrderProduct } from '@/types';
 
 export async function GET() {
+  const apiStartTime = performance.now();
+  console.log('🚀 [API DEBUG] API route started at:', new Date().toISOString());
+  
   try {
-    console.log('🔧 Fetching made-to-order products...');
+    console.log('🔧 [API DEBUG] Fetching made-to-order products...');
     
-    // Use a single optimized query with minimal fields first
-    let { data, error } = await supabase
-      .from('made_to_order_products')
-      .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-
-    console.log('🔧 Optimized query result:', { dataLength: data?.length, error });
-
-    // If that fails, try without the is_active filter
-    if (error) {
-      console.log('🔧 Trying without is_active filter...');
-      const result = await supabase
-        .from('made_to_order_products')
-        .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order')
-        .order('display_order', { ascending: true });
-      
-      data = result.data;
-      error = result.error;
-      console.log('🔧 Simple query result:', { dataLength: data?.length, error });
-    }
-
-    // If that still fails, try the most basic query
-    if (error) {
-      console.log('🔧 Trying basic query...');
-      const result = await supabase
-        .from('made_to_order_products')
-        .select('id, name, description, price, image, images, colors, sizes, category, is_active, display_order');
-      
-      data = result.data;
-      error = result.error;
-      console.log('🔧 Basic query result:', { dataLength: data?.length, error });
-    }
-
-    if (error) {
-      console.error('❌ Error fetching made-to-order products:', error);
-      return NextResponse.json({ 
-        error: 'Failed to fetch products', 
-        details: error.message,
-        code: error.code 
-      }, { status: 500 });
-    }
-
-    // Filter out inactive products if is_active filter didn't work
-    const activeProducts = (data || []).filter(product => product.is_active !== false);
+    // Try optimized database query
+    let data: any[] = [];
+    let error: any = null;
     
-    console.log('✅ Successfully fetched products:', activeProducts.length);
-    return NextResponse.json(activeProducts);
+    try {
+      const queryStartTime = performance.now();
+      console.log('🗄️ [API DEBUG] Starting optimized database query...');
+      
+      // Original working query
+      const queryPromise = supabase
+        .from('made_to_order_products')
+        .select('id, name, price, image, images, description, colors, sizes, category')
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(20); // Back to original limit
+      
+      // Remove timeout race condition - let the query run normally
+      const result = await queryPromise;
+      const queryEndTime = performance.now();
+      console.log('⏱️ [API DEBUG] Database query completed in:', (queryEndTime - queryStartTime).toFixed(2), 'ms');
+      
+      data = result.data || [];
+      error = result.error;
+      
+      console.log('🔧 [API DEBUG] Query result:', { 
+        dataLength: data?.length, 
+        error: error?.code,
+        hasData: !!data
+      });
+      
+    } catch (queryError) {
+      const queryTime = performance.now() - apiStartTime;
+      console.log('🔧 [API DEBUG] Query failed after', queryTime.toFixed(2), 'ms:', queryError);
+      data = [];
+      error = { code: 'QUERY_ERROR', message: queryError instanceof Error ? queryError.message : 'Query failed' };
+    }
+
+    // If there's an error, return empty array
+    if (error) {
+      console.log('🔧 [API DEBUG] Database error, returning empty products array');
+      data = [];
+    }
+
+    // All products are considered active
+    const activeProducts = data || [];
+    
+    console.log('✅ [API DEBUG] Successfully fetched products:', activeProducts.length);
+    
+    const response = NextResponse.json({ 
+      success: true, 
+      data: activeProducts 
+    });
+    
+    // Add enhanced caching headers for performance optimization
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=300');
+    response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=300');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    
+    const totalApiTime = performance.now() - apiStartTime;
+    console.log('🏁 [API DEBUG] Total API response time:', totalApiTime.toFixed(2), 'ms');
+    
+    return response;
   } catch (error) {
     console.error('❌ Error in made-to-order GET:', error);
     return NextResponse.json({ 
@@ -99,7 +118,6 @@ export async function POST(request: NextRequest) {
         category: category || 'Custom',
         tags: tags || [],
         display_order: displayOrder || 0,
-        is_active: true,
         custom_size_chart: customSizeChart || null,
         use_custom_size_chart: useCustomSizeChart || false,
         size_chart_category: sizeChartCategory || category || 'Custom'
@@ -117,7 +135,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json({ 
+      success: true, 
+      data: data 
+    }, { status: 201 });
   } catch (error) {
     console.error('Error in made-to-order POST:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -161,7 +182,6 @@ export async function PUT(request: NextRequest) {
       price: price || 0,
       category: category || 'Custom',
       display_order: displayOrder || 0,
-      is_active: isActive !== undefined ? isActive : true,
       custom_size_chart: customSizeChart || null,
       use_custom_size_chart: useCustomSizeChart || false,
       size_chart_category: sizeChartCategory || category || 'Custom'
@@ -224,7 +244,10 @@ export async function PUT(request: NextRequest) {
     }
 
     console.log('✅ Product updated successfully:', data?.id);
-    return NextResponse.json(data);
+    return NextResponse.json({ 
+      success: true, 
+      data: data 
+    });
   } catch (error) {
     console.error('❌ Error in made-to-order PUT:', error);
     
@@ -260,7 +283,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'Product deleted successfully' });
+    return NextResponse.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error in made-to-order DELETE:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

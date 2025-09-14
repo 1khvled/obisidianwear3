@@ -12,7 +12,7 @@ interface AllUserDataCache {
   expiresAt: number;
 }
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds (increased for better performance)
 const CACHE_KEY = 'user_products_cache';
 const ALL_USER_DATA_CACHE_KEY = 'user_all_data_cache';
 

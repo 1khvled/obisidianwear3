@@ -2,195 +2,223 @@
 
 import { useState } from 'react';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { useLanguage } from '@/context/LanguageContext';
-import { Mail, Phone, MapPin, Instagram, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Send } from 'lucide-react';
 
 export default function ContactPage() {
-  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Contact form submitted:', formData);
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Simulate form submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSubmitStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-black">
       <Header />
-      <main className="py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto container-padding">
-          <div className="text-center mb-12">
-            <h1 className="heading-responsive font-bold text-white mb-6">
-              Contact Us
+      
+      <div className="pt-20 py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-16 animate-fade-in-up">
+            <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-wider mb-6">
+              GET IN TOUCH
             </h1>
-            <p className="text-responsive text-gray-400 max-w-2xl mx-auto">
-              Get in touch with the OBSIDIAN WEAR team. We're here to help with any questions or concerns.
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Have questions about our products? Need help with an order? 
+              We're here to help you with everything OBSIDIAN WEAR.
             </p>
           </div>
-          
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-8 border border-gray-800/50">
-              <h2 className="text-2xl font-semibold text-white mb-6">Send us a message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
-                      placeholder="your@email.com"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
-                    placeholder="What is this about?"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={5}
-                    className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors resize-none"
-                    placeholder="Tell us more about your inquiry..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-white text-black py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors"
-                >
-                  Send Message
-                </button>
-              </form>
-            </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Information */}
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in-up delay-200">
               <div>
-                <h2 className="text-2xl font-semibold text-white mb-6">Get in touch</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                      <Mail className="w-6 h-6 text-white" />
+                <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-8">
+                  CONTACT INFO
+                </h2>
+                
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-4 group">
+                    <div className="p-3 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
+                      <Mail className="w-6 h-6 text-black" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">Email</p>
-                      <p className="text-gray-400">contact@obsidianwear.dz</p>
+                      <h3 className="text-white font-bold uppercase tracking-wider">EMAIL</h3>
+                      <p className="text-gray-400">contact@obsidianwear.com</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                      <Phone className="w-6 h-6 text-white" />
+
+                  <div className="flex items-center space-x-4 group">
+                    <div className="p-3 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
+                      <Instagram className="w-6 h-6 text-black" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">Phone</p>
-                      <p className="text-gray-400">+213 XXX XXX XXX</p>
+                      <h3 className="text-white font-bold uppercase tracking-wider">INSTAGRAM</h3>
+                      <p className="text-gray-400">@obsidianwear_dz</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                      <MapPin className="w-6 h-6 text-white" />
+
+                  <div className="flex items-center space-x-4 group">
+                    <div className="p-3 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
+                      <MapPin className="w-6 h-6 text-black" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">Location</p>
+                      <h3 className="text-white font-bold uppercase tracking-wider">LOCATION</h3>
                       <p className="text-gray-400">Algeria</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-xl font-semibold text-white mb-4">Follow us</h3>
+              {/* Social Links */}
+              <div className="pt-8 border-t border-gray-800">
+                <h3 className="text-white font-bold uppercase tracking-wider mb-4">FOLLOW US</h3>
                 <div className="flex space-x-4">
-                  <a
-                    href="https://instagram.com/obsidianwear_dz"
-                    target="_blank"
+                  <a 
+                    href="https://instagram.com/obsidianwear_dz" 
+                    target="_blank" 
                     rel="noopener noreferrer"
-                    className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    className="p-3 bg-white text-black rounded-lg hover:bg-purple-500 hover:text-white transition-all duration-300 hover:scale-110 transform"
                   >
-                    <Instagram className="w-6 h-6 text-white" />
+                    <Instagram className="w-6 h-6" />
                   </a>
-                  <a
-                    href="https://tiktok.com/@obsidianwear.dz"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-6 border border-gray-800/50">
-                <h3 className="text-lg font-semibold text-white mb-3">Business Hours</h3>
-                <div className="space-y-2 text-gray-400">
-                  <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                  <p>Saturday: 10:00 AM - 4:00 PM</p>
-                  <p>Sunday: Closed</p>
                 </div>
               </div>
             </div>
+
+            {/* Contact Form */}
+            <div className="animate-fade-in-up delay-400">
+              <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-8">
+                SEND MESSAGE
+              </h2>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="name" className="block text-white font-bold uppercase tracking-wider mb-2">
+                      NAME
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-white text-black rounded-lg border-2 border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="email" className="block text-white font-bold uppercase tracking-wider mb-2">
+                      EMAIL
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-white text-black rounded-lg border-2 border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="subject" className="block text-white font-bold uppercase tracking-wider mb-2">
+                    SUBJECT
+                  </label>
+                  <input
+                    type="text"
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white text-black rounded-lg border-2 border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                    placeholder="What's this about?"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block text-white font-bold uppercase tracking-wider mb-2">
+                    MESSAGE
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    required
+                    rows={6}
+                    className="w-full px-4 py-3 bg-white text-black rounded-lg border-2 border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 resize-none"
+                    placeholder="Tell us more..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-purple-500 text-black py-4 px-6 font-black text-lg uppercase tracking-wider rounded-lg hover:bg-purple-600 transition-all duration-300 hover:scale-105 transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      SENDING...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      SEND MESSAGE
+                    </>
+                  )}
+                </button>
+
+                {submitStatus === 'success' && (
+                  <div className="p-4 bg-green-500/20 border border-green-500 rounded-lg text-green-400 text-center">
+                    Message sent successfully! We'll get back to you soon.
+                  </div>
+                )}
+
+                {submitStatus === 'error' && (
+                  <div className="p-4 bg-red-500/20 border border-red-500 rounded-lg text-red-400 text-center">
+                    Failed to send message. Please try again.
+                  </div>
+                )}
+              </form>
+            </div>
           </div>
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 }

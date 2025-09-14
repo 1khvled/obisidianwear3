@@ -8,18 +8,20 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useProducts } from '@/context/SmartProductProvider';
 import { useCart } from '@/context/CartContext';
+import { useDesign } from '@/context/DesignContext';
 import { Product } from '@/types';
 import { recentlyViewedService } from '@/lib/recentlyViewed';
 import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Package, RefreshCw } from 'lucide-react';
 import SizeChart from '@/components/SizeChart';
+import GlobalDesignToggle from '@/components/GlobalDesignToggle';
 
 export default function ProductDetailPage() {
+  const { isStreetwear } = useDesign();
   const params = useParams();
   const router = useRouter();
   const { getProduct, products } = useProducts();
   const { addToCart } = useCart();
   
-  console.log('Cart hook available:', !!addToCart);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -28,490 +30,637 @@ export default function ProductDetailPage() {
   const [realTimeStock, setRealTimeStock] = useState<any>(null);
   const [stockLoading, setStockLoading] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
 
-  // Fetch real-time stock data from database
-  const fetchRealTimeStock = async (productId: string) => {
+  // Fetch real-time stock data from products table (optimized)
+  const fetchRealTimeStock = async (productId: string, forceRefresh = false) => {
     if (!productId) return;
     
     setStockLoading(true);
     try {
-      console.log('🔄 Fetching REAL-TIME stock data for product:', productId);
-      const response = await fetch(`/api/products/${productId}?t=${Date.now()}`, {
-        cache: 'no-store' // Ensure we get fresh data
+      // Use cache for faster loading, only bust cache when force refresh
+      const url = forceRefresh 
+        ? `/api/products/${productId}?t=${Date.now()}`
+        : `/api/products/${productId}`;
+      
+      const response = await fetch(url, {
+        cache: forceRefresh ? 'no-store' : 'default',
+        headers: forceRefresh ? {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        } : {}
       });
+      
       if (response.ok) {
-        const productData = await response.json();
-        console.log('✅ REAL-TIME stock data:', productData.stock);
-        setRealTimeStock(productData.stock);
+        const responseData = await response.json();
+        console.log('🔄 Fetched stock data:', responseData);
         
-        // Update the product state with fresh data
-        setProduct(prev => prev ? {
-          ...prev,
-          stock: productData.stock,
-          inStock: productData.inStock
-        } : prev);
-      } else {
-        console.error('❌ Failed to fetch real-time stock data');
+        if (responseData.success && responseData.data) {
+          const productData = responseData.data;
+          console.log('🔄 Product stock data:', productData.stock);
+          setRealTimeStock(productData.stock);
+          setProduct(prev => prev ? {
+            ...prev,
+            stock: productData.stock,
+            ...productData
+          } : productData);
+        }
       }
     } catch (error) {
-      console.error('❌ Error fetching real-time stock:', error);
+      console.error('❌ Error fetching stock:', error);
     } finally {
       setStockLoading(false);
     }
   };
 
   useEffect(() => {
-    if (params.id) {
-      const foundProduct = getProduct(params.id as string);
-      setProduct(foundProduct);
-      
-      // Add to recently viewed
+    const productId = params.id as string;
+    if (productId) {
+      const foundProduct = getProduct(productId);
       if (foundProduct) {
+        setProduct(foundProduct);
+        if (foundProduct.colors?.length > 0) setSelectedColor(foundProduct.colors[0]);
+        if (foundProduct.sizes?.length > 0) setSelectedSize(foundProduct.sizes[0]);
         recentlyViewedService.addProduct(foundProduct);
+        
+        // Use initial stock data if available for faster loading
+        if (foundProduct.stock) {
+          console.log('🚀 Using initial stock data for faster loading:', foundProduct.stock);
+          setRealTimeStock(foundProduct.stock);
+        }
+        
+        // Still fetch fresh data but with cache for speed
+        fetchRealTimeStock(productId, false);
       }
-      
-      // Set default color if not selected
-      if (foundProduct && foundProduct.colors.length > 0 && !selectedColor) {
-        setSelectedColor(foundProduct.colors[0]);
-      }
-      
-      console.log('Product detail page updated:', foundProduct?.name);
     }
-  }, [params.id, getProduct]); // Removed unnecessary dependencies
+  }, [params.id, getProduct]);
 
-  // Separate effect for stock fetching to not block initial render
+  // Refresh stock data every 2 minutes to stay up to date (less aggressive)
   useEffect(() => {
-    if (params.id && product) {
-      // Fetch stock data in background without blocking UI - delay it slightly
-      const timer = setTimeout(() => {
-        fetchRealTimeStock(params.id as string);
-      }, 100); // Small delay to let page render first
-      
-      return () => clearTimeout(timer);
-    }
-  }, [params.id, product?.id]); // Only fetch when product changes
+    const productId = params.id as string;
+    if (!productId) return;
 
-  // Clear selected size if it becomes out of stock when color changes
-  useEffect(() => {
-    if (product && selectedSize && selectedColor) {
-      // Use real-time stock data if available, otherwise fall back to cached data
-      const stockData = realTimeStock || product.stock;
-      const sizeStock = stockData?.[selectedSize]?.[selectedColor] || 0;
-      if (sizeStock === 0) {
-        setSelectedSize('');
-      }
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing stock data...');
+      fetchRealTimeStock(productId, true); // Force refresh for auto-updates
+    }, 120000); // 2 minutes instead of 30 seconds
+
+    return () => clearInterval(interval);
+  }, [params.id]);
+
+  const handleAddToCart = async () => {
+    if (!product || !selectedSize || !selectedColor) return;
+    
+    setIsAddingToCart(true);
+    try {
+      await addToCart(product, selectedSize, selectedColor, quantity);
+      alert('Product added to cart!');
+    } catch (error) {
+      alert('Failed to add product to cart');
+    } finally {
+      setIsAddingToCart(false);
     }
-  }, [product, selectedColor, selectedSize, realTimeStock]);
+  };
+
+  const getAvailableStock = (size: string, color: string) => {
+    if (!realTimeStock || !realTimeStock[size] || !realTimeStock[size][color]) return 0;
+    return realTimeStock[size][color];
+  };
+
+  const isSizeColorAvailable = (size: string, color: string) => {
+    return getAvailableStock(size, color) > 0;
+  };
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-800 rounded w-64 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-800 rounded w-32 mx-auto mb-6"></div>
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-4">Loading Product...</h1>
-            <Link href="/" className="text-white hover:text-gray-300">
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
+        <div className="text-white">Loading...</div>
         <Footer />
+        <GlobalDesignToggle />
       </div>
     );
   }
 
-  const discountPercentage = product.originalPrice 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0;
+  if (isStreetwear) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header />
+        
+        <div className="pt-24 pb-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Back button */}
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-3 mb-8 p-3 border-2 border-white hover:bg-white hover:text-black transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-black uppercase tracking-wider">BACK TO SHOP</span>
+            </Link>
 
-  const handleBuyNow = () => {
-    if (!selectedSize || !selectedColor) {
-      alert('Please select size and color');
-      return;
-    }
-    
-    // Check if this is a made-to-order product (no stock property)
-    if (!product.stock) {
-      // Redirect made-to-order products to the made-to-order page
-      router.push(`/made-to-order/${product.id}`);
-      return;
-    }
-    
-    // Regular products go to checkout
-    router.push(`/checkout?productId=${product.id}&size=${selectedSize}&color=${selectedColor}&quantity=${quantity}`);
-  };
+            <div className="grid lg:grid-cols-2 gap-12">
+              {/* Images */}
+              <div className="space-y-6">
+                <div className="aspect-square bg-gray-900 border-2 border-white overflow-hidden">
+                  <Image
+                    src={product.images?.[selectedImage] || product.image || ''}
+                    alt={product.name}
+                    width={600}
+                    height={600}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                {product.images && product.images.length > 1 && (
+                  <div className="grid grid-cols-4 gap-3">
+                    {product.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedImage(idx)}
+                        className={`aspect-square border-2 transition-colors ${
+                          selectedImage === idx ? 'border-purple-500' : 'border-white'
+                        }`}
+                      >
+                        <Image
+                          src={img}
+                          alt={`${product.name} ${idx + 1}`}
+                          width={150}
+                          height={150}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-  const handleAddToCart = () => {
-    if (!product) {
-      alert('Product not found!');
-      return;
-    }
-    if (!selectedSize || !selectedColor) {
-      alert('Please select size and color');
-      return;
-    }
-    
-    // Check if this is a made-to-order product (no stock property)
-    if (!product.stock) {
-      alert('Made-to-order products cannot be added to cart. Please use the "Order Now" button to place your order.');
-      return;
-    }
-    
-    console.log('Adding to cart:', { product, selectedSize, selectedColor, quantity });
-    addToCart(product, selectedSize, selectedColor, quantity);
-    alert('Added to cart!');
-  };
-
-  return (
-    <div className="min-h-screen bg-black">
-      <Header />
-      
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-white hover:text-gray-300 mb-12 transition-colors"
-        >
-          <ArrowLeft size={20} className="mr-2" />
-          Back to Products
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-          {/* Product Images */}
-          <div className="space-y-4 sm:space-y-6">
-            <div className="aspect-square bg-black border-4 border-white overflow-hidden">
-              {!product.image ? (
-                <div className="w-full h-full bg-black flex items-center justify-center">
-                  <div className="text-center">
-                    <Package className="w-16 h-16 text-white mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm font-bold uppercase">NO IMAGE</p>
-                    <p className="text-gray-500 text-xs">{product.name}</p>
+              {/* Product Info */}
+              <div className="space-y-8">
+                {/* Title & Price */}
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <h1 className="text-4xl font-black uppercase tracking-wider flex-1">{product.name}</h1>
+                    <button
+                      onClick={() => setIsLiked(!isLiked)}
+                      className="p-3 border-2 border-white hover:bg-purple-500 hover:border-purple-500 transition-colors"
+                    >
+                      <Heart className={`w-6 h-6 ${isLiked ? 'fill-current text-purple-500' : ''}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="text-4xl font-black text-purple-500 font-mono mb-4">
+                    {product.price?.toFixed(0)} DZD
+                  </div>
+                  
+                  <div className="bg-purple-500 text-black px-4 py-2 inline-block border-2 border-white">
+                    <span className="font-black uppercase tracking-wider text-sm">LIMITED STOCK</span>
                   </div>
                 </div>
-              ) : product.image.startsWith('data:') ? (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
+
+                {/* Description */}
+                <div className="border-t-2 border-white pt-6">
+                  <p className="text-gray-300 leading-relaxed text-lg">{product.description}</p>
+                </div>
+
+                {/* Colors */}
+                {product.colors && product.colors.length > 0 && (
+                  <div>
+                    <h3 className="font-black text-lg uppercase tracking-wider mb-4">COLOR</h3>
+                    <div className="flex gap-3">
+                      {product.colors.map((color) => {
+                        const hasAnyStock = product.sizes?.some(size => getAvailableStock(size, color) > 0) || false;
+                        return (
+                          <button
+                            key={color}
+                            onClick={() => hasAnyStock && setSelectedColor(color)}
+                            disabled={!hasAnyStock}
+                            className={`px-6 py-3 border-2 font-bold uppercase tracking-wider transition-colors relative ${
+                              selectedColor === color && hasAnyStock
+                                ? 'bg-white text-black border-white'
+                                : hasAnyStock
+                                ? 'bg-black text-white border-white hover:bg-white hover:text-black'
+                                : 'bg-red-900/50 text-red-400 border-red-500 cursor-not-allowed opacity-75'
+                            }`}
+                          >
+                            {color}
+                            {!hasAnyStock && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">×</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sizes */}
+                {product.sizes && product.sizes.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-black text-lg uppercase tracking-wider">
+                        SIZE
+                        {stockLoading && (
+                          <span className="ml-2 text-xs text-purple-400">
+                            (Loading stock...)
+                          </span>
+                        )}
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => fetchRealTimeStock(product.id, true)}
+                          disabled={stockLoading}
+                          className="text-purple-500 font-bold uppercase text-sm hover:underline disabled:text-gray-500"
+                        >
+                          {stockLoading ? 'REFRESHING...' : 'REFRESH STOCK'}
+                        </button>
+                        <button
+                          onClick={() => setShowSizeChart(true)}
+                          className="text-purple-500 font-bold uppercase text-sm hover:underline"
+                        >
+                          SIZE GUIDE
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      {product.sizes.map((size) => {
+                        const available = isSizeColorAvailable(size, selectedColor);
+                        const stockCount = getAvailableStock(size, selectedColor);
+                        return (
+                          <button
+                            key={size}
+                            onClick={() => available && setSelectedSize(size)}
+                            disabled={!available}
+                            className={`aspect-square border-2 font-black uppercase transition-colors relative ${
+                              selectedSize === size && available
+                                ? 'bg-purple-500 text-black border-purple-500'
+                                : available
+                                ? 'bg-black text-white border-white hover:bg-white hover:text-black'
+                                : 'bg-red-900/50 text-red-400 border-red-500 cursor-not-allowed opacity-75'
+                            }`}
+                          >
+                            {size}
+                            {!available && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">×</span>
+                              </div>
+                            )}
+                            {available && stockCount <= 5 && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                                <span className="text-black text-xs font-bold">!</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                  </div>
+                )}
+
+                {/* Quantity */}
+                <div>
+                  <h3 className="font-black text-lg uppercase tracking-wider mb-4">QUANTITY</h3>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-12 h-12 border-2 border-white hover:bg-white hover:text-black transition-colors font-black text-xl"
+                    >
+                      -
+                    </button>
+                    <span className="w-16 text-center font-black text-xl">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-12 h-12 border-2 border-white hover:bg-white hover:text-black transition-colors font-black text-xl"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stock Status */}
+                {selectedSize && selectedColor && (
+                  <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium">Stock Status:</span>
+                      <div className="flex items-center gap-2">
+                        {isSizeColorAvailable(selectedSize, selectedColor) ? (
+                          <>
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span className="text-green-400 font-bold">
+                              In Stock
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <span className="text-red-400 font-bold">Out of Stock</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={!selectedSize || !selectedColor || !isSizeColorAvailable(selectedSize, selectedColor) || isAddingToCart}
+                      className="bg-black border-2 border-white text-white hover:bg-white hover:text-black disabled:bg-gray-600 disabled:text-gray-400 py-4 px-6 font-black text-lg uppercase tracking-wider transition-colors disabled:border-gray-600 flex items-center justify-center gap-2"
+                    >
+                      {isAddingToCart ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ADDING...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-5 h-5" />
+                          {!selectedSize || !selectedColor ? 'SELECT SIZE & COLOR' : 
+                           !isSizeColorAvailable(selectedSize, selectedColor) ? 'OUT OF STOCK' : 
+                           'ADD TO CART'}
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={async () => {
+                        if (!selectedSize || !selectedColor || !isSizeColorAvailable(selectedSize, selectedColor)) return;
+                        
+                        setIsOrdering(true);
+                        try {
+                          // Store product data in sessionStorage
+                          const productData = {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image: product.image || product.images?.[0],
+                            description: product.description,
+                            colors: product.colors,
+                            sizes: product.sizes,
+                            category: product.category,
+                            type: 'collection',
+                            selectedSize: selectedSize,
+                            selectedColor: selectedColor,
+                            quantity: quantity
+                          };
+
+                          sessionStorage.setItem('checkoutProduct', JSON.stringify(productData));
+                          await router.push('/checkout');
+                        } finally {
+                          setIsOrdering(false);
+                        }
+                      }}
+                      disabled={!selectedSize || !selectedColor || !isSizeColorAvailable(selectedSize, selectedColor) || isOrdering}
+                      className="bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 text-black disabled:text-gray-400 py-4 px-6 font-black text-lg uppercase tracking-wider transition-colors border-2 border-white disabled:border-gray-600 flex items-center justify-center gap-2"
+                    >
+                      {isOrdering ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                          ORDERING...
+                        </>
+                      ) : (
+                        <>
+                          <Package className="w-5 h-5" />
+                          {!selectedSize || !selectedColor ? 'SELECT SIZE & COLOR' : 
+                           !isSizeColorAvailable(selectedSize, selectedColor) ? 'OUT OF STOCK' : 
+                           'BUY NOW'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-4 border border-white">
+                      <Shield className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                      <div className="text-xs font-bold uppercase">AUTHENTIC</div>
+                    </div>
+                    <div className="p-4 border border-white">
+                      <Truck className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                      <div className="text-xs font-bold uppercase">FAST SHIP</div>
+                    </div>
+                    <div className="p-4 border border-white">
+                      <RotateCcw className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                      <div className="text-xs font-bold uppercase">RETURNS</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
+        <GlobalDesignToggle />
+        
+        {showSizeChart && (
+          <SizeChart
+            isOpen={showSizeChart}
+            onClose={() => setShowSizeChart(false)}
+            category={product.category}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Classic design (keep original)
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <Header />
+      
+      <div className="pt-24 pb-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to products</span>
+          </Link>
+
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Images */}
+            <div className="space-y-6">
+              <div className="aspect-square bg-gray-900 rounded-2xl overflow-hidden">
                 <Image
-                  src={product.image}
+                  src={product.images?.[selectedImage] || product.image || ''}
                   alt={product.name}
                   width={600}
                   height={600}
                   className="w-full h-full object-cover"
-                  priority
                 />
-              )}
-            </div>
-            
-            {/* Additional Images */}
-            <div className="grid grid-cols-4 gap-3 sm:gap-6">
-              {[product.image, ...(product.images || [])]
-                .filter(img => img && img.trim() !== '')
-                .slice(0, 4)
-                .map((image, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square bg-black border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-all"
-                    onClick={() => setSelectedImage(index)}
-                  >
-                    {!image ? (
-                      <div className="w-full h-full bg-black flex items-center justify-center">
-                        <Package className="w-8 h-8 text-white" />
-                      </div>
-                    ) : image.startsWith('data:') ? (
-                      <img
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
+              </div>
+              
+              {product.images && product.images.length > 1 && (
+                <div className="grid grid-cols-4 gap-3">
+                  {product.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
+                        selectedImage === idx ? 'border-purple-500' : 'border-gray-700'
+                      }`}
+                    >
                       <Image
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
+                        src={img}
+                        alt={`${product.name} ${idx + 1}`}
                         width={150}
                         height={150}
                         className="w-full h-full object-cover"
                       />
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          {/* Product Details */}
-          <div className="space-y-6 sm:space-y-8">
-            <div>
-              <h1 className="heading-responsive font-bold font-poppins text-white mb-2">
-                {product.name}
-              </h1>
-              <p className="text-gray-400 text-responsive">{product.category}</p>
-            </div>
-
-            {/* Rating */}
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={20}
-                    className={`${
-                      i < Math.floor(product.rating)
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="flex items-center space-x-4">
-              <span className="text-3xl font-bold text-white">
-{Number(product.price).toFixed(0)} DA
-              </span>
-              {product.originalPrice && (
-                <>
-                  <span className="text-xl text-gray-500 line-through">
-                    {Number(product.originalPrice).toFixed(0)} DA
-                  </span>
-                  <span className="bg-red-600 text-white text-sm font-semibold px-2 py-1 rounded">
-                    Save {(Number(product.originalPrice) - Number(product.price)).toFixed(0)} DA
-                  </span>
-                </>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
-            {/* Description */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-2">Description</h3>
-              <p className="text-gray-400 leading-relaxed">
-                {product.description}
-              </p>
-            </div>
+            {/* Product Info */}
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-start justify-between mb-4">
+                  <h1 className="text-3xl font-bold flex-1">{product.name}</h1>
+                  <button
+                    onClick={() => setIsLiked(!isLiked)}
+                    className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <Heart className={`w-6 h-6 ${isLiked ? 'fill-current text-purple-500' : 'text-gray-400'}`} />
+                  </button>
+                </div>
+                
+                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
+                  {product.price?.toFixed(0)} DZD
+                </div>
+                
+                <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg px-4 py-2 inline-block">
+                  <span className="text-purple-300 font-medium">In Stock</span>
+                </div>
+              </div>
 
-            {/* Size Selection */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Size</h3>
-              <div className="flex flex-wrap gap-3">
-                 {(() => {
-                   // Show all sizes, but mark out-of-stock ones as disabled
-                   // Use real-time stock data if available, otherwise fall back to cached data
-                   const stockData = realTimeStock || product.stock;
-                   return product.sizes.map((size) => {
-                     const sizeStock = selectedColor ? (stockData?.[size]?.[selectedColor] || 0) : 0;
-                     const isOutOfStock = selectedColor && sizeStock === 0;
-                    
-                    return (
+              <p className="text-gray-300 leading-relaxed">{product.description}</p>
+
+              {/* Colors */}
+              {product.colors && product.colors.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Color</h3>
+                  <div className="flex gap-3">
+                    {product.colors.map((color) => (
                       <button
-                        key={size}
-                        onClick={isOutOfStock ? undefined : () => setSelectedSize(size)}
-                        disabled={!!isOutOfStock}
-                        className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
-                          selectedSize === size
-                            ? 'border-white bg-white text-black'
-                            : isOutOfStock
-                              ? 'border-red-600 text-red-400 cursor-not-allowed bg-red-900/20'
-                              : !selectedColor
-                                ? 'border-yellow-600 text-yellow-400 bg-yellow-900/20'
-                                : 'border-gray-600 text-white hover:border-gray-400'
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 py-2 rounded-lg border transition-colors ${
+                          selectedColor === color
+                            ? 'bg-purple-600 border-purple-500 text-white'
+                            : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
                         }`}
                       >
-                        {size}
-                        {!selectedColor && ' (Select Color)'}
-                        {isOutOfStock && ' (OUT OF STOCK)'}
+                        {color}
                       </button>
-                    );
-                  });
-                })()}
-              </div>
-              
-              {selectedColor && (() => {
-                // Use real-time stock data if available, otherwise fall back to cached data
-                const stockData = realTimeStock || product.stock;
-                const availableSizes = product.sizes.filter(size => {
-                  const stock = stockData?.[size]?.[selectedColor] || 0;
-                  return stock > 0;
-                });
-                
-                if (availableSizes.length === 0) {
-                  return (
-                    <p className="text-red-400 text-sm mt-2">
-                      ❌ No sizes available for {selectedColor}
-                    </p>
-                  );
-                }
-                
-                const outOfStockSizes = product.sizes.filter(size => {
-                  const stock = stockData?.[size]?.[selectedColor] || 0;
-                  return stock === 0;
-                });
-                
-                if (outOfStockSizes.length > 0) {
-                  return (
-                    <p className="text-gray-400 text-sm mt-2">
-                      Some sizes are currently unavailable for {selectedColor}
-                    </p>
-                  );
-                }
-                
-                return null;
-              })()}
-              
-              {/* Size Chart Button */}
-              <div className="mt-3">
-                <button
-                  onClick={() => setShowSizeChart(true)}
-                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                  <Ruler className="w-4 h-4" />
-                  View Size Chart
-                </button>
-              </div>
-            </div>
-
-            {/* Color Selection */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Color</h3>
-              <div className="flex flex-wrap gap-3">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
-                      selectedColor === color
-                        ? 'border-white bg-white text-black'
-                        : 'border-gray-600 text-white hover:border-gray-400'
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Quantity</h3>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 border border-gray-600 rounded-lg flex items-center justify-center text-white hover:border-gray-400"
-                >
-                  -
-                </button>
-                <span className="text-white text-lg font-medium w-8 text-center">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-10 h-10 border border-gray-600 rounded-lg flex items-center justify-center text-white hover:border-gray-400"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  if (!selectedSize || !selectedColor) {
-                    alert('❌ Please select size and color first!');
-                    return;
-                  }
-                  
-                  // Use real-time stock data if available, otherwise fall back to cached data
-                  const stockData = realTimeStock || product.stock;
-                  const availableStock = stockData?.[selectedSize]?.[selectedColor] || 0;
-                  if (availableStock === 0) {
-                    alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
-                    setSelectedSize(''); // Clear the selected size
-                    return;
-                  }
-                  
-                  if (quantity > availableStock) {
-                    alert(`❌ Not enough stock available for ${selectedSize} ${selectedColor}!`);
-                    return;
-                  }
-                  
-                  handleBuyNow();
-                }}
-                disabled={!product.inStock || !selectedSize || !selectedColor}
-                className="w-full bg-white text-black py-5 px-8 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
-              >
-                <ShoppingCart size={20} />
-                <span>
-                  {!product.inStock ? 'Out of Stock' : 
-                   !selectedSize || !selectedColor ? 'Select Size & Color' :
-                   `Buy Now - ${(product.price * quantity).toFixed(0)} DA`}
-                </span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  if (!selectedSize || !selectedColor) {
-                    alert('Please select size and color first!');
-                    return;
-                  }
-                  
-                  // Use real-time stock data if available, otherwise fall back to cached data
-                  const stockData = realTimeStock || product.stock;
-                  const availableStock = stockData?.[selectedSize]?.[selectedColor] || 0;
-                  if (availableStock === 0) {
-                    alert(`❌ Size ${selectedSize} in ${selectedColor} is OUT OF STOCK!`);
-                    setSelectedSize(''); // Clear the selected size
-                    return;
-                  }
-                  
-                  if (quantity > availableStock) {
-                    alert(`❌ Not enough stock available for ${selectedSize} ${selectedColor}!`);
-                    return;
-                  }
-                  
-                  handleAddToCart();
-                }}
-                disabled={!product.inStock || !selectedSize || !selectedColor}
-                className="w-full bg-gray-800 text-white py-4 px-8 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-gray-400"
-              >
-                <ShoppingCart size={20} />
-                <span>Add to Cart</span>
-              </button>
-              
-              <div className="flex space-x-4">
-                <button className="flex-1 bg-gray-800 text-white py-4 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3">
-                  <Heart size={20} />
-                  <span>Add to Wishlist</span>
-                </button>
-                <button className="flex-1 bg-gray-800 text-white py-4 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center space-x-3">
-                  <Share2 size={20} />
-                  <span>Share</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="border-t border-gray-800 pt-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                <div className="flex items-center space-x-3">
-                  <Shield size={20} className="text-gray-400" />
-                  <div>
-                    <p className="text-white font-medium">Secure Payment</p>
-                    <p className="text-gray-400 text-sm">100% secure</p>
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <RotateCcw size={20} className="text-gray-400" />
-                  <div>
-                    <p className="text-white font-medium">Easy Returns</p>
-                    <p className="text-gray-400 text-sm">3-day policy</p>
+              )}
+
+              {/* Sizes */}
+              {product.sizes && product.sizes.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-lg">Size</h3>
+                    <button
+                      onClick={() => setShowSizeChart(true)}
+                      className="text-purple-400 hover:text-purple-300 text-sm"
+                    >
+                      Size Guide
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {product.sizes.map((size) => {
+                      const available = isSizeColorAvailable(size, selectedColor);
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => available && setSelectedSize(size)}
+                          disabled={!available}
+                          className={`aspect-square rounded-lg border transition-colors ${
+                            selectedSize === size && available
+                              ? 'bg-purple-600 border-purple-500 text-white'
+                              : available
+                              ? 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                              : 'bg-gray-900 border-gray-700 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedSize && selectedColor && (
+                    <div className="mt-2 text-sm text-gray-400">
+                      Available: {getAvailableStock(selectedSize, selectedColor)} units
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Quantity</h3>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="w-12 text-center font-semibold">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Add to Cart */}
+              <div className="space-y-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!selectedSize || !selectedColor || !isSizeColorAvailable(selectedSize, selectedColor) || isAddingToCart}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-3 px-6 rounded-lg font-bold transition-all duration-300 hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  {isAddingToCart ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </>
+                  )}
+                </button>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                    <Shield className="w-6 h-6 mx-auto mb-2 text-green-400" />
+                    <div className="text-xs text-gray-400">Authentic</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                    <Truck className="w-6 h-6 mx-auto mb-2 text-blue-400" />
+                    <div className="text-xs text-gray-400">Fast Shipping</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                    <RotateCcw className="w-6 h-6 mx-auto mb-2 text-purple-400" />
+                    <div className="text-xs text-gray-400">Easy Returns</div>
                   </div>
                 </div>
               </div>
@@ -521,18 +670,15 @@ export default function ProductDetailPage() {
       </div>
 
       <Footer />
+      <GlobalDesignToggle />
       
-      {/* Size Chart Modal */}
-      <SizeChart 
-        category={product.sizeChartCategory || product.category || 't-shirts'} 
-        isOpen={showSizeChart} 
-        onClose={() => setShowSizeChart(false)}
-        customSizeChart={product.customSizeChart ? {
-          ...product.customSizeChart,
-          category: product.sizeChartCategory || product.category || 't-shirts'
-        } : undefined}
-        useCustomSizeChart={product.useCustomSizeChart}
-      />
+      {showSizeChart && (
+        <SizeChart
+          isOpen={showSizeChart}
+          onClose={() => setShowSizeChart(false)}
+          category={product.category}
+        />
+      )}
     </div>
   );
 }

@@ -108,8 +108,20 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
       // Load products
       const productsResponse = await fetch('/api/made-to-order');
       const productsData = await productsResponse.json();
-      console.log('✅ Loaded made-to-order products in manager:', productsData.length);
-      console.log('🖼️ Product images in manager:', productsData.map((p: any) => ({ 
+      
+      console.log('🔍 DEBUG: Made-to-order API response:', {
+        success: productsData.success,
+        dataType: typeof productsData.data,
+        isArray: Array.isArray(productsData.data),
+        dataLength: productsData.data?.length,
+        fullResponse: productsData
+      });
+      
+      // Handle the response properly
+      const products = productsData.success && Array.isArray(productsData.data) ? productsData.data : [];
+      
+      console.log('✅ Loaded made-to-order products in manager:', products.length);
+      console.log('🖼️ Product images in manager:', products.map((p: any) => ({ 
         id: p.id, 
         name: p.name, 
         hasImage: !!p.image, 
@@ -118,19 +130,31 @@ export default function MadeToOrderManager({ onClose }: MadeToOrderManagerProps)
         imagesLength: p.images?.length,
         firstImageLength: p.images?.[0]?.length
       })));
-      setProducts(productsData);
+      setProducts(products);
 
       // Load orders
       const ordersResponse = await fetch('/api/made-to-order/orders');
       const ordersData = await ordersResponse.json();
-      console.log('✅ Loaded made-to-order orders in manager:', ordersData.length);
-      console.log('📦 Order product IDs:', ordersData.map((o: any) => ({ orderId: o.id, productId: o.productId })));
-      console.log('🔍 Order data structure:', ordersData[0] ? {
-        hasProductData: !!ordersData[0].made_to_order_products,
-        productData: ordersData[0].made_to_order_products,
-        orderKeys: Object.keys(ordersData[0])
+      
+      console.log('🔍 DEBUG: Made-to-order orders API response:', {
+        success: ordersData.success,
+        dataType: typeof ordersData.data,
+        isArray: Array.isArray(ordersData.data),
+        dataLength: ordersData.data?.length,
+        fullResponse: ordersData
+      });
+      
+      // Handle the response properly - orders API returns data directly
+      const orders = Array.isArray(ordersData) ? ordersData : (ordersData.success && Array.isArray(ordersData.data) ? ordersData.data : []);
+      
+      console.log('✅ Loaded made-to-order orders in manager:', orders.length);
+      console.log('📦 Order product IDs:', orders.map((o: any) => ({ orderId: o.id, productId: o.productId })));
+      console.log('🔍 Order data structure:', orders[0] ? {
+        hasProductData: !!orders[0].made_to_order_products,
+        productData: orders[0].made_to_order_products,
+        orderKeys: Object.keys(orders[0])
       } : 'No orders');
-      setOrders(ordersData);
+      setOrders(orders);
     } catch (error) {
       console.error('Error loading made-to-order data:', error);
     } finally {

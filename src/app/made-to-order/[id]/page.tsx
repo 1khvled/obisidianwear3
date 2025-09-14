@@ -2,248 +2,148 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { useOptimizedUserData } from '@/context/OptimizedUserDataContext';
+import OptimizedImage from '@/components/OptimizedImage';
+import { useFastMadeToOrder } from '@/hooks/useFastMadeToOrder';
 import { MadeToOrderProduct } from '@/types';
-import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Calendar, Clock } from 'lucide-react';
-import SizeChart from '@/components/SizeChart';
+import { ArrowLeft, ShoppingBag } from 'lucide-react';
 
-export default function MadeToOrderProductDetailPage() {
+export default function CustomOrderProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { getMadeToOrderProduct, madeToOrderProducts, wilayaTariffs } = useOptimizedUserData();
+  const { products: madeToOrderProducts, wilayaTariffs, loading } = useFastMadeToOrder();
   
   const [product, setProduct] = useState<MadeToOrderProduct | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
-  const [showSizeChart, setShowSizeChart] = useState(false);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [orderForm, setOrderForm] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerEmail: '',
-    customerAddress: '',
-    wilayaId: '',
-    notes: ''
-  });
 
   useEffect(() => {
-    if (params.id) {
-      const foundProduct = getMadeToOrderProduct(params.id as string);
+    if (params.id && madeToOrderProducts.length > 0) {
+      const foundProduct = madeToOrderProducts.find(p => p.id === params.id);
       setProduct(foundProduct || null);
       
-      // Set default color if not selected
-      if (foundProduct && foundProduct.colors.length > 0 && !selectedColor) {
+      if (foundProduct && foundProduct.colors.length > 0) {
         setSelectedColor(foundProduct.colors[0]);
       }
-      
-      console.log('Made-to-order product detail page updated:', foundProduct?.name);
+      if (foundProduct && foundProduct.sizes.length > 0) {
+        setSelectedSize(foundProduct.sizes[0]);
+      }
     }
-  }, [params.id, getMadeToOrderProduct, selectedColor]);
+  }, [params.id, madeToOrderProducts]);
+
+  const handleOrder = () => {
+    if (!product) return;
+    
+    // Navigate to made-to-order checkout page with product data
+    const checkoutUrl = `/made-to-order-checkout?id=${product.id}&size=${selectedSize}&color=${selectedColor}`;
+    router.push(checkoutUrl);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Header />
+        <div className="pt-20 flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading product...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="min-h-screen bg-black">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Product Not Found</h1>
-            <Link href="/made-to-order" className="text-white hover:text-gray-300">
-              ← Back to Made-to-Order
-            </Link>
+        <div className="pt-20 flex items-center justify-center">
+          <div className="text-white text-center">
+            <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+            <p className="text-gray-400 mb-6">The product you're looking for doesn't exist.</p>
+            <button
+              onClick={() => window.history.back()}
+              className="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700 transition-colors"
+            >
+              Go Back
+            </button>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const getImageSrc = (image: string) => {
-    if (!image) return '/obsidian-logo.png';
-    
-    // Handle base64 data URLs
-    if (image.startsWith('data:image/')) {
-      return image;
-    }
-    
-    // Handle regular URLs
-    if (image.startsWith('http') || image.startsWith('/')) {
-      return image;
-    }
-    
-    // Fallback
-    return '/obsidian-logo.png';
-  };
-
-  const getShippingCost = (wilayaId: string) => {
-    if (!wilayaTariffs || wilayaTariffs.length === 0) return { homeDelivery: 0, stopDesk: 0 };
-    
-    const wilaya = wilayaTariffs.find(w => String(w.wilaya_id) === String(wilayaId));
-    if (!wilaya) return { homeDelivery: 0, stopDesk: 0 };
-    
-    return {
-      homeDelivery: wilaya.domicile_ecommerce || wilaya.homeDelivery || 0,
-      stopDesk: wilaya.stop_desk_ecommerce || wilaya.stopDesk || 0
-    };
-  };
-
-  const handleOrderSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedSize.trim() || !selectedColor) {
-      alert('Veuillez entrer votre taille et sélectionner une couleur');
-      return;
-    }
-
-    if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.customerEmail || !orderForm.customerAddress || !orderForm.wilayaId) {
-      alert('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-
-    // Phone validation
-    const phoneRegex = /^0[567][0-9]{8}$/;
-    if (!phoneRegex.test(orderForm.customerPhone)) {
-      alert('Le numéro de téléphone doit commencer par 0 et être suivi de 7, 6 ou 5, puis 8 chiffres');
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(orderForm.customerEmail)) {
-      alert('Veuillez entrer une adresse email valide');
-      return;
-    }
-
-    const selectedWilaya = wilayaTariffs.find(w => String(w.wilaya_id) === String(orderForm.wilayaId));
-    if (!selectedWilaya) {
-      alert('Wilaya non trouvée');
-      return;
-    }
-
-    const shippingCost = getShippingCost(orderForm.wilayaId);
-    const totalPrice = product.price + shippingCost.homeDelivery;
-
-    // Create WhatsApp message
-    const whatsappMessage = `Bonjour ! Je souhaite commander :
-
-Produit: ${product.name}
-Taille: ${selectedSize}
-Couleur: ${selectedColor}
-Prix: ${product.price} DA
-Livraison: ${shippingCost.homeDelivery} DA
-Total: ${totalPrice} DA
-
-Mes informations:
-Nom: ${orderForm.customerName}
-Téléphone: ${orderForm.customerPhone}
-Email: ${orderForm.customerEmail}
-Adresse: ${orderForm.customerAddress}
-Wilaya: ${selectedWilaya.name}
-
-${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
-
-    const whatsappUrl = `https://wa.me/213672536920?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappUrl, '_blank');
-
-    setShowOrderModal(false);
-    setOrderForm({
-      customerName: '',
-      customerPhone: '',
-      customerEmail: '',
-      customerAddress: '',
-      wilayaId: '',
-      notes: ''
-    });
-  };
-
-  // Get all images (main image + additional images)
-  const allImages = [product.image, ...(product.images || [])].filter(img => img && img.trim() !== '');
-  const uniqueImages = Array.from(new Set(allImages));
+  const images = [product.image, ...(product.images || [])].filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black text-white">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="pt-20 pb-16 px-4">
+        <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => router.back()}
-          className="flex items-center text-white hover:text-gray-300 mb-8 transition-colors"
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
         >
-          <ArrowLeft size={20} className="mr-2" />
-          Retour
+            <ArrowLeft className="w-4 h-4" />
+            Back to Products
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            {/* Main Image */}
-            <div className="aspect-square bg-gray-900/50 rounded-2xl overflow-hidden">
-              <Image
-                src={getImageSrc(uniqueImages[selectedImage] || product.image)}
+              <div className="aspect-square relative bg-gray-900 rounded-lg overflow-hidden">
+                <OptimizedImage
+                  src={images[selectedImage] || ''}
                 alt={product.name}
-                width={600}
-                height={600}
                 className="w-full h-full object-cover"
-                priority
               />
             </div>
 
-            {/* Image Gallery */}
-            {uniqueImages.length > 1 && (
-              <div className="grid grid-cols-4 gap-3">
-                {uniqueImages.slice(0, 4).map((image, index) => (
-                  <div
+              {images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {images.map((image, index) => (
+                    <button
                     key={index}
-                    className="aspect-square bg-gray-900/50 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all"
                     onClick={() => setSelectedImage(index)}
+                      className={`aspect-square relative bg-gray-900 rounded-lg overflow-hidden border-2 ${
+                        selectedImage === index ? 'border-purple-500' : 'border-gray-700'
+                      }`}
                   >
-                    <Image
-                      src={getImageSrc(image)}
+                      <OptimizedImage
+                        src={image || ''}
                       alt={`${product.name} ${index + 1}`}
-                      width={150}
-                      height={150}
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                    </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Product Details */}
-          <div className="space-y-8">
             {/* Product Info */}
+            <div className="space-y-6">
             <div>
               <h1 className="text-4xl font-bold text-white mb-4">{product.name}</h1>
-              <p className="text-gray-400 text-lg leading-relaxed mb-6">
-                {product.description}
-              </p>
-              
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="flex items-center">
-                  <span className="text-3xl font-bold text-white">{product.price.toFixed(0)} DA</span>
-                  <span className="text-gray-400 ml-2">À partir de</span>
-                </div>
-              </div>
+                <p className="text-3xl font-bold text-purple-400 mb-6">{product.price} DZD</p>
+                <p className="text-gray-300 text-lg leading-relaxed">{product.description}</p>
             </div>
 
-            {/* Color Selection */}
+              {/* Colors */}
+              {product.colors && product.colors.length > 0 && (
             <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Couleurs</h3>
-              <div className="flex flex-wrap gap-3">
+                  <h3 className="text-white font-bold mb-3">Colors</h3>
+                  <div className="flex gap-2">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-5 py-3 border rounded-lg font-medium transition-colors ${
+                        className={`px-4 py-2 rounded border-2 transition-colors ${
                       selectedColor === color
-                        ? 'border-white bg-white text-black'
-                        : 'border-gray-600 text-white hover:border-gray-400'
+                            ? 'border-purple-500 bg-purple-500/20 text-white'
+                            : 'border-gray-600 text-gray-300 hover:border-gray-500'
                     }`}
                   >
                     {color}
@@ -251,287 +151,54 @@ ${orderForm.notes ? `Notes: ${orderForm.notes}` : ''}`;
                 ))}
               </div>
             </div>
-
-            {/* Size Selection */}
-            <div>
-              <h3 className="text-white font-semibold text-lg mb-4">Taille *</h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                  placeholder="Entrez votre taille (ex: S, M, L, XL, 42, 44, etc.)"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                {!selectedColor && (
-                  <p className="text-yellow-400 text-sm mt-2">
-                    ⚠️ Veuillez d'abord sélectionner une couleur
-                  </p>
-                )}
-              </div>
-              
-              {selectedColor && (
-                <button
-                  onClick={() => setShowSizeChart(true)}
-                  className="mt-4 text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                >
-                  <Ruler size={16} className="mr-2" />
-                  Voir le guide des tailles
-                </button>
               )}
-            </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-3 p-4 bg-gray-900/50 rounded-lg">
-                <Truck className="text-blue-400" size={24} />
-                <div>
-                  <p className="text-white font-medium">Livraison</p>
-                  <p className="text-gray-400 text-sm">20-18 jours</p>
+              {/* Sizes */}
+              {product.sizes && product.sizes.length > 0 && (
+            <div>
+                  <h3 className="text-white font-bold mb-3">Sizes</h3>
+                  <div className="flex gap-2">
+                    {product.sizes.map((size) => (
+                <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 rounded border-2 transition-colors ${
+                          selectedSize === size
+                            ? 'border-purple-500 bg-purple-500/20 text-white'
+                            : 'border-gray-600 text-gray-300 hover:border-gray-500'
+                        }`}
+                      >
+                        {size}
+                </button>
+                    ))}
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-3 p-4 bg-gray-900/50 rounded-lg">
-                <Shield className="text-green-400" size={24} />
-                <div>
-                  <p className="text-white font-medium">Qualité</p>
-                  <p className="text-gray-400 text-sm">Premium</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-4 bg-gray-900/50 rounded-lg">
-                <RotateCcw className="text-purple-400" size={24} />
-                <div>
-                  <p className="text-white font-medium">Personnalisé</p>
-                  <p className="text-gray-400 text-sm">Sur mesure</p>
-                </div>
-              </div>
-            </div>
+              )}
 
             {/* Order Button */}
+              <div className="pt-6">
             <button
-              onClick={() => setShowOrderModal(true)}
-              className="w-full bg-white text-black py-5 px-8 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-3"
+                  onClick={handleOrder}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-6 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-3"
             >
-              <ShoppingCart size={20} />
-              <span>Commander maintenant</span>
+                  <ShoppingBag className="w-5 h-5" />
+                  Order This Product
             </button>
-
-            {/* Additional Info */}
-            <div className="space-y-4 text-sm text-gray-400">
-              <div className="flex items-center space-x-2">
-                <Calendar size={16} />
-                <span>Délai de production: 20-18 jours ouvrables</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Clock size={16} />
-                <span>Contact WhatsApp dans les 24-48h</span>
+
+              {/* Product Details */}
+              <div className="border-t border-gray-700 pt-6">
+                <h3 className="text-white font-bold mb-4">Product Details</h3>
+                <div className="space-y-2 text-gray-300">
+                  <p><strong>Category:</strong> {product.category}</p>
+                  <p><strong>Delivery:</strong> 20-25 days</p>
+                  <p><strong>Payment:</strong> 50% upfront by CCP</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Order Modal */}
-      {showOrderModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">Commander {product.name}</h2>
-            
-            <form onSubmit={handleOrderSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Nom complet *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={orderForm.customerName}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, customerName: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Votre nom complet"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Téléphone * (10 chiffres)
-                </label>
-                <input
-                  type="tel"
-                  required
-                  pattern="[0-9]{10}"
-                  minLength={10}
-                  maxLength={10}
-                  value={orderForm.customerPhone}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, customerPhone: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0XXXXXXXXX"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={orderForm.customerEmail}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, customerEmail: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="votre@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Adresse complète *
-                </label>
-                <textarea
-                  required
-                  value={orderForm.customerAddress}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, customerAddress: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  placeholder="Votre adresse complète"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Wilaya *
-                </label>
-                <select
-                  required
-                  value={orderForm.wilayaId}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, wilayaId: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner une wilaya</option>
-                  {wilayaTariffs.map((wilaya) => (
-                    <option key={wilaya.wilaya_id} value={wilaya.wilaya_id}>
-                      {wilaya.name} - {wilaya.domicile_ecommerce || wilaya.homeDelivery || 0} DA
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Taille *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Entrez votre taille (ex: S, M, L, XL, 42, 44, etc.)"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSizeChart(true)}
-                  className="mt-2 text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                >
-                  <Ruler size={16} className="mr-2" />
-                  Voir le guide des tailles
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Couleur *
-                </label>
-                <select
-                  required
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner une couleur</option>
-                  {product.colors.map((color) => (
-                    <option key={color} value={color}>
-                      {color}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Quantité
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={1}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Notes (optionnel)
-                </label>
-                <textarea
-                  value={orderForm.notes}
-                  onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  placeholder="Instructions spéciales, préférences de couleur, etc."
-                />
-              </div>
-
-              <div className="flex space-x-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowOrderModal(false)}
-                  className="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors font-semibold"
-                >
-                  Commander via WhatsApp
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
-
-      {/* Size Chart Modal */}
-      {showSizeChart && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Guide des tailles</h2>
-              <button
-                onClick={() => setShowSizeChart(false)}
-                className="text-gray-400 hover:text-white text-2xl"
-              >
-                ×
-              </button>
-            </div>
-            <SizeChart 
-              category={product.sizeChartCategory || product.size_chart_category || product.category || 'hoodies'}
-              isOpen={showSizeChart}
-              onClose={() => setShowSizeChart(false)}
-              customSizeChart={product.customSizeChart ? {
-                ...product.customSizeChart,
-                category: product.sizeChartCategory || product.size_chart_category || product.category || 'hoodies'
-              } : undefined}
-              useCustomSizeChart={product.useCustomSizeChart}
-            />
-          </div>
-        </div>
-      )}
-
-      <Footer />
     </div>
   );
 }

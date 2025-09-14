@@ -1,701 +1,665 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useProducts } from '@/context/SmartProductProvider';
-import { useLanguage } from '@/context/LanguageContext';
-import { sortedWilayas } from '@/data/wilayas';
-import { Product } from '@/types';
-import { orderService } from '@/services/orderService';
-import { ArrowLeft, CreditCard, MapPin, Phone, User, Mail, Truck, CheckCircle, AlertCircle } from 'lucide-react';
-import { DataLoadingAnimation, NetworkLoadingAnimation } from '@/components/LoadingSkeleton';
+import OptimizedImage from '@/components/OptimizedImage';
+import OrderSuccessModal from '@/components/OrderSuccessModal';
+import { ShoppingBag, ArrowLeft, Check } from 'lucide-react';
+
+interface ProductData {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  description?: string;
+  colors?: string[];
+  sizes?: string[];
+  category?: string;
+  type?: string;
+}
+
+interface StockData {
+  stock: { [size: string]: { [color: string]: number } };
+}
 
 export default function CheckoutPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const { getProduct } = useProducts();
-  const { t } = useLanguage();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
+  const [product, setProduct] = useState<ProductData | null>(null);
+  const [stockData, setStockData] = useState<StockData | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [deliveryOption, setDeliveryOption] = useState<'domicile' | 'stop_desk' | ''>('');
+  const [customerInfo, setCustomerInfo] = useState({
     name: '',
     phone: '',
     email: '',
     address: '',
-    city: '',
-    wilaya: '',
-    notes: ''
+    wilaya: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderStatus, setOrderStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [orderMessage, setOrderMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderId, setOrderId] = useState('');
-  const [selectedShipping, setSelectedShipping] = useState<'stopDeskEcommerce' | 'domicileEcommerce'>('stopDeskEcommerce');
-  const [isDataSaved, setIsDataSaved] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(0);
+
+  // Redirect countdown effect
+  useEffect(() => {
+    if (redirectCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRedirectCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (redirectCountdown === 0 && showSuccessModal) {
+      // Redirect to home page after countdown
+      router.push('/');
+    }
+  }, [redirectCountdown, showSuccessModal, router]);
 
   useEffect(() => {
-    const productId = searchParams.get('productId');
-    const productDataParam = searchParams.get('productData');
-    const selectedSize = searchParams.get('size');
-    const selectedColor = searchParams.get('color');
-    const quantity = parseInt(searchParams.get('quantity') || '1');
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    const storedProduct = sessionStorage.getItem('checkoutProduct');
+    if (storedProduct) {
+      try {
+        const parsedProduct: ProductData = JSON.parse(storedProduct);
+        setProduct(parsedProduct);
+        
+        if (parsedProduct.type !== 'made-to-order') {
+          fetchStockData(parsedProduct.id, parsedProduct.type || 'collection');
+        }
+        
+        sessionStorage.removeItem('checkoutProduct');
+      } catch (error) {
+        console.error('Checkout: Error parsing product data:', error);
+      }
+    }
     
-    if (productId) {
-      // First try to use product data from URL parameters (faster)
-      if (productDataParam) {
-        try {
-          const productData = JSON.parse(decodeURIComponent(productDataParam));
-          setProduct(productData);
-          
-          
-          // Check if this is a made-to-order product (no stock property or empty stock)
-          const isMadeToOrder = !productData.stock || (typeof productData.stock === 'object' && Object.keys(productData.stock).length === 0);
-          if (isMadeToOrder) {
-            console.log('🚨 Made-to-order product detected during loading, redirecting to made-to-order page');
-            // Redirect made-to-order products to the made-to-order page
-            router.push(`/made-to-order/${productId}`);
-            return;
-          }
-          
-          // Check if the selected size/color combination is in stock
-          if (selectedSize && selectedColor) {
-            const availableStock = productData.stock?.[selectedSize]?.[selectedColor] || 0;
-            if (availableStock < quantity) {
-              setOrderStatus('error');
-              setOrderMessage(`❌ This item is out of stock. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
-              return;
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing product data from URL:', error);
-          // Fallback to product lookup
-          const foundProduct = getProduct(productId);
-          setProduct(foundProduct || null);
-        }
-      } else {
-        // Fallback to product lookup
-        const foundProduct = getProduct(productId);
-        setProduct(foundProduct || null);
-        
-        // Check if this is a made-to-order product (no stock property)
-        
-        const isMadeToOrder = foundProduct && (!foundProduct.stock || (typeof foundProduct.stock === 'object' && Object.keys(foundProduct.stock).length === 0));
-        if (isMadeToOrder) {
-          console.log('🚨 Made-to-order product detected during fallback loading, redirecting to made-to-order page');
-          // Redirect made-to-order products to the made-to-order page
-          router.push(`/made-to-order/${productId}`);
-          return;
-        }
-        
-        // Check stock for found product
-        if (foundProduct && selectedSize && selectedColor) {
-          const availableStock = foundProduct.stock?.[selectedSize]?.[selectedColor] || 0;
-          if (availableStock < quantity) {
-            setOrderStatus('error');
-            setOrderMessage(`❌ This item is out of stock. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
-            return;
-          }
-        }
-      }
-    }
+    setLoading(false);
+  }, []);
 
-    // Load saved form data from localStorage
-    loadSavedFormData();
-  }, [searchParams, getProduct]);
-
-  // Load saved form data from localStorage
-  const loadSavedFormData = () => {
+  const fetchStockData = async (productId: string, productType: string) => {
     try {
-      const savedData = localStorage.getItem('checkoutFormData');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setFormData(prev => ({
-          ...prev,
-          ...parsedData
-        }));
-      }
-      
-      // Load saved shipping method
-      const savedShipping = localStorage.getItem('checkoutShippingMethod');
-      if (savedShipping && (savedShipping === 'stopDeskEcommerce' || savedShipping === 'domicileEcommerce')) {
-        setSelectedShipping(savedShipping);
+      const response = await fetch(`/api/check-stock?productId=${productId}&type=${productType}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔄 Checkout: Stock data response:', data);
+        if (data.success && data.data) {
+          console.log('🔄 Checkout: Setting stock data:', data.data);
+          console.log('🔄 Checkout: Availability data:', data.data.availability);
+          setStockData(data.data);
+        }
       }
     } catch (error) {
-      console.error('Error loading saved form data:', error);
+      console.error('Checkout: Error fetching stock data:', error);
     }
   };
 
-  // Save form data to localStorage
-  const saveFormData = (data: typeof formData) => {
-    try {
-      localStorage.setItem('checkoutFormData', JSON.stringify(data));
-      setIsDataSaved(true);
-      // Hide the indicator after 2 seconds
-      setTimeout(() => setIsDataSaved(false), 2000);
-    } catch (error) {
-      console.error('Error saving form data:', error);
-    }
-  };
-
-  // Clear saved form data
-  const clearSavedFormData = () => {
-    try {
-      localStorage.removeItem('checkoutFormData');
-      localStorage.removeItem('checkoutShippingMethod');
-    } catch (error) {
-      console.error('Error clearing saved form data:', error);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const newFormData = {
-      ...formData,
-      [name]: value
-    };
-    setFormData(newFormData);
-    // Save to localStorage on every change
-    saveFormData(newFormData);
+  const isInStock = (color: string, size: string) => {    
+    if (!stockData) return true;
+    const stock = stockData.stock?.[size]?.[color];
+    console.log('🔍 Checkout: Checking stock for', color, size, '=', stock);                                                
+    return stock && stock > 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Prevent multiple submissions
+    if (isSubmittingOrder) {
+      console.log('🚫 Order submission already in progress, ignoring duplicate request');
+      return;
+    }
+
     if (!product) {
-      setOrderStatus('error');
-      setOrderMessage('Product information is missing');
-      return;
-    }
-    
-    // Final safety check: if this is a made-to-order product, redirect to made-to-order page
-    const isMadeToOrder = !product.stock || (typeof product.stock === 'object' && Object.keys(product.stock).length === 0);
-    
-    if (isMadeToOrder) {
-      router.push(`/made-to-order/${product.id}`);
+      alert('No product selected');
       return;
     }
 
-    if (!formData.city.trim()) {
-      setOrderStatus('error');
-      setOrderMessage('Please enter your city');
+    if (!selectedSize || !selectedColor) {
+      alert('Please select size and color');
       return;
     }
 
-    if (!formData.wilaya) {
-      setOrderStatus('error');
-      setOrderMessage('Please select a wilaya for shipping');
+    // Check stock availability
+    if (!isInStock(selectedColor, selectedSize)) {
+      alert('Sorry, this item is out of stock. Please select a different size or color.');
       return;
     }
 
-    setIsSubmitting(true);
-    setOrderStatus('idle');
+    // Check if requested quantity is available
+    const availableStock = stockData?.stock?.[selectedSize]?.[selectedColor] || 0;
+    if (quantity > availableStock) {
+      alert(`Sorry, only ${availableStock} items are available in this size and color.`);
+      return;
+    }
 
+    // Phone validation (must start with 0 and be 10 digits)
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(customerInfo.phone)) {
+      alert('Please enter a valid phone number');
+      return;
+    }
+
+
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.wilaya) {
+      alert('Please fill in all required customer information');
+      return;
+    }
+
+    if (!deliveryOption) {
+      alert('Please select a delivery option');
+      return;
+    }
+
+    if (deliveryOption === 'domicile' && !customerInfo.address) {
+      alert('Please provide your address for home delivery');
+      return;
+    }
+
+    // Set loading state
+    setIsSubmittingOrder(true);
+
+    // Calculate costs
+    const deliveryCost = getDeliveryCost();
+    const subtotal = product.price * quantity;
+    const totalPrice = subtotal + deliveryCost;
+
+    // Save order to database
     try {
-      const quantity = parseInt(searchParams.get('quantity') || '1');
-      const selectedSize = searchParams.get('size') || 'M';
-      const selectedColor = searchParams.get('color') || 'Black';
-      const selectedWilaya = sortedWilayas.find(w => w.id.toString() === formData.wilaya);
-      
-      if (!selectedWilaya) {
-        throw new Error('Invalid wilaya selection');
-      }
-
-      const shippingCost = selectedWilaya[selectedShipping];
-
-      // Additional stock validation as safety check
-      const availableStock = product.stock?.[selectedSize]?.[selectedColor] || 0;
-      if (availableStock < quantity) {
-        setOrderStatus('error');
-        setOrderMessage(`❌ Not enough stock available. Only ${availableStock} items available in ${selectedSize} ${selectedColor}.`);
-        setIsSubmitting(false);
-        return;
-      }
-
       const orderData = {
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        customerAddress: formData.address,
-        customerCity: formData.city,
-        wilayaId: selectedWilaya.id,
-        wilayaName: selectedWilaya.name,
-        productId: product.id,
-        selectedSize,
-        selectedColor,
-        quantity,
-        subtotal: product.price * quantity,
-        shippingCost,
-        total: (product.price * quantity) + shippingCost,
-        shippingType: selectedShipping,
-        paymentMethod: 'cod' as const,
-        notes: formData.notes
+        product: {
+          id: product.id,
+          name: product.name,
+        price: product.price,
+          type: product.type || 'collection',
+          selectedSize: selectedSize,
+          selectedColor: selectedColor,
+          quantity: quantity,
+          subtotal: subtotal,
+          total: totalPrice
+        },
+        customer: {
+          name: customerInfo.name,
+          phone: customerInfo.phone,
+          email: customerInfo.email,
+          address: customerInfo.address,
+          wilaya: customerInfo.wilaya
+        },
+        delivery: {
+          option: deliveryOption,
+          cost: deliveryCost
+        }
       };
 
-      // Create order first
-      const result = await orderService.createOrder(orderData, product);
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
 
-      if (result.success && result.orderId) {
-        // Stock is automatically reserved and deducted by the order service
-        console.log('✅ Order created successfully, inventory has been reserved and deducted');
-        setOrderStatus('success');
-        setOrderId(result.orderId);
-        setOrderMessage(`Order #${result.orderId} placed successfully! 🎉\n\nWe'll contact you within 24 hours via WhatsApp.`);
-        
-        // Clear saved form data after successful order
-        clearSavedFormData();
-        
-        // Redirect after showing success message
-        setTimeout(() => {
-          router.push(`/order-success?orderId=${result.orderId}`);
-        }, 3000);
+      const result = await response.json();
+      
+      if (result.success) {
+        setOrderId(result.order.id);
+        setOrderData(orderData);
+        setShowSuccessModal(true);
+        // Start 10-second redirect countdown
+        setRedirectCountdown(10);
+        console.log('✅ Order placed successfully, redirecting to home in 10 seconds');
       } else {
-        throw new Error(result.error || 'Failed to place order');
+        alert('Failed to place order: ' + result.error);
       }
     } catch (error) {
-      console.error('Order submission error:', error);
-      setOrderStatus('error');
-      setOrderMessage('Failed to place order. Please check your information and try again.');
+      console.error('❌ Checkout: Error placing order:', error);
+      alert('Failed to place order. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      // Always reset loading state
+      setIsSubmittingOrder(false);
     }
   };
 
-  if (!product) {
+  // Calculate delivery cost based on wilaya and delivery option
+  const getDeliveryCost = () => {
+    if (!customerInfo.wilaya || !deliveryOption) return 0;
+    
+    const baseCosts = {
+      'Alger': { domicile: 400, stop_desk: 200 },
+      'Oran': { domicile: 600, stop_desk: 300 },
+      'Constantine': { domicile: 800, stop_desk: 400 },
+      'Blida': { domicile: 500, stop_desk: 250 },
+      'Setif': { domicile: 700, stop_desk: 350 },
+      'Annaba': { domicile: 900, stop_desk: 450 },
+      'Batna': { domicile: 1000, stop_desk: 500 },
+      'Djelfa': { domicile: 1200, stop_desk: 600 },
+      'Sidi Bel Abbes': { domicile: 800, stop_desk: 400 },
+      'Biskra': { domicile: 1000, stop_desk: 500 },
+      'Tebessa': { domicile: 1100, stop_desk: 550 },
+      'El Oued': { domicile: 1200, stop_desk: 600 },
+      'Khenchela': { domicile: 1100, stop_desk: 550 },
+      'Oum El Bouaghi': { domicile: 1000, stop_desk: 500 },
+      'Bouira': { domicile: 500, stop_desk: 250 },
+      'Tamanrasset': { domicile: 2500, stop_desk: 1250 }
+    };
+    
+    return (baseCosts as any)[customerInfo.wilaya]?.[deliveryOption] || 0;
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-black text-white">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="pt-20 flex items-center justify-center">
           <div className="text-center">
-            <DataLoadingAnimation message="Loading product details..." />
-            <button
-              onClick={() => router.push('/')}
-              className="mt-8 text-white hover:text-gray-300 flex items-center justify-center mx-auto"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </button>
+            <p className="text-xl font-black uppercase tracking-wider">Loading checkout...</p>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const quantity = parseInt(searchParams.get('quantity') || '1');
-  const size = searchParams.get('size') || '';
-  const color = searchParams.get('color') || '';
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header />
+        <div className="pt-20 flex flex-col items-center justify-center p-4">
+          <h1 className="text-2xl font-black uppercase tracking-wider mb-4 text-center">No Product Selected</h1>
+          <p className="text-white/70 mb-6 text-center">Please go back and select a product to order.</p>
+              <button 
+            onClick={() => router.push('/')}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-black py-3 px-6 rounded transition-colors flex items-center gap-2"
+          >
+            <ArrowLeft size={20} />
+            Go Back
+                  </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate costs
+  const deliveryCost = getDeliveryCost();
   const subtotal = product.price * quantity;
-  
-  // Get selected wilaya for shipping calculation
-  const selectedWilaya = sortedWilayas.find(w => w.id.toString() === formData.wilaya);
-  const shippingCost = selectedWilaya ? selectedWilaya[selectedShipping] : 0;
-  const total = subtotal + shippingCost;
+  const totalPrice = subtotal + deliveryCost;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black text-white">
       <Header />
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-white hover:text-gray-300 mb-8 transition-colors"
-        >
-          <ArrowLeft size={20} className="mr-2" />
-          {t('checkout.backToProduct')}
-        </button>
+      <div className="pt-20 pb-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+            <button 
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-white hover:text-purple-400 transition-colors mb-6"
+            >
+            <ArrowLeft size={20} />
+            Back
+            </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Checkout Form - First on mobile, second on desktop */}
-          <div className="space-y-6 lg:order-2 order-1">
-            <h2 className="text-2xl font-bold text-white">{t('checkout.deliveryInformation')}</h2>
-            
-            
-            {/* Order Status Messages */}
-            {orderStatus === 'success' && (
-              <div className="bg-green-900/20 border border-green-700 rounded-lg p-4 mb-6">
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <div>
-                    <h3 className="text-green-300 font-semibold">Order Placed Successfully!</h3>
-                    <p className="text-green-200 text-sm whitespace-pre-line">{orderMessage}</p>
+          <h1 className="text-2xl font-black text-white mb-6 text-center">
+            CHECKOUT
+          </h1>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Left Column - Product & Options */}
+            <div className="space-y-6">
+              {/* Product Info */}
+              <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                <div className="flex gap-4">
+                  {product.image && (
+                    <OptimizedImage
+                      src={product.image}
+                    alt={product.name}
+                      width={120}
+                      height={120}
+                      className="w-24 h-24 object-cover rounded border border-white/20"
+                    />
+                  )}
+                <div className="flex-1">
+                    <h3 className="text-lg font-black text-white">{product.name}</h3>
+                    <p className="text-xl font-black text-purple-400">{product.price.toFixed(0)} DZD</p>
+                    {product.category && (
+                      <span className="text-xs text-purple-400 font-black uppercase tracking-wider">
+                        {product.category}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
 
-            {orderStatus === 'error' && (
-              <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 mb-6">
-                <div className="flex items-center">
-                  <AlertCircle className="w-5 h-5 text-red-400 mr-3" />
-                  <div>
-                    <h3 className="text-red-300 font-semibold">Order Failed</h3>
-                    <p className="text-red-200 text-sm">{orderMessage}</p>
+              {/* Size Selection */}
+              {product.sizes && product.sizes.length > 0 && (
+                <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-black text-white mb-3">SELECT SIZE</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {product.sizes.map((size) => {
+                      // Check if this size is in stock for the selected color
+                      // If no color selected, show all sizes as available (user needs to select color first)
+                      const stockValue = selectedColor ?  
+                        (stockData?.stock?.[size]?.[selectedColor] || 0) :                                           
+                        (stockData ? 1 : 0); // If stockData exists but no color selected, show as available
+                      const isInStock = stockValue > 0;
+                      
+                      console.log('🔍 Checkout: Size', size, 'Color', selectedColor, 'Stock', stockValue, 'InStock', isInStock);
+                      
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => {
+                            if (isInStock) {
+                              setSelectedSize(size);
+                            } else {
+                              console.log('🚫 Cannot select size', size, 'for color', selectedColor, '- out of stock');
+                            }
+                          }}
+                          disabled={!isInStock}
+                          className={`p-2 border-2 rounded text-center font-black transition-colors relative ${
+                            selectedSize === size
+                              ? 'border-purple-500 bg-purple-500/20 text-purple-400'
+                              : isInStock
+                              ? 'border-white/20 text-white hover:border-purple-400'
+                              : 'bg-red-900/50 text-red-400 border-red-500 cursor-not-allowed opacity-75'
+                          }`}
+                        >
+                          {size}
+                          {!isInStock && selectedColor && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">×</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
-                  <User size={20} className="mr-2" />
-                  {t('checkout.personalInformation')}
-                </h3>
-                <div className="space-y-4">
+              {/* Color Selection - Visual Only */}
+              {product.colors && product.colors.length > 0 && (
+                <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-black text-white mb-3">SELECT COLOR</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {product.colors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          // Check if currently selected size is out of stock for this color
+                          if (selectedSize && stockData?.stock?.[selectedSize]?.[color] === 0) {
+                            console.log('🚫 Deselecting size', selectedSize, 'because it\'s out of stock for color', color);
+                            setSelectedSize('');
+                          }
+                        }}
+                        className={`p-2 border-2 rounded text-center font-black transition-colors ${
+                          selectedColor === color
+                            ? 'border-purple-500 bg-purple-500/20 text-purple-400'
+                            : 'border-white/20 text-white hover:border-purple-400'
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-white/50 text-xs mt-2">Color selection is for visual reference only</p>
+                </div>
+              )}
+
+              {/* Stock Status */}
+              {selectedSize && selectedColor && (
+                <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-black text-white mb-3">STOCK STATUS</h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium">Availability:</span>
+                    <div className="flex items-center gap-2">
+                      {isInStock(selectedColor, selectedSize) ? (
+                        <>
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-green-400 font-bold">
+                            In Stock
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="text-red-400 font-bold">Out of Stock</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                <h3 className="text-lg font-black text-white mb-3">QUANTITY</h3>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-8 h-8 border border-white/20 rounded flex items-center justify-center text-white hover:border-purple-400"
+                  >
+                    -
+                  </button>
+                  <span className="text-lg font-black text-white">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-8 h-8 border border-white/20 rounded flex items-center justify-center text-white hover:border-purple-400"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Delivery Options */}
+              <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                <h3 className="text-lg font-black text-white mb-3">DELIVERY OPTIONS</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setDeliveryOption('domicile')}
+                    className={`w-full p-3 border-2 rounded text-left transition-colors ${
+                      deliveryOption === 'domicile'
+                        ? 'border-purple-500 bg-purple-500/20 text-purple-400'
+                        : 'border-white/20 text-white hover:border-purple-400'
+                    }`}
+                  >
+                    <div className="font-black">🏠 HOME DELIVERY</div>
+                    <div className="text-sm">Delivered to your address</div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setDeliveryOption('stop_desk')}
+                    className={`w-full p-3 border-2 rounded text-left transition-colors ${
+                      deliveryOption === 'stop_desk'
+                        ? 'border-purple-500 bg-purple-500/20 text-purple-400'
+                        : 'border-white/20 text-white hover:border-purple-400'
+                    }`}
+                  >
+                    <div className="font-black">📦 STOP DESK</div>
+                    <div className="text-sm">Pick up from nearest location</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Customer Info & Order Summary */}
+            <div className="space-y-6">
+              {/* Customer Information */}
+              <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                <h3 className="text-lg font-black text-white mb-4">CUSTOMER INFORMATION</h3>
+                
+                <form onSubmit={handleSubmit} className="space-y-3">
                   <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">
-                      {t('checkout.fullName')} *
-                    </label>
+                    <label className="block text-white font-medium mb-1">Full Name *</label>
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder={t('checkout.enterFullName')}
+                      value={customerInfo.name}
+                      onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/50 focus:border-purple-500 focus:outline-none"
+                      placeholder="Enter your full name"
                     />
                   </div>
+                  
                   <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">
-                      {t('checkout.phoneNumber')} *
-                    </label>
+                    <label className="block text-white font-medium mb-1">Phone Number *</label>
                     <input
                       type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder={t('checkout.enterPhoneNumber')}
-                    />
+                      value={customerInfo.phone}
+                      onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/50 focus:border-purple-500 focus:outline-none"
+                    placeholder="Enter your phone number"
+                  />
                   </div>
+
                   <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">
-                      {t('checkout.emailAddress')} ({t('checkout.optional')})
-                    </label>
+                    <label className="block text-white font-medium mb-1">Email (Optional)</label>
                     <input
                       type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                      placeholder={t('checkout.enterEmailAddress')}
+                      value={customerInfo.email}
+                      onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/50 focus:border-purple-500 focus:outline-none"
+                      placeholder="Enter your email address"
                     />
                   </div>
-                </div>
-              </div>
 
-              <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-                <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
-                  <MapPin size={20} className="mr-2" />
-                  {selectedShipping === 'domicileEcommerce' ? t('checkout.deliveryAddress') : t('checkout.pickupLocation')}
-                </h3>
-                <div className="space-y-4">
-                  {selectedShipping === 'domicileEcommerce' && (
-                    <div>
-                      <label className="block text-gray-400 text-sm font-medium mb-2">
-                        {t('checkout.streetAddress')} *
-                      </label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                        placeholder={t('checkout.enterStreetAddress')}
-                      />
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-400 text-sm font-medium mb-2">
-                        {t('checkout.city')} *
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white"
-                        placeholder={t('checkout.enterCity')}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-400 text-sm font-medium mb-2">
-                        {t('checkout.wilaya')} *
-                      </label>
-                      <select
-                        name="wilaya"
-                        value={formData.wilaya}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-white"
-                      >
-                        <option value="">{t('checkout.selectWilaya')}</option>
-                        {sortedWilayas.map((wilaya) => (
-                          <option key={wilaya.id} value={wilaya.id}>
-                            {wilaya.name} (#{wilaya.id})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  {selectedShipping === 'stopDeskEcommerce' && (
-                    <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
-                      <p className="text-blue-300 text-sm">
-                        📍 You will pick up your order at the nearest stop desk in your selected wilaya
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">
-                      {t('checkout.deliveryNotes')}
-                    </label>
-                    <textarea
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white resize-none"
-                      placeholder={t('checkout.deliveryInstructionsPlaceholder')}
-                    />
-                  </div>
-                </div>
-              </div>
 
-            </form>
-          </div>
-
-          {/* Order Summary - Second on mobile, first on desktop */}
-          <div className="space-y-6 lg:order-1 order-2">
-            <h2 className="text-2xl font-bold text-white">{t('checkout.orderSummary')}</h2>
-            
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <div className="flex space-x-4">
-                <div className="w-20 h-20 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover"
+                  {deliveryOption === 'domicile' && (
+                <div>
+                      <label className="block text-white font-medium mb-1">Address *</label>
+                      <textarea
+                        required
+                        value={customerInfo.address}
+                        onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/50 focus:border-purple-500 focus:outline-none"
+                        placeholder="Enter your full address"
+                        rows={2}
                   />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold text-lg">{product.name}</h3>
-                  <p className="text-gray-400">{product.category}</p>
-                  <div className="mt-2 space-y-1">
-                    {size && <p className="text-gray-400 text-sm">{t('checkout.size')}: {size}</p>}
-                    {color && <p className="text-gray-400 text-sm">{t('checkout.color')}: {color}</p>}
-                    <p className="text-gray-400 text-sm">{t('checkout.quantity')}: {quantity}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-semibold">{product.price} DZD</p>
-                  <p className="text-gray-400 text-sm">x{quantity}</p>
-                </div>
-              </div>
-            </div>
+                  )}
 
-            {/* Shipping Options */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <h3 className="text-white font-semibold text-lg mb-2 flex items-center">
-                <Truck size={20} className="mr-2" />
-                {t('checkout.deliveryOptions')} <span className="text-red-400 ml-2">*</span>
-              </h3>
-              <p className="text-gray-400 text-sm mb-4">{t('checkout.selectDeliveryOption')}</p>
-              <div className="space-y-3">
-                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
-                  selectedShipping === 'stopDeskEcommerce' 
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
-                }`}>
-                  <div className="relative">
-                    <input
-                      type="radio"
-                      name="shipping"
-                      value="stopDeskEcommerce"
-                      checked={selectedShipping === 'stopDeskEcommerce'}
-                      onChange={(e) => {
-                        console.log('Radio clicked:', e.target.value);
-                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
-                        setSelectedShipping(newShipping);
-                        // Save shipping method to localStorage
-                        localStorage.setItem('checkoutShippingMethod', newShipping);
-                      }}
-                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                    />
-                    {selectedShipping === 'stopDeskEcommerce' && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-white font-semibold text-lg">{t('checkout.stopDesk')}</p>
-                      {selectedShipping === 'stopDeskEcommerce' && (
-                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('checkout.selected')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm mt-1">{t('checkout.stopDeskDescription')}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-white font-bold text-lg">
-                      {selectedWilaya ? `${selectedWilaya.stopDeskEcommerce} DZD` : '--'}
-                    </span>
-                  </div>
-                </label>
-                
-                <label className={`flex items-center space-x-4 cursor-pointer p-4 rounded-lg border-2 transition-all duration-200 ${
-                  selectedShipping === 'domicileEcommerce' 
-                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
-                }`}>
-                  <div className="relative">
-                    <input
-                      type="radio"
-                      name="shipping"
-                      value="domicileEcommerce"
-                      checked={selectedShipping === 'domicileEcommerce'}
-                      onChange={(e) => {
-                        console.log('Radio clicked:', e.target.value);
-                        const newShipping = e.target.value as 'stopDeskEcommerce' | 'domicileEcommerce';
-                        setSelectedShipping(newShipping);
-                        // Save shipping method to localStorage
-                        localStorage.setItem('checkoutShippingMethod', newShipping);
-                      }}
-                      className="w-5 h-5 text-blue-500 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-                    />
-                    {selectedShipping === 'domicileEcommerce' && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-white font-semibold text-lg">{t('checkout.homeDelivery')}</p>
-                      {selectedShipping === 'domicileEcommerce' && (
-                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('checkout.selected')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm mt-1">{t('checkout.homeDeliveryDescription')}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-white font-bold text-lg">
-                      {selectedWilaya ? `${selectedWilaya.domicileEcommerce} DZD` : '--'}
-                    </span>
-                  </div>
-                </label>
-              </div>
-              
-              {/* No free shipping banner */}
-            </div>
-
-            {/* Payment Method */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <h3 className="text-white font-semibold text-lg mb-4 flex items-center">
-                <CreditCard size={20} className="mr-2" />
-                Mode de Paiement
-              </h3>
-              <div className="bg-green-900 border border-green-700 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">✓</span>
-                  </div>
                   <div>
-                    <p className="text-green-300 font-semibold">Paiement à la Livraison (COD)</p>
-                    <p className="text-green-400 text-sm">Payez quand votre commande arrive</p>
+                    <label className="block text-white font-medium mb-1">Wilaya *</label>
+                    <select
+                      required
+                      value={customerInfo.wilaya}
+                      onChange={(e) => setCustomerInfo({...customerInfo, wilaya: e.target.value})}
+                      className="w-full px-3 py-2 bg-black border border-white/20 rounded text-white focus:border-purple-500 focus:outline-none"
+                    >
+                      <option value="">Select your wilaya</option>
+                      <option value="Alger">Alger</option>
+                      <option value="Oran">Oran</option>
+                      <option value="Constantine">Constantine</option>
+                      <option value="Blida">Blida</option>
+                      <option value="Setif">Setif</option>
+                      <option value="Annaba">Annaba</option>
+                      <option value="Batna">Batna</option>
+                      <option value="Djelfa">Djelfa</option>
+                      <option value="Sidi Bel Abbes">Sidi Bel Abbes</option>
+                      <option value="Biskra">Biskra</option>
+                      <option value="Tebessa">Tebessa</option>
+                      <option value="El Oued">El Oued</option>
+                      <option value="Khenchela">Khenchela</option>
+                      <option value="Oum El Bouaghi">Oum El Bouaghi</option>
+                      <option value="Bouira">Bouira</option>
+                      <option value="Tamanrasset">Tamanrasset</option>
+                    </select>
                   </div>
-                </div>
+                </form>
               </div>
-            </div>
 
-            {/* Order Total */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('checkout.subtotal')}</span>
-                  <span className="text-white">{subtotal.toFixed(0)} DA</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('checkout.shipping')}</span>
-                  <span className="text-white">{shippingCost.toFixed(0)} DA</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">
-                    {selectedShipping === 'stopDeskEcommerce' ? t('checkout.stopDesk') : t('checkout.homeDelivery')}
-                  </span>
-                  <span className="text-gray-500">
-                    {selectedWilaya ? selectedWilaya.name : t('checkout.selectWilaya')}
-                  </span>
-                </div>
-                <div className="border-t border-gray-700 pt-3">
+              {/* Order Summary */}
+              <div className="bg-white/5 border border-white/20 p-4 rounded-lg">
+                <h3 className="text-lg font-black text-white mb-4">ORDER SUMMARY</h3>
+                
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-white font-semibold text-lg">{t('checkout.total')}</span>
-                    <span className="text-white font-bold text-xl">{total.toFixed(0)} DA</span>
+                    <span className="text-white/70">Product:</span>
+                    <span className="text-white font-medium">{product.name}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Size:</span>
+                    <span className="text-white font-medium">{selectedSize || 'Not selected'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Color:</span>
+                    <span className="text-white font-medium">{selectedColor || 'Not selected'}</span>
+                </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Quantity:</span>
+                    <span className="text-white font-medium">{quantity}</span>
+                </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Subtotal:</span>
+                    <span className="text-white font-medium">{subtotal.toFixed(0)} DZD</span>
+                </div>
+
+                  {deliveryOption && (
+                    <div className="flex justify-between">
+                      <span className="text-white/70">
+                        Delivery ({deliveryOption === 'domicile' ? 'Home' : 'Stop Desk'}):
+                      </span>
+                      <span className="text-white font-medium">{deliveryCost.toFixed(0)} DZD</span>
+                    </div>
+                  )}
+                  
+                  <div className="border-t border-white/20 pt-2">
+                    <div className="flex justify-between text-lg font-black">
+                      <span>Total:</span>
+                      <span>{totalPrice.toFixed(0)} DZD</span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmit}
+                disabled={!selectedSize || !selectedColor || !deliveryOption || !isInStock(selectedColor, selectedSize) || isSubmittingOrder}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-black py-3 px-6 rounded transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+              >
+                {isSubmittingOrder ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    PLACING ORDER...
+                  </>
+                ) : (
+                  <>
+                    <Check size={20} />
+                    {!selectedSize || !selectedColor ? 'SELECT SIZE & COLOR' : 
+                     !isInStock(selectedColor, selectedSize) ? 'OUT OF STOCK' : 
+                     !deliveryOption ? 'SELECT DELIVERY OPTION' :
+                     'PLACE ORDER'}
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Submit Button - Always at the bottom on mobile */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 p-4 z-50">
-          <button
-            type="submit"
-            form="checkout-form"
-            disabled={isSubmitting}
-            className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
-                <span>{t('checkout.placingOrder')}</span>
-              </>
-            ) : (
-              <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
-            )}
-          </button>
-        </div>
-
-        {/* Desktop Submit Button - Inside form */}
-        <div className="hidden lg:block">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-            <button
-              type="submit"
-              form="checkout-form"
-              disabled={isSubmitting}
-              className="w-full bg-white text-black py-4 px-6 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
-                  <span>{t('checkout.placingOrder')}</span>
-                </>
-              ) : (
-                <span>{t('checkout.placeOrder')} - {total.toFixed(0)} DA</span>
-              )}
-            </button>
           </div>
         </div>
       </div>
 
       <Footer />
+      
+      {/* Order Success Modal */}
+      <OrderSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        orderId={orderId}
+        orderData={orderData}
+        redirectCountdown={redirectCountdown}
+      />
     </div>
   );
 }
