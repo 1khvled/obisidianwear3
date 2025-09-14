@@ -30,14 +30,16 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setLoading(true);
       console.log('🔄 Loading inventory...');
       
-      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}`, {
+      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
-          'X-Cache-Bust': Date.now().toString()
+          'X-Cache-Bust': Date.now().toString(),
+          'X-No-Cache': 'true',
+          'X-Random': Math.random().toString()
         }
       });
       
@@ -76,15 +78,17 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setSaving(true);
       console.log('🔄 Updating quantity for', itemId, 'to', newQuantity);
       
-      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}`, {
+      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
-          'X-Cache-Bust': Date.now().toString()
+          'X-Cache-Bust': Date.now().toString(),
+          'X-No-Cache': 'true',
+          'X-Random': Math.random().toString()
         },
         body: JSON.stringify({
           quantity: newQuantity,
@@ -112,11 +116,11 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
         setEditQuantity(0);
         
         // Force a complete refresh from server to ensure consistency
-        console.log('🔄 Forcing server refresh to ensure consistency...');
-        setTimeout(async () => {
-          await loadInventory();
-          console.log('✅ Server refresh completed');
-        }, 500);
+        console.log('🔄 Forcing immediate server refresh to ensure consistency...');
+        // Small delay to ensure database transaction is committed
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await loadInventory();
+        console.log('✅ Server refresh completed');
         
         // Show success message without alert popup
         console.log('✅ Inventory updated successfully!');

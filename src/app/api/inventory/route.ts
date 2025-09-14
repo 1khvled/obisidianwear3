@@ -97,11 +97,13 @@ export async function GET() {
     });
 
     // Disable caching for real-time updates
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
     response.headers.set('X-Timestamp', Date.now().toString());
     response.headers.set('X-Cache-Status', 'BYPASS');
+    response.headers.set('X-No-Cache', 'true');
+    response.headers.set('X-Random', Math.random().toString());
 
     return response;
   } catch (error) {
