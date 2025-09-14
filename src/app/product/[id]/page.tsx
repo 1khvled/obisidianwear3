@@ -13,7 +13,6 @@ import { Product } from '@/types';
 import { recentlyViewedService } from '@/lib/recentlyViewed';
 import { Star, ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, Ruler, Package, RefreshCw } from 'lucide-react';
 import SizeChart from '@/components/SizeChart';
-import GlobalDesignToggle from '@/components/GlobalDesignToggle';
 
 export default function ProductDetailPage() {
   const { isStreetwear } = useDesign();
@@ -140,7 +139,6 @@ export default function ProductDetailPage() {
         <Header />
         <div className="text-white">Loading...</div>
         <Footer />
-        <GlobalDesignToggle />
       </div>
     );
   }
@@ -457,7 +455,6 @@ export default function ProductDetailPage() {
         </div>
 
         <Footer />
-        <GlobalDesignToggle />
         
         {showSizeChart && (
           <SizeChart
@@ -670,7 +667,6 @@ export default function ProductDetailPage() {
       </div>
 
       <Footer />
-      <GlobalDesignToggle />
       
       {showSizeChart && (
         <SizeChart
