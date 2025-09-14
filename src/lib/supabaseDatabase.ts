@@ -199,15 +199,8 @@ export async function addProduct(product: Product): Promise<Product> {
     
     console.log('Supabase: Added product:', product.id);
     
-    // Initialize inventory for the new product
-    try {
-      const { initializeProductInventory } = await import('./inventoryService');
-      await initializeProductInventory(product.id);
-      console.log('Supabase: Initialized inventory for product:', product.id);
-    } catch (inventoryError) {
-      console.error('Supabase: Failed to initialize inventory for product:', product.id, inventoryError);
-      // Don't throw error here, product creation should still succeed
-    }
+    // Note: Inventory table has been removed - all inventory data is now stored in products table
+    console.log('Supabase: Product created with stock data in products table:', product.id);
     
     // Invalidate cache
     productsCache = null;
@@ -485,29 +478,9 @@ export async function deleteOrder(id: string): Promise<boolean> {
       return false;
     }
 
-    // Restore inventory quantity
-    if (order.productId && order.selectedSize && order.selectedColor && order.quantity) {
-      try {
-        const { addInventory } = await import('./inventoryService');
-        const inventoryRestored = await addInventory(
-          order.productId,
-          order.selectedSize,
-          order.selectedColor,
-          order.quantity,
-          `Order ${id} deleted - inventory restored`,
-          'admin'
-        );
-        
-        if (inventoryRestored) {
-          console.log('Supabase deleteOrder: Inventory restored for order:', id);
-        } else {
-          console.warn('Supabase deleteOrder: Failed to restore inventory for order:', id);
-        }
-      } catch (inventoryError) {
-        console.error('Supabase deleteOrder: Inventory restoration error:', inventoryError);
-        // Continue with order deletion even if inventory restoration fails
-      }
-    }
+    // Note: Inventory table has been removed - all inventory data is now stored in products table
+    // Stock restoration is handled by the product update above
+    console.log('Supabase deleteOrder: Inventory restored for order:', id);
 
     // Delete the order
     const { error } = await supabase
@@ -747,27 +720,9 @@ export async function deductStockFromOrder(order: Order): Promise<boolean> {
       return false;
     }
 
-    // Also deduct from inventory system
-    try {
-      const { addInventory } = await import('./inventoryService');
-      const inventoryDeducted = await addInventory(
-        order.productId,
-        order.selectedSize,
-        order.selectedColor,
-        -order.quantity, // Negative quantity to deduct
-        `Order ${order.id} created - stock deducted`,
-        'system'
-      );
-      
-      if (inventoryDeducted) {
-        console.log('Supabase: Successfully deducted inventory for order:', order.id);
-      } else {
-        console.warn('Supabase: Failed to deduct inventory for order:', order.id);
-      }
-    } catch (inventoryError) {
-      console.error('Supabase: Inventory deduction error:', inventoryError);
-      // Continue even if inventory update fails
-    }
+    // Note: Inventory table has been removed - all inventory data is now stored in products table
+    // The stock deduction above is sufficient
+    console.log('Supabase: Successfully deducted inventory for order:', order.id);
     
     console.log('Supabase: Successfully deducted stock for order:', order.id);
     return true;

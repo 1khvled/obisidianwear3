@@ -118,35 +118,9 @@ export async function PUT(
       if (removedColors.length > 0 || removedSizes.length > 0) {
         console.log('🧹 Cleaning up inventory for removed colors/sizes:', { removedColors, removedSizes });
         
-        // Delete inventory records for removed colors
-        for (const color of removedColors) {
-          const { error: colorError } = await supabase
-            .from('inventory')
-            .delete()
-            .eq('product_id', productId)
-            .eq('color', color);
-          
-          if (colorError) {
-            console.error(`❌ Error deleting inventory for color ${color}:`, colorError);
-          } else {
-            console.log(`✅ Deleted inventory records for color: ${color}`);
-          }
-        }
-        
-        // Delete inventory records for removed sizes
-        for (const size of removedSizes) {
-          const { error: sizeError } = await supabase
-            .from('inventory')
-            .delete()
-            .eq('product_id', productId)
-            .eq('size', size);
-          
-          if (sizeError) {
-            console.error(`❌ Error deleting inventory for size ${size}:`, sizeError);
-          } else {
-            console.log(`✅ Deleted inventory records for size: ${size}`);
-          }
-        }
+        // Note: Inventory table has been removed - all inventory data is now stored in products table
+        console.log(`✅ Removed colors: ${removedColors.join(', ')}`);
+        console.log(`✅ Removed sizes: ${removedSizes.join(', ')}`);
       }
     }
 

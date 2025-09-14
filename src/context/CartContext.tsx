@@ -160,30 +160,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const itemToRemove = items.find(item => item.id === id);
     if (!itemToRemove) return;
 
-    try {
-      // Restore inventory when removing from cart
-      const restoreResponse = await fetch('/api/inventory/restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: itemToRemove.productId,
-          size: itemToRemove.selectedSize,
-          color: itemToRemove.selectedColor,
-          quantity: itemToRemove.quantity
-        })
-      });
-
-      if (!restoreResponse.ok) {
-        console.error('❌ Failed to restore inventory, but removing from cart anyway');
-      }
-
-      setItems(prevItems => prevItems.filter(item => item.id !== id));
-      console.log('✅ Item removed from cart and inventory restored');
-    } catch (error) {
-      console.error('❌ Error removing from cart:', error);
-      // Still remove from cart even if inventory restore fails
-      setItems(prevItems => prevItems.filter(item => item.id !== id));
-    }
+    // Note: Inventory table has been removed - all inventory data is now stored in products table
+    setItems(prevItems => prevItems.filter(item => item.id !== id));
+    console.log('✅ Item removed from cart');
   };
 
   const updateQuantity = async (id: string, quantity: number) => {
@@ -203,41 +182,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       // For regular products, we'll skip the stock check during quantity updates
       // since the item is already in the cart and stock was checked during add
-        if (quantityDifference > 0) {
-          // Increasing quantity - reserve more inventory
-          const reserveResponse = await fetch('/api/inventory/reserve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: item.productId,
-              size: item.selectedSize,
-              color: item.selectedColor,
-              quantity: quantityDifference
-            })
-          });
-
-          if (!reserveResponse.ok) {
-            const errorData = await reserveResponse.json();
-            alert(`❌ Cannot increase quantity: ${errorData.error || 'Unknown error'}`);
-            return;
-          }
-        } else {
-          // Decreasing quantity - restore some inventory
-          const restoreResponse = await fetch('/api/inventory/restore', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: item.productId,
-              size: item.selectedSize,
-              color: item.selectedColor,
-              quantity: Math.abs(quantityDifference)
-            })
-          });
-
-          if (!restoreResponse.ok) {
-            console.error('❌ Failed to restore inventory, but updating quantity anyway');
-          }
-        }
+        // Note: Inventory table has been removed - all inventory data is now stored in products table
+        // Stock management is handled at checkout time
 
       // Update the cart
       setItems(prevItems => 
@@ -254,31 +200,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = async () => {
-    // Restore inventory for all items before clearing
-    for (const item of items) {
-      try {
-        await fetch('/api/inventory/restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: item.productId,
-            size: item.selectedSize,
-            color: item.selectedColor,
-            quantity: item.quantity
-          })
-        });
-      } catch (error) {
-        console.error('❌ Failed to restore inventory for item:', item.id, error);
-      }
-    }
-
+    // Note: Inventory table has been removed - all inventory data is now stored in products table
+    // Stock management is handled at checkout time, no need to restore here
+    
     setItems([]);
     // Also clear from localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('obsidian-cart');
     }
     
-    console.log('✅ Cart cleared and all inventory restored');
+    console.log('✅ Cart cleared');
   };
 
   // Function to clear cart data (useful for debugging or reset)

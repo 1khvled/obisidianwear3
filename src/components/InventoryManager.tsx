@@ -23,11 +23,32 @@ import {
   Zap,
   Activity
 } from 'lucide-react';
-import { InventoryRecord } from '@/lib/inventoryService';
 import { backendService } from '@/services/backendService';
 
 interface InventoryManagerProps {
   onClose: () => void;
+}
+
+// Local interface since inventory table has been removed
+interface InventoryRecord {
+  id: string;
+  product_id: string;
+  size: string;
+  color: string;
+  quantity: number;
+  reserved_quantity: number;
+  available_quantity: number;
+  min_stock_level: number;
+  max_stock_level: number;
+  last_updated: string;
+  created_at: string;
+  updated_at: string;
+  products?: {
+    id: string;
+    name: string;
+    image: string;
+    price: number;
+  };
 }
 
 interface EditingItem extends InventoryRecord {
