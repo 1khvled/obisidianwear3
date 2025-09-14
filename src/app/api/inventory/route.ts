@@ -88,13 +88,20 @@ export async function GET() {
       success: true,
       data: inventoryData,
       message: 'Inventory fetched successfully from products',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      debug: {
+        totalItems: inventoryData.length,
+        firstItem: inventoryData[0] || null,
+        lastUpdated: new Date().toISOString()
+      }
     });
 
     // Disable caching for real-time updates
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    response.headers.set('X-Timestamp', Date.now().toString());
+    response.headers.set('X-Cache-Status', 'BYPASS');
 
     return response;
   } catch (error) {

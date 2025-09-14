@@ -163,6 +163,11 @@ export async function PUT(
         productId,
         size,
         color
+      },
+      debug: {
+        timestamp: new Date().toISOString(),
+        updatedProduct: updatedProduct?.name,
+        verifiedStock: updatedProduct?.stock?.[size]?.[color]
       }
     });
 
@@ -170,6 +175,8 @@ export async function PUT(
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    response.headers.set('X-Timestamp', Date.now().toString());
+    response.headers.set('X-Cache-Status', 'BYPASS');
 
     // Verify the update by fetching the product again
     console.log('🔄 DEBUG API: Verifying update by fetching product again...');
