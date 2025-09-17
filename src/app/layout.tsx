@@ -121,8 +121,8 @@ export default function RootLayout({
                       {/* <PerformanceMonitor /> */}
                       {children}
                       
-                      {/* Global Debugger - Always Available */}
-                      <GlobalDebugger />
+                      {/* Global Debugger - Only in development */}
+                      {process.env.NODE_ENV === 'development' && <GlobalDebugger />}
                     </CartProvider>
                   </SmartProductProvider>
                 </DesignProvider>

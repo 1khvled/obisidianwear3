@@ -35,7 +35,7 @@ export async function PUT(
     console.log('🚀 NUCLEAR FRESH UPDATE: Updating', { productId, size, color, quantity });
 
     // Create a brand new Supabase client with unique config
-    const freshSupabase = createClient(supabaseUrl, supabaseKey, {
+    const freshSupabase = createClient(supabaseUrl!, supabaseKey!, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
