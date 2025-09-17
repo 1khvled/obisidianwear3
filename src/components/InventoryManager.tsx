@@ -83,7 +83,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       console.log('🔄 DEBUG: Starting loadInventory at', new Date().toISOString(), 'timestamp:', timestamp);
       
       // Add multiple cache-busting parameters to ensure fresh data
-      const response = await fetch(`/api/inventory-optimized?t=${timestamp}&_cb=${Math.random()}&req=${requestId}&v=${Date.now()}`, {
+      const response = await fetch(`/api/inventory?t=${timestamp}&_cb=${Math.random()}&req=${requestId}&v=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -345,7 +345,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       // Create a unique request ID to prevent caching issues
       const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      const response = await fetch(`/api/inventory-optimized/${item.id}?t=${Date.now()}&_cb=${Math.random()}&req=${requestId}`, {
+      const response = await fetch(`/api/inventory/${item.id}?t=${Date.now()}&_cb=${Math.random()}&req=${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -386,17 +386,8 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         
         console.log('✅ DEBUG: Local state updated successfully');
         
-        // Force a complete refresh from server after a short delay
-        setTimeout(async () => {
-          console.log('🔄 DEBUG: Starting server refresh to ensure consistency...');
-          try {
-            await loadInventory();
-            console.log('✅ DEBUG: Server refresh completed');
-            setLastUpdateTime(new Date());
-          } catch (refreshError) {
-            console.error('❌ DEBUG: Server refresh failed:', refreshError);
-          }
-        }, 500); // Increased delay to ensure DB commit
+        // Update last update time without unnecessary refresh
+        setLastUpdateTime(new Date());
         
         setEditingItem(null);
         setReason('');
