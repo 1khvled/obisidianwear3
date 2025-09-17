@@ -466,8 +466,8 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       
       await Promise.all(promises);
       
-      // Final refresh to ensure all data is up to date
-      await loadInventory();
+      // No need for final refresh - optimistic updates handle the UI
+      console.log('✅ DEBUG: Bulk update completed, relying on optimistic updates');
       
       setSelectedItems([]);
       setShowBulkActions(false);

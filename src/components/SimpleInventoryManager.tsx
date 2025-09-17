@@ -123,15 +123,8 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
         setEditingItem(null);
         setEditQuantity(0);
         
-        // Force a complete refresh from server to ensure consistency
-        console.log('🔄 Forcing immediate server refresh to ensure consistency...');
-        // Small delay to ensure database transaction is committed
-        await new Promise(resolve => setTimeout(resolve, 200));
-        // Force multiple refreshes to bypass Vercel caching
-        await loadInventory();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await loadInventory();
-        console.log('✅ Server refresh completed');
+        // No need for server refresh - optimistic update handles the UI
+        console.log('✅ DEBUG: Update completed, relying on optimistic update');
         
         // Show success message without alert popup
         console.log('✅ Inventory updated successfully!');

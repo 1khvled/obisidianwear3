@@ -5,7 +5,6 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  // Disable static generation for now to avoid context errors
   trailingSlash: false,
   experimental: {
     optimizeCss: true,
@@ -18,6 +17,11 @@ const nextConfig = {
         },
       },
     },
+    // Enable static optimization
+    staticGenerationRetryCount: 3,
+    staticGenerationTimeout: 60,
+    // Enable ISR for better performance
+    isrMemoryCacheSize: 0, // Disable in-memory cache for Vercel
   },
   // Increase body size limit for API routes
   serverRuntimeConfig: {
@@ -28,9 +32,12 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 31536000, // 1 year cache for images
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Aggressive image optimization
+    unoptimized: false,
+    loader: 'default',
   },
   compress: true,
   poweredByHeader: false,
@@ -74,6 +81,54 @@ const nextConfig = {
           },
         ],
       },
+      // Static assets - aggressive caching
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
+          },
+        ],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
+          },
+        ],
+      },
+      // API routes - no cache
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      // Admin routes - no cache
       {
         source: '/admin/:path*',
         headers: [
