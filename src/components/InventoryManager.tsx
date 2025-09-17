@@ -808,7 +808,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
                   {filteredInventory.map((item) => {
                     const status = getStockStatus(item);
                     return (
-                      <tr key={item.id} className="hover:bg-gray-700/50">
+                      <tr key={item.id} className="hover:bg-gray-700/50" data-inventory-item={item.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
@@ -844,7 +844,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{item.quantity}</span>
+                            <span className="font-medium" data-quantity={item.quantity}>{item.quantity}</span>
                             <span className="text-xs text-gray-400">
                               (min: {item.min_stock_level})
                             </span>

@@ -18,7 +18,8 @@ import {
   Loader2,
   Ruler,
   Home,
-  LogOut
+  LogOut,
+  Bug
 } from 'lucide-react';
 import { Product, MadeToOrderProduct, Order, Customer, Wilaya } from '@/types';
 import { backendService } from '@/services/backendService';
@@ -43,6 +44,7 @@ import MultiImageUpload from '@/components/MultiImageUpload';
 import { sortedWilayas } from '@/data/wilayas';
 import { CATEGORIES } from '@/data/categories';
 import MadeToOrderManager from '@/components/MadeToOrderManager';
+import InventoryDebugger from '@/components/InventoryDebugger';
 
 export default function AdminPage() {
   const { isStreetwear } = useDesign();
@@ -94,6 +96,7 @@ export default function AdminPage() {
     updatedAt: new Date()
   });
   const [showSizeChartEditor, setShowSizeChartEditor] = useState(false);
+  const [showInventoryDebugger, setShowInventoryDebugger] = useState(false);
 
   // Load data only when switching to specific tabs
   useEffect(() => {
@@ -651,6 +654,21 @@ export default function AdminPage() {
           }
         }}
       />
+
+      {/* Inventory Debugger */}
+      <InventoryDebugger 
+        isVisible={showInventoryDebugger}
+        onToggle={() => setShowInventoryDebugger(!showInventoryDebugger)}
+      />
+
+      {/* Debug Button */}
+      <button
+        onClick={() => setShowInventoryDebugger(!showInventoryDebugger)}
+        className="fixed bottom-4 left-4 z-40 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-lg transition-colors"
+        title="Open Inventory Debugger"
+      >
+        <Bug className="w-6 h-6" />
+      </button>
 
     </div>
   );

@@ -9,6 +9,7 @@ import { CartProvider } from '@/context/CartContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Analytics } from '@vercel/analytics/react'
 // import ConsoleBlocker from '@/components/ConsoleBlocker' // Disabled for debugging
 // import Footer from '@/components/Footer'
 // import PerformanceMonitor from '@/components/PerformanceMonitor'
@@ -115,6 +116,7 @@ export default function RootLayout({
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>
+        <Analytics />
       </body>
     </html>
   )
