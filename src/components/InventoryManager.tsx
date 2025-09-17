@@ -82,15 +82,17 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       const requestId = `${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
       console.log('🔄 DEBUG: Starting loadInventory at', new Date().toISOString(), 'timestamp:', timestamp);
       
-      // Add multiple cache-busting parameters to ensure fresh data
-      const response = await fetch(`/api/inventory?t=${timestamp}&_cb=${Math.random()}&req=${requestId}&v=${Date.now()}`, {
+      // Use nuclear fresh endpoint with aggressive cache busting
+      const response = await fetch(`/api/inventory-fresh?t=${timestamp}&_cb=${Math.random()}&req=${requestId}&v=${Date.now()}&_nuclear=${Math.random()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
-          'X-Request-ID': requestId
+          'X-Request-ID': requestId,
+          'X-Nuclear': 'true',
+          'X-Cache-Bypass': 'true'
         }
       });
       console.log('🔄 DEBUG: Fetch response status:', response.status, 'ok:', response.ok);
@@ -345,7 +347,7 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       // Create a unique request ID to prevent caching issues
       const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      const response = await fetch(`/api/inventory/${item.id}?t=${Date.now()}&_cb=${Math.random()}&req=${requestId}`, {
+      const response = await fetch(`/api/inventory-fresh/${item.id}?t=${Date.now()}&_cb=${Math.random()}&req=${requestId}&_nuclear=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -353,7 +355,9 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Requested-With': 'XMLHttpRequest',
-          'X-Request-ID': requestId
+          'X-Request-ID': requestId,
+          'X-Nuclear': 'true',
+          'X-Cache-Bypass': 'true'
         },
         body: JSON.stringify({
           quantity: newQuantity,

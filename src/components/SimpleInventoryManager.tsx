@@ -30,7 +30,7 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setLoading(true);
       console.log('🔄 Loading inventory...');
       
-      const response = await fetch(`/api/inventory?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}`, {
+      const response = await fetch(`/api/inventory-fresh?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}&_nuclear=${Math.random()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
@@ -43,7 +43,9 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
           'X-Vercel-Cache': 'MISS',
           'X-Vercel-Id': Math.random().toString(36),
           'CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'X-Nuclear': 'true',
+          'X-Cache-Bypass': 'true'
         }
       });
       
@@ -82,7 +84,7 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
       setSaving(true);
       console.log('🔄 Updating quantity for', itemId, 'to', newQuantity);
       
-      const response = await fetch(`/api/inventory/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}`, {
+      const response = await fetch(`/api/inventory-fresh/${itemId}?t=${Date.now()}&_cb=${Math.random()}&_force=${Math.random()}&_r=${Math.random()}&_v=${Math.random()}&_vercel=${Math.random()}&_nuclear=${Math.random()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +98,9 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
           'X-Vercel-Cache': 'MISS',
           'X-Vercel-Id': Math.random().toString(36),
           'CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+          'Vercel-CDN-Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+          'X-Nuclear': 'true',
+          'X-Cache-Bypass': 'true'
         },
         body: JSON.stringify({
           quantity: newQuantity,
