@@ -386,18 +386,19 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         
         console.log('✅ DEBUG: Local state updated successfully');
         
-        // Force refresh inventory data to ensure consistency
-        console.log('🔄 DEBUG: Force refreshing inventory data after update...');
-        try {
-          const refreshResponse = await fetch('/api/inventory/refresh', {
-            method: 'POST',
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            }
-          });
+         // Force refresh inventory data to ensure consistency
+         console.log('🔄 DEBUG: Force refreshing inventory data after update...');
+         try {
+           const refreshResponse = await fetch('/api/inventory/force-refresh', {
+             method: 'POST',
+             cache: 'no-store',
+             headers: {
+               'Cache-Control': 'no-cache, no-store, must-revalidate',
+               'Pragma': 'no-cache',
+               'Expires': '0',
+               'X-Nuclear': 'true'
+             }
+           });
           
           if (refreshResponse.ok) {
             const refreshData = await refreshResponse.json();

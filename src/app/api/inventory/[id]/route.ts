@@ -170,12 +170,16 @@ export async function PUT(
     console.log('🔄 DEBUG API: Verifying update by fetching product again...');
     
     // Wait a moment to ensure database consistency
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Increased wait time
+    
+    // Force a completely fresh read with explicit cache busting
+    console.log('🔄 DEBUG API: Force verifying with fresh database read...');
     
     const { data: updatedProduct, error: verifyError } = await freshSupabase
       .from('products')
       .select('*')
       .eq('id', productId)
+      .order('updated_at', { ascending: false }) // Force ordering by updated_at
       .single();
 
     if (verifyError) {

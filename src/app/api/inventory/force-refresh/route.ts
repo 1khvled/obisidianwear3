@@ -8,41 +8,52 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// GET /api/inventory - Get all inventory
-export async function GET() {
+// POST /api/inventory/force-refresh - Nuclear option to force fresh data
+export async function POST(request: Request) {
   try {
-    console.log('🔄 DEBUG API: Starting GET /api/inventory at', new Date().toISOString());
+    console.log('🚀 FORCE REFRESH: Starting nuclear inventory refresh at', new Date().toISOString());
     
-    // Always read from products table since inventory table updates are failing
-    console.log('📦 DEBUG API: Reading from products table (inventory table updates are failing)');
-      
-    // Create a fresh Supabase client to avoid connection issues
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase environment variables');
+    // Create multiple fresh Supabase clients to ensure no connection pooling
+    const clients = Array.from({ length: 3 }, () => createClient(supabaseUrl, supabaseKey));
+    
+    // Try multiple clients to ensure we get fresh data
+    let products = null;
+    let lastError = null;
+    
+    for (let i = 0; i < clients.length; i++) {
+      try {
+        console.log(`🔄 FORCE REFRESH: Attempt ${i + 1} with fresh client...`);
+        
+        const { data, error } = await clients[i]
+          .from('products')
+          .select('*')
+          .order('updated_at', { ascending: false });
+        
+        if (error) {
+          lastError = error;
+          console.error(`❌ FORCE REFRESH: Attempt ${i + 1} failed:`, error);
+          continue;
+        }
+        
+        products = data;
+        console.log(`✅ FORCE REFRESH: Attempt ${i + 1} successful, got ${data?.length || 0} products`);
+        break;
+      } catch (err) {
+        lastError = err;
+        console.error(`❌ FORCE REFRESH: Attempt ${i + 1} exception:`, err);
+      }
     }
-    const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
-    // Force a fresh read with explicit cache busting
-    console.log('🔄 DEBUG API: Force reading from products table with cache busting...');
-    
-    // Read from products table with explicit ordering by updated_at to get latest data
-    const { data: products, error: productsError } = await freshSupabase
-      .from('products')
-      .select('*')
-      .order('updated_at', { ascending: false }); // Order by updated_at instead of created_at
-
-    if (productsError) {
-      console.error('Inventory API: Products error:', productsError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch inventory data' },
-        { status: 500 }
-      );
+    if (!products) {
+      console.error('❌ FORCE REFRESH: All attempts failed');
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch fresh inventory data',
+        details: lastError
+      }, { status: 500 });
     }
-
+    
     // Transform products data to inventory format
-    console.log('🔄 DEBUG API: Transforming products data to inventory format...');
     const inventoryData: any[] = [];
     products.forEach((product: any) => {
       const defaultColors = ['Black', 'White', 'Red', 'Blue', 'Green'];
@@ -50,12 +61,6 @@ export async function GET() {
       
       const colors = product.colors && product.colors.length > 0 ? product.colors : defaultColors;
       const sizes = product.sizes && product.sizes.length > 0 ? product.sizes : defaultSizes;
-      
-      console.log(`🔍 DEBUG API: Processing product ${product.name} (${product.id}):`, {
-        stock: product.stock,
-        colors,
-        sizes
-      });
       
       sizes.forEach((size: string) => {
         colors.forEach((color: string) => {
@@ -84,50 +89,50 @@ export async function GET() {
       });
     });
     
-    console.log('✅ DEBUG API: Transformed inventory data:', {
+    console.log('✅ FORCE REFRESH: Nuclear refresh completed:', {
       totalItems: inventoryData.length,
-      firstItem: inventoryData[0],
-      sampleQuantities: inventoryData.slice(0, 3).map(item => ({
-        id: item.id,
-        quantity: item.quantity
-      }))
+      firstItem: inventoryData[0] || null,
+      lastUpdated: new Date().toISOString(),
+      attempts: clients.length
     });
 
     const response = NextResponse.json({
       success: true,
       data: inventoryData,
-      message: 'Inventory fetched successfully from products',
+      message: 'Nuclear inventory refresh completed successfully',
       timestamp: Date.now(),
       debug: {
         totalItems: inventoryData.length,
         firstItem: inventoryData[0] || null,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        attempts: clients.length,
+        nuclear: true
       }
     });
 
-    // Disable ALL caching for real-time updates (Vercel-specific)
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
+    // Nuclear cache busting headers
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, private');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
     response.headers.set('X-Timestamp', Date.now().toString());
-    response.headers.set('X-Cache-Status', 'BYPASS');
+    response.headers.set('X-Cache-Status', 'NUCLEAR_BYPASS');
     response.headers.set('X-No-Cache', 'true');
     response.headers.set('X-Random', Math.random().toString());
+    response.headers.set('X-Nuclear', 'true');
     // Vercel-specific headers
     response.headers.set('CDN-Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     response.headers.set('Vercel-CDN-Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     response.headers.set('X-Vercel-Cache', 'MISS');
     response.headers.set('X-Vercel-Id', Math.random().toString(36));
+    response.headers.set('X-Vercel-Nuclear', 'true');
 
     return response;
   } catch (error) {
-    console.error('Inventory API: GET error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch inventory' },
-      { status: 500 }
-    );
+    console.error('❌ FORCE REFRESH: Nuclear refresh failed:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Nuclear inventory refresh failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
-
-// POST /api/inventory - Not needed since we only use products table
-// All inventory updates go through PUT /api/inventory/[id] which updates products table
