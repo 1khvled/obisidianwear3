@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
 import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
+// Old context imports removed - using compatibility layer
+import StoreStatusChecker from '@/components/StoreStatusChecker'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Analytics } from '@vercel/analytics/react'
 import { SmartProductProvider } from '@/context/SmartProductProvider'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { DesignProvider } from '@/context/DesignContext'
 import { CartProvider } from '@/context/CartContext'
 import { ThemeProvider } from '@/context/ThemeContext'
-import StoreStatusChecker from '@/components/StoreStatusChecker'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Analytics } from '@vercel/analytics/react'
 // import ConsoleBlocker from '@/components/ConsoleBlocker' // Disabled for debugging
 // import Footer from '@/components/Footer'
 // import PerformanceMonitor from '@/components/PerformanceMonitor'
@@ -103,10 +104,10 @@ export default function RootLayout({
             <AuthProvider>
               <LanguageProvider>
                 <DesignProvider>
-                          <SmartProductProvider>
-                            <CartProvider>
-                              {/* <ConsoleBlocker /> */} {/* Disabled for debugging */}
-                              <StoreStatusChecker />
+                  <SmartProductProvider>
+                    <CartProvider>
+                      {/* <ConsoleBlocker /> */} {/* Disabled for debugging */}
+                      <StoreStatusChecker />
                       {/* <PerformanceMonitor /> */}
                       {children}
                     </CartProvider>

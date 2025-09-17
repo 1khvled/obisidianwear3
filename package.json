@@ -18,6 +18,8 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
+    "analyze": "ANALYZE=true npm run build",
+    "build:optimized": "npm run build && npm run analyze",
     "build:analyze": "ANALYZE=true npm run build",
     "build:production": "NODE_ENV=production next build",
     "preview": "next build && next start",
@@ -44,6 +46,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.3",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

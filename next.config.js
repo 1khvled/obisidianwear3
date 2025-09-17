@@ -1,6 +1,12 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Disable static generation for now to avoid context errors
+  trailingSlash: false,
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
@@ -85,4 +91,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);
