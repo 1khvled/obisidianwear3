@@ -13,6 +13,9 @@ export async function GET() {
   try {
     console.log('🧪 TEST: Starting inventory persistence test...');
     
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get a test product
@@ -117,6 +120,9 @@ export async function POST() {
   try {
     console.log('🧪 RESET: Resetting test data...');
     
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get a test product
