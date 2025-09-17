@@ -4,6 +4,11 @@ import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { LightweightProvider } from '@/context/LightweightProvider'
+import { DesignProvider } from '@/context/DesignContext'
+import { LanguageProvider } from '@/context/LanguageContext'
+import { CartProvider } from '@/context/CartContext'
+import { AuthProvider } from '@/context/AuthContext'
+import { SmartProductProvider } from '@/context/SmartProductProvider'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -136,11 +141,21 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        {/* Minimal providers - only what's absolutely necessary */}
+        {/* All necessary providers for the application */}
         <LightweightProvider>
-          <div id="app-root">
-            {children}
-          </div>
+          <DesignProvider>
+            <LanguageProvider>
+              <CartProvider>
+                <AuthProvider>
+                  <SmartProductProvider>
+                    <div id="app-root">
+                      {children}
+                    </div>
+                  </SmartProductProvider>
+                </AuthProvider>
+              </CartProvider>
+            </LanguageProvider>
+          </DesignProvider>
         </LightweightProvider>
         
         {/* Analytics - load after page content */}
