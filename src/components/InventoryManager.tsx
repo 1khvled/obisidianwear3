@@ -79,19 +79,25 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
     try {
       setLoading(true);
       const timestamp = Date.now();
+      const requestId = `${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
       console.log('🔄 DEBUG: Starting loadInventory at', new Date().toISOString(), 'timestamp:', timestamp);
       
-      // Add cache-busting parameter to ensure fresh data
-      const response = await fetch(`/api/inventory?t=${timestamp}&_cb=${Math.random()}`, {
+      // Add multiple cache-busting parameters to ensure fresh data
+      const response = await fetch(`/api/inventory-optimized?t=${timestamp}&_cb=${Math.random()}&req=${requestId}&v=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Request-ID': requestId
         }
       });
       console.log('🔄 DEBUG: Fetch response status:', response.status, 'ok:', response.ok);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const data = await response.json();
       
@@ -101,13 +107,25 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         firstItem: data.data?.[0],
         message: data.message,
         timestamp: data.timestamp,
-        fullResponse: data
+        debug: data.debug
       });
       
       if (data.success && data.data && data.data.length > 0) {
         console.log('✅ DEBUG: Setting inventory data with', data.data.length, 'items');
         console.log('✅ DEBUG: First few items:', data.data.slice(0, 3));
-        setInventory(data.data);
+        
+        // Force state update with functional update to ensure React detects the change
+        setInventory(prevInventory => {
+          // Only update if data is actually different
+          if (JSON.stringify(prevInventory) !== JSON.stringify(data.data)) {
+            console.log('✅ DEBUG: Inventory data changed, updating state');
+            return data.data;
+          } else {
+            console.log('✅ DEBUG: Inventory data unchanged, keeping current state');
+            return prevInventory;
+          }
+        });
+        
         setLastUpdateTime(new Date());
         console.log('✅ DEBUG: Inventory state updated successfully');
       } else {
@@ -116,7 +134,12 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       }
     } catch (error) {
       console.error('❌ DEBUG: Error loading inventory:', error);
-      await loadProductsWithDefaults();
+      // Try fallback method
+      try {
+        await loadProductsWithDefaults();
+      } catch (fallbackError) {
+        console.error('❌ DEBUG: Fallback method also failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
       console.log('🔄 DEBUG: loadInventory completed, loading set to false');
@@ -319,14 +342,18 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         reason: reason || 'Manual adjustment'
       });
       
-      const response = await fetch(`/api/inventory/${item.id}?t=${Date.now()}&_cb=${Math.random()}`, {
+      // Create a unique request ID to prevent caching issues
+      const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const response = await fetch(`/api/inventory-optimized/${item.id}?t=${Date.now()}&_cb=${Math.random()}&req=${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Request-ID': requestId
         },
         body: JSON.stringify({
           quantity: newQuantity,
@@ -343,31 +370,33 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
       if (data.success) {
         console.log('✅ DEBUG: API update successful, updating local state...');
         
-        // Update local state immediately
-        const updatedInventory = inventory.map(inv => 
-          inv.id === item.id 
-            ? { 
-                ...inv, 
-                quantity: newQuantity,
-                available_quantity: newQuantity,
-                last_updated: new Date().toISOString()
-              }
-            : inv
+        // Update local state immediately with optimistic update
+        setInventory(prevInventory => 
+          prevInventory.map(inv => 
+            inv.id === item.id 
+              ? { 
+                  ...inv, 
+                  quantity: newQuantity,
+                  available_quantity: newQuantity,
+                  last_updated: new Date().toISOString()
+                }
+              : inv
+          )
         );
         
-        console.log('🔄 DEBUG: Local state updated, setting inventory...');
-        setInventory(updatedInventory);
         console.log('✅ DEBUG: Local state updated successfully');
         
-        // Refresh data from server to ensure consistency
-        console.log('🔄 DEBUG: Starting server refresh to ensure consistency...');
-        
-        // Force a complete refresh by clearing any potential cache
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure DB commit
-        
-        await loadInventory();
-        console.log('✅ DEBUG: Server refresh completed');
-        setLastUpdateTime(new Date());
+        // Force a complete refresh from server after a short delay
+        setTimeout(async () => {
+          console.log('🔄 DEBUG: Starting server refresh to ensure consistency...');
+          try {
+            await loadInventory();
+            console.log('✅ DEBUG: Server refresh completed');
+            setLastUpdateTime(new Date());
+          } catch (refreshError) {
+            console.error('❌ DEBUG: Server refresh failed:', refreshError);
+          }
+        }, 500); // Increased delay to ensure DB commit
         
         setEditingItem(null);
         setReason('');

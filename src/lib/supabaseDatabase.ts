@@ -25,7 +25,23 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'obsidian-wear-app',
+    },
+  },
+  // realtime: {
+  //   enabled: false, // Disable realtime for better performance - property doesn't exist in current version
+  // },
+});
 
 // Export the supabase client for direct use
 export { supabase };
@@ -70,7 +86,7 @@ function convertDbProductToProduct(dbProduct: any): Product {
 // Cache for products to reduce database calls
 let productsCache: Product[] | null = null;
 let productsCacheTime = 0;
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 120000; // 2 minutes - increased for better performance
 
 // Clear cache function
 export function clearProductsCache(): void {
