@@ -133,13 +133,19 @@ export async function PUT(
     }
     const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
+    // Calculate in_stock status
+    const hasStock = Object.values(currentStock).some((sizeStock: any) => 
+      Object.values(sizeStock).some((qty: any) => qty > 0)
+    );
+    
+    console.log('🔍 Calculated in_stock status:', hasStock);
+    
+    // Update with explicit JSONB handling
     const { error: updateError } = await freshSupabase
       .from('products')
       .update({ 
         stock: currentStock,
-        in_stock: Object.values(currentStock).some((sizeStock: any) => 
-          Object.values(sizeStock).some((qty: any) => qty > 0)
-        ),
+        in_stock: hasStock,
         updated_at: new Date().toISOString()
       })
       .eq('id', productId);
@@ -162,6 +168,10 @@ export async function PUT(
 
     // Verify the update by fetching the product again with fresh connection
     console.log('🔄 DEBUG API: Verifying update by fetching product again...');
+    
+    // Wait a moment to ensure database consistency
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     const { data: updatedProduct, error: verifyError } = await freshSupabase
       .from('products')
       .select('*')
@@ -171,20 +181,32 @@ export async function PUT(
     if (verifyError) {
       console.error('❌ DEBUG API: Error verifying update:', verifyError);
     } else {
-    console.log('✅ DEBUG API: Verification successful:', {
-      productName: updatedProduct.name,
-      updatedStock: updatedProduct.stock,
-      specificStock: updatedProduct.stock?.[size]?.[color],
-      expectedQuantity: quantity,
-      actualQuantity: updatedProduct.stock?.[size]?.[color],
-      match: updatedProduct.stock?.[size]?.[color] === quantity
-    });
-    
-    if (updatedProduct.stock?.[size]?.[color] !== quantity) {
-      console.error('❌ DEBUG API: DATABASE UPDATE FAILED! Expected:', quantity, 'Got:', updatedProduct.stock?.[size]?.[color]);
-    } else {
-      console.log('✅ DEBUG API: Database update verified successfully!');
-    }
+      console.log('✅ DEBUG API: Verification successful:', {
+        productName: updatedProduct.name,
+        updatedStock: updatedProduct.stock,
+        specificStock: updatedProduct.stock?.[size]?.[color],
+        expectedQuantity: quantity,
+        actualQuantity: updatedProduct.stock?.[size]?.[color],
+        match: updatedProduct.stock?.[size]?.[color] === quantity,
+        fullStockStructure: JSON.stringify(updatedProduct.stock)
+      });
+      
+      if (updatedProduct.stock?.[size]?.[color] !== quantity) {
+        console.error('❌ DEBUG API: DATABASE UPDATE FAILED! Expected:', quantity, 'Got:', updatedProduct.stock?.[size]?.[color]);
+        console.error('❌ DEBUG API: Full stock structure:', JSON.stringify(updatedProduct.stock, null, 2));
+        
+        // Try one more verification with a different approach
+        console.log('🔄 DEBUG API: Attempting alternative verification...');
+        const { data: altProduct } = await freshSupabase
+          .from('products')
+          .select('stock')
+          .eq('id', productId)
+          .single();
+        
+        console.log('🔄 DEBUG API: Alternative verification result:', altProduct?.stock?.[size]?.[color]);
+      } else {
+        console.log('✅ DEBUG API: Database update verified successfully!');
+      }
     }
 
     console.log(`✅ Successfully updated stock for ${product.name} - ${size} ${color}: ${quantity}`);
