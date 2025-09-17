@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     console.log('🚀 FORCE REFRESH: Starting nuclear inventory refresh at', new Date().toISOString());
     
     // Create multiple fresh Supabase clients to ensure no connection pooling
-    const clients = Array.from({ length: 3 }, () => createClient(supabaseUrl, supabaseKey));
+    const clients = Array.from({ length: 3 }, () => createClient(supabaseUrl!, supabaseKey!));
     
     // Try multiple clients to ensure we get fresh data
     let products = null;
