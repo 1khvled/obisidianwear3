@@ -5,6 +5,8 @@ import './globals.css'
 import StoreStatusChecker from '@/components/StoreStatusChecker'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import GlobalDebugger from '@/components/GlobalDebugger'
 import { SmartProductProvider } from '@/context/SmartProductProvider'
 import { LanguageProvider } from '@/context/LanguageContext'
 import { AuthProvider } from '@/context/AuthContext'
@@ -110,6 +112,9 @@ export default function RootLayout({
                       <StoreStatusChecker />
                       {/* <PerformanceMonitor /> */}
                       {children}
+                      
+                      {/* Global Debugger - Always Available */}
+                      <GlobalDebugger />
                     </CartProvider>
                   </SmartProductProvider>
                 </DesignProvider>
@@ -118,6 +123,7 @@ export default function RootLayout({
           </ThemeProvider>
         </ErrorBoundary>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
