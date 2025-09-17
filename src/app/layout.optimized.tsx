@@ -3,7 +3,6 @@ import { Inter, Poppins } from 'next/font/google'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { LightweightProvider } from '@/context/LightweightProvider'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -137,11 +136,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-black text-white min-h-screen`}>
         {/* Minimal providers - only what's absolutely necessary */}
-        <LightweightProvider>
-          <div id="app-root">
-            {children}
-          </div>
-        </LightweightProvider>
+        <div id="app-root">
+          {children}
+        </div>
         
         {/* Analytics - load after page content */}
         <Analytics />
