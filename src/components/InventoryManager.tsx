@@ -386,7 +386,31 @@ export default function InventoryManager({ onClose }: InventoryManagerProps) {
         
         console.log('✅ DEBUG: Local state updated successfully');
         
-        // Update last update time without unnecessary refresh
+        // Force refresh inventory data to ensure consistency
+        console.log('🔄 DEBUG: Force refreshing inventory data after update...');
+        try {
+          const refreshResponse = await fetch('/api/inventory/refresh', {
+            method: 'POST',
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            if (refreshData.success) {
+              setInventory(refreshData.data);
+              console.log('✅ DEBUG: Inventory force refreshed successfully');
+            }
+          }
+        } catch (refreshError) {
+          console.error('❌ DEBUG: Force refresh failed:', refreshError);
+        }
+        
+        // Update last update time
         setLastUpdateTime(new Date());
         
         setEditingItem(null);

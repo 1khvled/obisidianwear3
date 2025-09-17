@@ -8,27 +8,22 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// GET /api/inventory - Get all inventory
-export async function GET() {
+// POST /api/inventory/refresh - Force refresh inventory data
+export async function POST() {
   try {
-    console.log('🔄 DEBUG API: Starting GET /api/inventory at', new Date().toISOString());
+    console.log('🔄 FORCE REFRESH: Starting inventory refresh at', new Date().toISOString());
     
-    // Always read from products table since inventory table updates are failing
-    console.log('📦 DEBUG API: Reading from products table (inventory table updates are failing)');
-      
-    // Create a fresh Supabase client to avoid connection issues
+    // Create a fresh Supabase client
     const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
-    // Read from products table
+    // Read from products table with fresh connection
     const { data: products, error: productsError } = await freshSupabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (productsError) {
-      console.error('Inventory API: Products error:', productsError);
+      console.error('❌ FORCE REFRESH: Products error:', productsError);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch inventory data' },
         { status: 500 }
@@ -36,7 +31,7 @@ export async function GET() {
     }
 
     // Transform products data to inventory format
-    console.log('🔄 DEBUG API: Transforming products data to inventory format...');
+    console.log('🔄 FORCE REFRESH: Transforming products data to inventory format...');
     const inventoryData: any[] = [];
     products.forEach((product: any) => {
       const defaultColors = ['Black', 'White', 'Red', 'Blue', 'Green'];
@@ -44,12 +39,6 @@ export async function GET() {
       
       const colors = product.colors && product.colors.length > 0 ? product.colors : defaultColors;
       const sizes = product.sizes && product.sizes.length > 0 ? product.sizes : defaultSizes;
-      
-      console.log(`🔍 DEBUG API: Processing product ${product.name} (${product.id}):`, {
-        stock: product.stock,
-        colors,
-        sizes
-      });
       
       sizes.forEach((size: string) => {
         colors.forEach((color: string) => {
@@ -78,9 +67,8 @@ export async function GET() {
       });
     });
     
-    console.log('✅ DEBUG API: Transformed inventory data:', {
+    console.log('✅ FORCE REFRESH: Transformed inventory data:', {
       totalItems: inventoryData.length,
-      firstItem: inventoryData[0],
       sampleQuantities: inventoryData.slice(0, 3).map(item => ({
         id: item.id,
         quantity: item.quantity
@@ -90,8 +78,9 @@ export async function GET() {
     const response = NextResponse.json({
       success: true,
       data: inventoryData,
-      message: 'Inventory fetched successfully from products',
+      message: 'Inventory force refreshed successfully',
       timestamp: Date.now(),
+      refresh: true,
       debug: {
         totalItems: inventoryData.length,
         firstItem: inventoryData[0] || null,
@@ -99,7 +88,7 @@ export async function GET() {
       }
     });
 
-    // Disable ALL caching for real-time updates (Vercel-specific)
+    // Disable ALL caching for force refresh
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
@@ -107,6 +96,7 @@ export async function GET() {
     response.headers.set('X-Cache-Status', 'BYPASS');
     response.headers.set('X-No-Cache', 'true');
     response.headers.set('X-Random', Math.random().toString());
+    response.headers.set('X-Force-Refresh', 'true');
     // Vercel-specific headers
     response.headers.set('CDN-Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     response.headers.set('Vercel-CDN-Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
@@ -115,13 +105,10 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error('Inventory API: GET error:', error);
+    console.error('❌ FORCE REFRESH: Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch inventory' },
+      { success: false, error: 'Failed to force refresh inventory' },
       { status: 500 }
     );
   }
 }
-
-// POST /api/inventory - Not needed since we only use products table
-// All inventory updates go through PUT /api/inventory/[id] which updates products table

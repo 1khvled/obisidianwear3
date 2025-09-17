@@ -123,8 +123,40 @@ export default function SimpleInventoryManager({ onClose }: SimpleInventoryManag
         setEditingItem(null);
         setEditQuantity(0);
         
-        // No need for server refresh - optimistic update handles the UI
-        console.log('✅ DEBUG: Update completed, relying on optimistic update');
+        // Force refresh inventory data to ensure consistency
+        console.log('🔄 DEBUG: Force refreshing inventory data after update...');
+        try {
+          const refreshResponse = await fetch('/api/inventory/refresh', {
+            method: 'POST',
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            if (refreshData.success) {
+              // Transform the data to our simple format
+              const simpleInventory: InventoryItem[] = refreshData.data.map((item: any) => ({
+                id: item.id,
+                product_id: item.product_id,
+                product_name: item.products?.name || 'Unknown Product',
+                size: item.size,
+                color: item.color,
+                quantity: item.quantity || 0,
+                image: item.products?.image
+              }));
+              
+              setInventory(simpleInventory);
+              console.log('✅ DEBUG: Inventory force refreshed successfully');
+            }
+          }
+        } catch (refreshError) {
+          console.error('❌ DEBUG: Force refresh failed:', refreshError);
+        }
         
         // Show success message without alert popup
         console.log('✅ Inventory updated successfully!');

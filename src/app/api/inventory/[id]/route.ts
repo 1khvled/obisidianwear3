@@ -127,13 +127,17 @@ export async function PUT(
       }
     });
     
-    const { error: updateError } = await supabase
+    // Create a fresh Supabase client to avoid connection issues
+    const freshSupabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { error: updateError } = await freshSupabase
       .from('products')
       .update({ 
         stock: currentStock,
         in_stock: Object.values(currentStock).some((sizeStock: any) => 
           Object.values(sizeStock).some((qty: any) => qty > 0)
-        )
+        ),
+        updated_at: new Date().toISOString()
       })
       .eq('id', productId);
 
@@ -153,9 +157,9 @@ export async function PUT(
     
     console.log('✅ Database update successful');
 
-    // Verify the update by fetching the product again
+    // Verify the update by fetching the product again with fresh connection
     console.log('🔄 DEBUG API: Verifying update by fetching product again...');
-    const { data: updatedProduct, error: verifyError } = await supabase
+    const { data: updatedProduct, error: verifyError } = await freshSupabase
       .from('products')
       .select('*')
       .eq('id', productId)
