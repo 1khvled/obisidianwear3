@@ -128,6 +128,9 @@ export async function PUT(
     });
     
     // Create a fresh Supabase client to avoid connection issues
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
     const { error: updateError } = await freshSupabase

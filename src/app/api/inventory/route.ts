@@ -19,6 +19,9 @@ export async function GET() {
     console.log('📦 DEBUG API: Reading from products table (inventory table updates are failing)');
       
     // Create a fresh Supabase client to avoid connection issues
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
     // Read from products table

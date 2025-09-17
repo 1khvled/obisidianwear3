@@ -14,6 +14,9 @@ export async function POST() {
     console.log('🔄 FORCE REFRESH: Starting inventory refresh at', new Date().toISOString());
     
     // Create a fresh Supabase client
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
     const freshSupabase = createClient(supabaseUrl, supabaseKey);
     
     // Read from products table with fresh connection
