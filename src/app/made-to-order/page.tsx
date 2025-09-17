@@ -4,8 +4,9 @@ import React, { useState, useEffect, lazy, Suspense, memo, useMemo, useCallback 
 import { useRouter } from 'next/navigation';
 import { MadeToOrderProduct } from '@/types';
 import { useFastMadeToOrder } from '@/hooks/useFastMadeToOrder';
+import { useCachedMadeToOrder } from '@/hooks/useSmartPreload';
 import { MadeToOrderSkeleton } from '@/components/LoadingSkeleton';
-import { ShoppingBag, Eye, Search, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Eye, Search, ArrowLeft, Zap } from 'lucide-react';
 
 // Lazy load heavy components
 const Header = lazy(() => import('@/components/Header'));
@@ -146,16 +147,34 @@ CategoryButton.displayName = 'CategoryButton';
 export default function MadeToOrderPage() {
   const router = useRouter();
   const { products: madeToOrderProducts, loading } = useFastMadeToOrder();
+  const { cachedData, isLoading: cacheLoading, loadCachedData } = useCachedMadeToOrder();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isReturnHomeLoading, setIsReturnHomeLoading] = useState(false);
+  const [isUsingCache, setIsUsingCache] = useState(false);
+
+  // Try to load cached data first, fallback to regular loading
+  useEffect(() => {
+    const loadData = async () => {
+      const cached = await loadCachedData();
+      if (cached && cached.length > 0) {
+        setIsUsingCache(true);
+        console.log('🚀 Using cached made-to-order data for instant loading!');
+      }
+    };
+    loadData();
+  }, [loadCachedData]);
+
+  // Use cached data if available, otherwise use regular data
+  const productsToUse = isUsingCache && cachedData ? cachedData : madeToOrderProducts;
+  const isLoading = isUsingCache ? cacheLoading : loading;
 
   // Memoize filtered products
   const filteredProducts = useMemo(() => {
-    if (!madeToOrderProducts || madeToOrderProducts.length === 0) return [];
+    if (!productsToUse || productsToUse.length === 0) return [];
     
-    return madeToOrderProducts.filter(product => {
+    return productsToUse.filter(product => {
       const matchesSearch = !searchQuery ||
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -164,13 +183,13 @@ export default function MadeToOrderPage() {
       
       return matchesSearch && matchesCategory;
     });
-  }, [madeToOrderProducts, searchQuery, selectedCategory]);
+  }, [productsToUse, searchQuery, selectedCategory]);
 
   // Memoize unique categories
   const categories = useMemo(() => {
-    if (!madeToOrderProducts || madeToOrderProducts.length === 0) return [];
-    return Array.from(new Set(madeToOrderProducts.map(p => p.category).filter(Boolean)));
-  }, [madeToOrderProducts]);
+    if (!productsToUse || productsToUse.length === 0) return [];
+    return Array.from(new Set(productsToUse.map(p => p.category).filter(Boolean)));
+  }, [productsToUse]);
 
   const handleViewDetails = useCallback((product: MadeToOrderProduct) => {
     router.push(`/made-to-order/${product.id}`);
@@ -206,7 +225,7 @@ export default function MadeToOrderPage() {
     window.open(`https://wa.me/213672536920?text=${encodeURIComponent(message)}`, '_blank');
   }, []);
 
-  if (loading) {
+  if (isLoading) {
     return <MadeToOrderSkeleton />;
   }
 
@@ -219,6 +238,18 @@ export default function MadeToOrderPage() {
       {/* Return Home Section */}
       <div className="pt-20 pb-4 px-4">
         <div className="max-w-7xl mx-auto">
+          {/* Cache Status Indicator */}
+          {isUsingCache && (
+            <div className="flex justify-center mb-4">
+              <div className="bg-green-500/20 border border-green-500/30 rounded-lg px-4 py-2">
+                <div className="flex items-center gap-2 text-green-300 text-sm">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  <span>Lightning fast loading from cache! ⚡</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex justify-center mb-6">
             <button
               onClick={handleReturnHome}
@@ -254,7 +285,7 @@ export default function MadeToOrderPage() {
           </div>
 
           {/* Category Filters */}
-          {madeToOrderProducts && madeToOrderProducts.length > 0 && (
+          {productsToUse && productsToUse.length > 0 && (
             <div className="flex justify-center mb-8">
               <div className="flex flex-wrap gap-2 justify-center">
                 <CategoryButton
@@ -275,7 +306,7 @@ export default function MadeToOrderPage() {
           )}
 
           {/* Products Grid */}
-          {!madeToOrderProducts || madeToOrderProducts.length === 0 ? (
+          {!productsToUse || productsToUse.length === 0 ? (
             <div className="text-center py-20">
               <h3 className="text-2xl font-black text-white mb-4 uppercase tracking-wider">Loading Products...</h3>
               <p className="text-white">Please wait while we load the custom order products.</p>

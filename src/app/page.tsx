@@ -3,7 +3,10 @@
 import React, { useState, useEffect, lazy, Suspense, memo, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLightweight } from '@/context/LightweightProvider';
-import { ShoppingBag, Eye, Search, Heart } from 'lucide-react';
+import { useSmartPreload } from '@/hooks/useSmartPreload';
+import { useMobileOptimizedPreload } from '@/hooks/useMobileOptimizedPreload';
+import { PreloadTestIndicator } from '@/components/PreloadTestIndicator';
+import { ShoppingBag, Eye, Search, Heart, Zap } from 'lucide-react';
 
 // Lazy load components
 const Header = lazy(() => import('@/components/Header'));
@@ -136,6 +139,43 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCustomOrderLoading, setIsCustomOrderLoading] = useState(false);
+  const [isHomePageLoaded, setIsHomePageLoaded] = useState(false);
+
+  // Mobile-optimized preloading
+  const { 
+    isPreloading: isMobilePreloading, 
+    isPreloaded: isMobilePreloaded, 
+    preloadProgress: mobilePreloadProgress,
+    isMobile,
+    connectionType,
+    scheduleMobilePreload, 
+    startMobilePreload 
+  } = useMobileOptimizedPreload();
+
+  // Smart preloading for made-to-order page (desktop)
+  const { 
+    isPreloading, 
+    isPreloaded, 
+    preloadProgress, 
+    schedulePreload, 
+    startPreload 
+  } = useSmartPreload({
+    delay: 3000, // Start preloading 3 seconds after home page loads
+    priority: 'high',
+    onComplete: () => {
+      console.log('🚀 Made-to-order page preloaded successfully!');
+    },
+    onError: (error) => {
+      console.error('❌ Preload failed:', error);
+    }
+  });
+
+  // Use mobile or desktop preloading based on device
+  const finalIsPreloading = isMobile ? isMobilePreloading : isPreloading;
+  const finalIsPreloaded = isMobile ? isMobilePreloaded : isPreloaded;
+  const finalPreloadProgress = isMobile ? mobilePreloadProgress : preloadProgress;
+  const finalSchedulePreload = isMobile ? scheduleMobilePreload : schedulePreload;
+  const finalStartPreload = isMobile ? startMobilePreload : startPreload;
 
   // Memoize filtered products
   const filteredProducts = useMemo(() => {
@@ -182,11 +222,27 @@ export default function HomePage() {
   const handleCustomOrder = useCallback(async () => {
     setIsCustomOrderLoading(true);
     try {
-      await router.push('/made-to-order');
+      // If preloaded, navigate immediately; otherwise, start preload and navigate
+      if (finalIsPreloaded) {
+        await router.push('/made-to-order');
+      } else {
+        // Start preload and navigate
+        finalStartPreload();
+        await router.push('/made-to-order');
+      }
     } finally {
       setIsCustomOrderLoading(false);
     }
-  }, [router]);
+  }, [router, finalIsPreloaded, finalStartPreload]);
+
+  // Effect to detect when home page is fully loaded and start preloading
+  useEffect(() => {
+    if (!loading && products && products.length > 0 && !isHomePageLoaded) {
+      setIsHomePageLoaded(true);
+      // Schedule preloading after home page is fully loaded
+      finalSchedulePreload();
+    }
+  }, [loading, products, isHomePageLoaded, finalSchedulePreload]);
 
   return (
     <div className="min-h-screen bg-black">
@@ -205,6 +261,39 @@ export default function HomePage() {
               <p className="text-white/90 mb-6 text-sm md:text-base">
                 Can't find what you want in the DROP? Order custom.
               </p>
+              
+              {/* Preload Status Indicator */}
+              {finalIsPreloading && (
+                <div className="mb-4 p-3 bg-white/10 rounded-lg border border-white/20">
+                  <div className="flex items-center justify-center gap-2 text-white/80 text-sm">
+                    <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />
+                    <span>
+                      {isMobile ? 'Preloading for mobile...' : 'Preloading custom orders...'}
+                      {isMobile && connectionType === 'slow' && ' (optimized for slow connection)'}
+                    </span>
+                    <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
+                        style={{ width: `${finalPreloadProgress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs">{finalPreloadProgress}%</span>
+                  </div>
+                </div>
+              )}
+              
+              {finalIsPreloaded && (
+                <div className="mb-4 p-3 bg-green-500/20 rounded-lg border border-green-500/30">
+                  <div className="flex items-center justify-center gap-2 text-green-300 text-sm">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <span>
+                      Custom orders ready! Lightning fast loading ⚡
+                      {isMobile && ' (mobile optimized)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-center">
                 <button
                   onClick={handleCustomOrder}
@@ -213,10 +302,12 @@ export default function HomePage() {
                 >
                   {isCustomOrderLoading ? (
                     <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                  ) : finalIsPreloaded ? (
+                    <Zap className="w-4 h-4 text-yellow-500" />
                   ) : (
                     <span className="group-hover:animate-pulse">→</span>
                   )}
-                  {isCustomOrderLoading ? 'Loading...' : 'Start Custom Order'}
+                  {isCustomOrderLoading ? 'Loading...' : finalIsPreloaded ? 'Start Custom Order ⚡' : 'Start Custom Order'}
                 </button>
               </div>
             </div>
@@ -324,6 +415,15 @@ export default function HomePage() {
       <Suspense fallback={<div className="h-32 bg-gray-900 animate-pulse" />}>
         <Footer />
       </Suspense>
+
+      {/* Preload Test Indicator - Remove in production */}
+      <PreloadTestIndicator
+        isPreloading={finalIsPreloading}
+        isPreloaded={finalIsPreloaded}
+        preloadProgress={finalPreloadProgress}
+        isMobile={isMobile}
+        connectionType={connectionType}
+      />
     </div>
   );
 }
