@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLightweight } from '@/context/LightweightProvider';
 import { useSmartPreload } from '@/hooks/useSmartPreload';
 import { useMobileOptimizedPreload } from '@/hooks/useMobileOptimizedPreload';
-import { PreloadTestIndicator } from '@/components/PreloadTestIndicator';
-import { ShoppingBag, Eye, Search, Heart, Zap } from 'lucide-react';
+import { ShoppingBag, Eye, Search, Heart } from 'lucide-react';
 
 // Lazy load components
 const Header = lazy(() => import('@/components/Header'));
@@ -262,37 +261,6 @@ export default function HomePage() {
                 Can't find what you want in the DROP? Order custom.
               </p>
               
-              {/* Preload Status Indicator */}
-              {finalIsPreloading && (
-                <div className="mb-4 p-3 bg-white/10 rounded-lg border border-white/20">
-                  <div className="flex items-center justify-center gap-2 text-white/80 text-sm">
-                    <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />
-                    <span>
-                      {isMobile ? 'Preloading for mobile...' : 'Preloading custom orders...'}
-                      {isMobile && connectionType === 'slow' && ' (optimized for slow connection)'}
-                    </span>
-                    <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
-                        style={{ width: `${finalPreloadProgress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs">{finalPreloadProgress}%</span>
-                  </div>
-                </div>
-              )}
-              
-              {finalIsPreloaded && (
-                <div className="mb-4 p-3 bg-green-500/20 rounded-lg border border-green-500/30">
-                  <div className="flex items-center justify-center gap-2 text-green-300 text-sm">
-                    <Zap className="w-4 h-4 text-green-400" />
-                    <span>
-                      Custom orders ready! Lightning fast loading ⚡
-                      {isMobile && ' (mobile optimized)'}
-                    </span>
-                  </div>
-                </div>
-              )}
               
               <div className="flex justify-center">
                 <button
@@ -302,12 +270,10 @@ export default function HomePage() {
                 >
                   {isCustomOrderLoading ? (
                     <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
-                  ) : finalIsPreloaded ? (
-                    <Zap className="w-4 h-4 text-yellow-500" />
                   ) : (
                     <span className="group-hover:animate-pulse">→</span>
                   )}
-                  {isCustomOrderLoading ? 'Loading...' : finalIsPreloaded ? 'Start Custom Order ⚡' : 'Start Custom Order'}
+                  {isCustomOrderLoading ? 'Loading...' : 'Start Custom Order'}
                 </button>
               </div>
             </div>
@@ -416,14 +382,6 @@ export default function HomePage() {
         <Footer />
       </Suspense>
 
-      {/* Preload Test Indicator - Remove in production */}
-      <PreloadTestIndicator
-        isPreloading={finalIsPreloading}
-        isPreloaded={finalIsPreloaded}
-        preloadProgress={finalPreloadProgress}
-        isMobile={isMobile}
-        connectionType={connectionType}
-      />
     </div>
   );
 }

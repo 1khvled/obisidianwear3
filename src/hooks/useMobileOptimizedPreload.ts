@@ -74,61 +74,90 @@ export function useMobileOptimizedPreload() {
         return;
       }
 
-      // For fast connections, do full preload
+      // Full preload for mobile - same as desktop!
       setState(prev => ({ ...prev, preloadProgress: 20 }));
       
-      // Prefetch routes
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = '/made-to-order';
-      document.head.appendChild(link);
+      // Prefetch all routes (except admin)
+      const routesToPrefetch = [
+        '/made-to-order',
+        '/made-to-order-collection', 
+        '/cart',
+        '/checkout',
+        '/contact',
+        '/about',
+        '/product'
+      ];
+      
+      routesToPrefetch.forEach(route => {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = route;
+        document.head.appendChild(link);
+      });
 
       setState(prev => ({ ...prev, preloadProgress: 40 }));
       
-      // Preload API data with mobile-optimized request
-      const response = await fetch('/api/made-to-order', {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'max-age=300',
-          'Accept': 'application/json',
+      // Preload ALL API data - same as desktop
+      const apiEndpoints = [
+        '/api/made-to-order',
+        '/api/products',
+        '/api/inventory',
+        '/api/wilaya'
+      ];
+      
+      const apiPromises = apiEndpoints.map(async (endpoint) => {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'max-age=300',
+            'Accept': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
         }
+
+        const data = await response.json();
+        
+        // Cache ALL data - no limits for mobile
+        const cacheData = {
+          data: data, // Full data, not sliced
+          timestamp: Date.now(),
+          version: '1.0-full'
+        };
+        
+        sessionStorage.setItem(`${endpoint.replace('/api/', '')}Cache`, JSON.stringify(cacheData));
+        return data;
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const allApiData = await Promise.allSettled(apiPromises);
       
       setState(prev => ({ ...prev, preloadProgress: 70 }));
       
-      // Cache data with mobile-optimized storage
-      const cacheData = {
-        data: data.slice(0, 10), // Only cache first 10 items for mobile
-        timestamp: Date.now(),
-        version: '1.0-mobile'
-      };
-      
-      sessionStorage.setItem('madeToOrderCacheMobile', JSON.stringify(cacheData));
+      // Preload ALL images - same as desktop
+      const allProducts = allApiData
+        .filter(result => result.status === 'fulfilled')
+        .flatMap(result => (result as any).value)
+        .filter(item => item && (item.image || item.images));
 
-      setState(prev => ({ ...prev, preloadProgress: 90 }));
-      
-      // For mobile, only preload first 3 images
-      if (data.length > 0) {
-        const imagePromises = data.slice(0, 3).map((product: any) => {
-          const imageSrc = product.image || product.images?.[0];
-          if (imageSrc) {
-            return new Promise((resolve) => {
-              const img = new Image();
-              img.onload = resolve;
-              img.onerror = resolve;
-              img.src = imageSrc;
-              // Set loading priority for mobile
-              img.loading = 'lazy';
-            });
-          }
-          return Promise.resolve();
-        });
+      if (allProducts.length > 0) {
+        const imagePromises = allProducts.map((product: any) => {
+          const images = product.images || [product.image];
+          return images.map((imageSrc: string) => {
+            if (imageSrc) {
+              return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = resolve;
+                img.src = imageSrc;
+                // High priority loading for mobile too
+                img.loading = 'eager';
+              });
+            }
+            return Promise.resolve();
+          });
+        }).flat();
 
         await Promise.allSettled(imagePromises);
       }

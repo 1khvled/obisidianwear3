@@ -6,7 +6,7 @@ import { MadeToOrderProduct } from '@/types';
 import { useFastMadeToOrder } from '@/hooks/useFastMadeToOrder';
 import { useCachedMadeToOrder } from '@/hooks/useSmartPreload';
 import { MadeToOrderSkeleton } from '@/components/LoadingSkeleton';
-import { ShoppingBag, Eye, Search, ArrowLeft, Zap } from 'lucide-react';
+import { ShoppingBag, Eye, Search, ArrowLeft } from 'lucide-react';
 
 // Lazy load heavy components
 const Header = lazy(() => import('@/components/Header'));
@@ -238,17 +238,6 @@ export default function MadeToOrderPage() {
       {/* Return Home Section */}
       <div className="pt-20 pb-4 px-4">
         <div className="max-w-7xl mx-auto">
-          {/* Cache Status Indicator */}
-          {isUsingCache && (
-            <div className="flex justify-center mb-4">
-              <div className="bg-green-500/20 border border-green-500/30 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2 text-green-300 text-sm">
-                  <Zap className="w-4 h-4 text-green-400" />
-                  <span>Lightning fast loading from cache! ⚡</span>
-                </div>
-              </div>
-            </div>
-          )}
           
           <div className="flex justify-center mb-6">
             <button

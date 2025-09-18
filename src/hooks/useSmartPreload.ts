@@ -43,55 +43,88 @@ export function useSmartPreload(options: PreloadOptions = {}) {
     setState(prev => ({ ...prev, isPreloading: true, error: null }));
 
     try {
-      // Step 1: Preload the made-to-order page route
-      setState(prev => ({ ...prev, preloadProgress: 20 }));
+      // Step 1: Preload ALL routes (except admin)
+      setState(prev => ({ ...prev, preloadProgress: 10 }));
       
-      // Use Next.js router to prefetch the route
-      router.prefetch('/made-to-order');
-      router.prefetch('/made-to-order-collection');
+      const routesToPrefetch = [
+        '/made-to-order',
+        '/made-to-order-collection',
+        '/cart',
+        '/checkout', 
+        '/contact',
+        '/about',
+        '/product'
+        // Admin routes are EXCLUDED - users can't access them
+      ];
       
-      // Step 2: Preload made-to-order API data
-      setState(prev => ({ ...prev, preloadProgress: 40 }));
+      routesToPrefetch.forEach(route => {
+        router.prefetch(route);
+      });
       
-      const apiResponse = await fetch('/api/made-to-order', {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'max-age=300', // Cache for 5 minutes
+      // Step 2: Preload ALL API data (except admin APIs)
+      setState(prev => ({ ...prev, preloadProgress: 30 }));
+      
+      const apiEndpoints = [
+        '/api/made-to-order',
+        '/api/products',
+        '/api/inventory',
+        '/api/wilaya',
+        '/api/orders',
+        '/api/customers'
+        // Admin APIs are EXCLUDED - users can't access them
+      ];
+      
+      const apiPromises = apiEndpoints.map(async (endpoint) => {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'max-age=300', // Cache for 5 minutes
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
         }
+
+        const data = await response.json();
+        
+        // Cache ALL data
+        sessionStorage.setItem(`${endpoint.replace('/api/', '')}Cache`, JSON.stringify({
+          data: data,
+          timestamp: Date.now(),
+          version: '1.0-full'
+        }));
+        
+        return data;
       });
 
-      if (!apiResponse.ok) {
-        throw new Error(`API request failed: ${apiResponse.status}`);
-      }
-
-      const madeToOrderData = await apiResponse.json();
+      const allApiData = await Promise.allSettled(apiPromises);
       
-      // Step 3: Cache the data in sessionStorage
+      // Step 3: Preload ALL images from all products
       setState(prev => ({ ...prev, preloadProgress: 70 }));
       
-      sessionStorage.setItem('madeToOrderCache', JSON.stringify({
-        data: madeToOrderData,
-        timestamp: Date.now(),
-        version: '1.0'
-      }));
+      const allProducts = allApiData
+        .filter(result => result.status === 'fulfilled')
+        .flatMap(result => (result as any).value)
+        .filter(item => item && (item.image || item.images));
 
-      // Step 4: Preload images (low priority)
-      setState(prev => ({ ...prev, preloadProgress: 90 }));
-      
-      if (priority === 'high' && madeToOrderData.length > 0) {
-        // Preload first few product images
-        const imagePromises = madeToOrderData.slice(0, 3).map((product: any) => {
-          const imageSrc = product.image || product.images?.[0];
-          if (imageSrc) {
-            return new Promise((resolve) => {
-              const img = new Image();
-              img.onload = resolve;
-              img.onerror = resolve; // Don't fail on image errors
-              img.src = imageSrc;
-            });
-          }
-          return Promise.resolve();
-        });
+      if (allProducts.length > 0) {
+        // Preload ALL images - no limits
+        const imagePromises = allProducts.map((product: any) => {
+          const images = product.images || [product.image];
+          return images.map((imageSrc: string) => {
+            if (imageSrc) {
+              return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = resolve; // Don't fail on image errors
+                img.src = imageSrc;
+                img.loading = 'eager'; // High priority loading
+              });
+            }
+            return Promise.resolve();
+          });
+        }).flat();
 
         await Promise.allSettled(imagePromises);
       }
