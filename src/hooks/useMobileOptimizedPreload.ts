@@ -10,6 +10,30 @@ interface MobilePreloadState {
   connectionType: 'slow' | 'fast' | 'unknown';
 }
 
+// Security function to remove sensitive data
+const removeSensitiveData = (data: any, endpoint: string) => {
+  if (endpoint.includes('products') || endpoint.includes('made-to-order')) {
+    // Remove prices and sensitive info from products
+    return data.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      images: product.images,
+      category: product.category,
+      // NO PRICES - always fetch from server
+      // NO STOCK - always fetch real-time
+    }));
+  }
+  
+  if (endpoint.includes('wilaya')) {
+    // Wilaya data is safe to cache
+    return data;
+  }
+  
+  // Default: return data as-is for safe endpoints
+  return data;
+};
+
 export function useMobileOptimizedPreload() {
   const [state, setState] = useState<MobilePreloadState>({
     isPreloading: false,
@@ -97,12 +121,13 @@ export function useMobileOptimizedPreload() {
 
       setState(prev => ({ ...prev, preloadProgress: 40 }));
       
-      // Preload ALL API data - same as desktop
+      // Preload ALL API data - same as desktop (but secure)
       const apiEndpoints = [
         '/api/made-to-order',
         '/api/products',
-        '/api/inventory',
         '/api/wilaya'
+        // NO INVENTORY - always fetch real-time stock
+        // NO ORDERS/CUSTOMERS - sensitive data
       ];
       
       const apiPromises = apiEndpoints.map(async (endpoint) => {
@@ -120,11 +145,14 @@ export function useMobileOptimizedPreload() {
 
         const data = await response.json();
         
-        // Cache ALL data - no limits for mobile
+        // Remove sensitive data before caching
+        const safeData = removeSensitiveData(data, endpoint);
+        
+        // Cache safe data only
         const cacheData = {
-          data: data, // Full data, not sliced
+          data: safeData, // Safe data only
           timestamp: Date.now(),
-          version: '1.0-full'
+          version: '1.0-safe'
         };
         
         sessionStorage.setItem(`${endpoint.replace('/api/', '')}Cache`, JSON.stringify(cacheData));

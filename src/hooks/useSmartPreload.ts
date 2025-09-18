@@ -17,6 +17,30 @@ interface PreloadOptions {
   onError?: (error: string) => void;
 }
 
+// Security function to remove sensitive data
+const removeSensitiveData = (data: any, endpoint: string) => {
+  if (endpoint.includes('products') || endpoint.includes('made-to-order')) {
+    // Remove prices and sensitive info from products
+    return data.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      images: product.images,
+      category: product.category,
+      // NO PRICES - always fetch from server
+      // NO STOCK - always fetch real-time
+    }));
+  }
+  
+  if (endpoint.includes('wilaya')) {
+    // Wilaya data is safe to cache
+    return data;
+  }
+  
+  // Default: return data as-is for safe endpoints
+  return data;
+};
+
 export function useSmartPreload(options: PreloadOptions = {}) {
   const {
     delay = 2000, // 2 seconds delay after home page loads
@@ -67,10 +91,9 @@ export function useSmartPreload(options: PreloadOptions = {}) {
       const apiEndpoints = [
         '/api/made-to-order',
         '/api/products',
-        '/api/inventory',
-        '/api/wilaya',
-        '/api/orders',
-        '/api/customers'
+        '/api/wilaya'
+        // NO INVENTORY - always fetch real-time stock
+        // NO ORDERS/CUSTOMERS - sensitive data
         // Admin APIs are EXCLUDED - users can't access them
       ];
       
@@ -88,11 +111,14 @@ export function useSmartPreload(options: PreloadOptions = {}) {
 
         const data = await response.json();
         
-        // Cache ALL data
+        // Remove sensitive data before caching
+        const safeData = removeSensitiveData(data, endpoint);
+        
+        // Cache safe data only
         sessionStorage.setItem(`${endpoint.replace('/api/', '')}Cache`, JSON.stringify({
-          data: data,
+          data: safeData,
           timestamp: Date.now(),
-          version: '1.0-full'
+          version: '1.0-safe'
         }));
         
         return data;
