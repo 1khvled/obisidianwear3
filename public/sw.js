@@ -8,9 +8,7 @@ const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
   '/robots.txt',
-  '/sitemap.xml',
-  '/_next/static/css/',
-  '/_next/static/js/',
+  '/sitemap.xml'
 ];
 
 // Install event - cache static assets
