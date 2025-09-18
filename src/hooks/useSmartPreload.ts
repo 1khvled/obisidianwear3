@@ -17,18 +17,18 @@ interface PreloadOptions {
   onError?: (error: string) => void;
 }
 
-// Security function to remove sensitive data
+// Smart caching - cache prices, keep stock real-time
 const removeSensitiveData = (data: any, endpoint: string) => {
   if (endpoint.includes('products') || endpoint.includes('made-to-order')) {
-    // Remove prices and sensitive info from products
+    // Cache everything EXCEPT stock (prices are stable, stock changes frequently)
     return data.map((product: any) => ({
       id: product.id,
       name: product.name,
       description: product.description,
       images: product.images,
       category: product.category,
-      // NO PRICES - always fetch from server
-      // NO STOCK - always fetch real-time
+      price: product.price, // CACHE PRICES - they don't change often
+      // NO STOCK - always fetch real-time for accuracy
     }));
   }
   
